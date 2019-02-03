@@ -8,49 +8,15 @@ import (
 	"encoding/xml"
 )
 
-type Cell struct {
+type excelCell struct {
 	Type string `xml:"t,attr"`
 	CellId string `xml:"r"`
 	String string `xml:"is>t"`
 	Number float64  `xml:"v"`
 }
 
-type Row struct {
-	Cells []Cell `xml:"c"`
-}
-
-type GenconEvent struct {
-	EventId string
-	Group string
-	Title string
-	ShortDescription string
-	LongDescription string
-	EventType string
-	GameSystem string
-	RulesEdition string
-	MinPlayers int
-	MaxPlayers int
-	AgeRequired string
-	ExperienceRequired string
-	MaterialsProvided bool
-	StartTime time.Time
-	Duration time.Duration
-	EndTime time.Time
-	GMNames string
-	Website string
-	Email string
-	Tournament bool
-	RoundNumber int
-	TotalRounds int
-	MinPlayTime int
-	AttendeeRegistration string
-	Cost int
-	Location string
-	RoomName string
-	TableNumber string
-	SpecialCategory string
-	TicketsAvailable int
-	LastModified float64
+type excelRow struct {
+	Cells []excelCell `xml:"c"`
 }
 
 func parseTime(dateString string) time.Time {
@@ -65,7 +31,7 @@ func parseTime(dateString string) time.Time {
 	return parsed
 }
 
-func RowToEvent(row *Row) *GenconEvent {
+func RowToEvent(row *excelRow) *GenconEvent {
 	cells := row.Cells
 	// We don't trust the end time supplied in the sheet, it's disagreed
 	// with what gencon.com listed
@@ -140,7 +106,7 @@ func ParseGenconSheet(raw_bytes []byte) []*GenconEvent {
 					seenHeader = true
 					continue
 				}
-				var row Row
+				var row excelRow
 				decoder.DecodeElement(&row, &t)
 				events = append(events, RowToEvent(&row))
 			}
