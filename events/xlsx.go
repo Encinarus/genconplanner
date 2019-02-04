@@ -10,7 +10,7 @@ import (
 
 type excelCell struct {
 	Type string `xml:"t,attr"`
-	CellId string `xml:"r"`
+	CellId string `xml:"r,attr"`
 	String string `xml:"is>t"`
 	Number float64  `xml:"v"`
 }
@@ -20,9 +20,9 @@ type excelRow struct {
 }
 
 func parseTime(dateString string) time.Time {
-	// 07/30/2015 03:00 PM
-	// Mon Jan 2 15:04:05 -0700 MST 2006
-	// 01/02/2006 03:04 PM
+	// source format:			07/30/2015 03:00 PM
+	// canonical go time: 		Mon Jan 2 15:04:05 -0700 MST 2006
+	// reformated canonical: 	01/02/2006 03:04 PM
 	location, _ := time.LoadLocation("America/Indianapolis")
 	parsed, _ := time.ParseInLocation(
 		"01/02/2006 03:04 PM",
@@ -31,20 +31,33 @@ func parseTime(dateString string) time.Time {
 	return parsed
 }
 
-func RowToEvent(row *excelRow) *GenconEvent {
+func rowToEvent(row *excelRow) *GenconEvent {
 	cells := row.Cells
-	// We don't trust the end time supplied in the sheet, it's disagreed
-	// with what gencon.com listed
 	startTime := parseTime(cells[13].String)
-	duration := (time.Duration)(1e9 * 60 * 60 * cells[14].Number)
-	endTime := startTime.Add(duration)
+	duration := (int)(60 * cells[14].Number)
+	// We don't trust the end time supplied in the sheet, it's disagreed
+	// with what gencon.com listed, so calculate based on duration
+	// time.Duration is in nano seconds, convert minutes to seconds
+	endTime := startTime.Add((time.Duration)(1e9 * 60 *  duration))
+
+	eventId := cells[0].String
+	category, year := splitId(eventId)
+
+	indy, _ := time.LoadLocation("America/Indianapolis")
+	excelReferenceDate := time.Date(1900, time.January, 01, 0, 0, 0, 0, indy)
+	// This doesn't quite get us the last update time, but it's close enough
+	lastModifiedDuration := (time.Duration)(cells[30].Number * (float64)(time.Hour) * 24)
+	lastModified := excelReferenceDate.Add(lastModifiedDuration)
+
 	return &GenconEvent{
-		EventId : cells[0].String,
+		EventId : eventId,
+		Year: year,
+		Active: true,
 		Group: cells[1].String,
 		Title: cells[2].String,
 		ShortDescription: cells[3].String,
 		LongDescription: cells[4].String,
-		EventType: cells[5].String,
+		EventType: category,
 		GameSystem: cells[6].String,
 		RulesEdition: cells[7].String,
 		MinPlayers: (int)(cells[8].Number),
@@ -61,7 +74,7 @@ func RowToEvent(row *excelRow) *GenconEvent {
 		Tournament: cells[19].String == "Yes",
 		RoundNumber: (int)(cells[20].Number),
 		TotalRounds: (int)(cells[21].Number),
-		MinPlayTime: (int)(cells[22].Number), // lookup how this is used
+		MinPlayTime: (int)(60 * cells[22].Number),
 		AttendeeRegistration: cells[23].String,
 		Cost: (int)(cells[24].Number),
 		Location: cells[25].String,
@@ -69,12 +82,12 @@ func RowToEvent(row *excelRow) *GenconEvent {
 		TableNumber: cells[27].String,
 		SpecialCategory: cells[28].String,
 		TicketsAvailable: (int)(cells[29].Number),
-		LastModified: cells[30].Number,
+		LastModified: lastModified,
 	}
 }
 
-func ParseGenconSheet(raw_bytes []byte) []*GenconEvent {
-	zipReader, err := zip.NewReader(bytes.NewReader(raw_bytes), (int64)(len(raw_bytes)))
+func ParseGenconSheet(rawBytes []byte) []*GenconEvent {
+	zipReader, err := zip.NewReader(bytes.NewReader(rawBytes), (int64)(len(rawBytes)))
 	if err != nil {
 		panic(err)
 	}
@@ -102,13 +115,17 @@ func ParseGenconSheet(raw_bytes []byte) []*GenconEvent {
 		switch t := token.(type) {
 		case xml.StartElement:
 			if t.Name.Local == "row"{
+				// Header row won't fit in the text
 				if !seenHeader {
 					seenHeader = true
 					continue
 				}
 				var row excelRow
-				decoder.DecodeElement(&row, &t)
-				events = append(events, RowToEvent(&row))
+				err = decoder.DecodeElement(&row, &t)
+				if err != nil {
+					panic(err)
+				}
+				events = append(events, rowToEvent(&row))
 			}
 		}
 	}

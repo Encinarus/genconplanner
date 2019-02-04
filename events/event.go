@@ -1,9 +1,35 @@
 package events
 
-import "time"
+import (
+	"log"
+	"strconv"
+	"strings"
+	"time"
+	"unicode"
+)
+
+
+func splitId(rawEventId string) (string, int) {
+	// Remove the letters on the left leaves us with <2 # year><id>
+	yearId := strings.TrimLeftFunc(rawEventId, unicode.IsLetter)
+	// Remove the numbers on the right leaves us with the event category
+	category := strings.TrimRightFunc(rawEventId, unicode.IsDigit)
+
+	twoDigitYear, err := strconv.Atoi(yearId[:2])
+	if err != nil {
+		log.Fatalf("Unable to parse year out of %s, %v", rawEventId, err)
+	}
+	if 15 > twoDigitYear || 19 < twoDigitYear {
+		log.Fatalf("Unsupported year being parsed! rawEventId %s", rawEventId)
+	}
+
+	return category, 2000 + twoDigitYear
+}
 
 type GenconEvent struct {
 	EventId string
+	Year int
+	Active bool
 	Group string
 	Title string
 	ShortDescription string
@@ -17,7 +43,7 @@ type GenconEvent struct {
 	ExperienceRequired string
 	MaterialsProvided bool
 	StartTime time.Time
-	Duration time.Duration
+	Duration int
 	EndTime time.Time
 	GMNames string
 	Website string
@@ -33,7 +59,5 @@ type GenconEvent struct {
 	TableNumber string
 	SpecialCategory string
 	TicketsAvailable int
-	// This _should_ be a time.Time, but this is an excel datetime
-	// which 1) is a pain to parse and 2) comparable anyway.
-	LastModified float64
+	LastModified time.Time
 }
