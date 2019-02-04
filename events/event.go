@@ -35,6 +35,17 @@ func splitId(rawEventId string) (string, int) {
 	return category, 2000 + twoDigitYear
 }
 
+type SlimEvent struct {
+	EventId string
+	StartTime time.Time
+	Duration int
+	EndTime time.Time
+	Location string
+	RoomName string
+	TableNumber string
+	TicketsAvailable int
+}
+
 type GenconEvent struct {
 	EventId string
 	Year int
@@ -69,4 +80,17 @@ type GenconEvent struct {
 	SpecialCategory string
 	TicketsAvailable int
 	LastModified time.Time
+}
+
+func (e *GenconEvent) SlimEvent() *SlimEvent {
+	return &SlimEvent{
+		EventId: e.EventId,
+		StartTime: e.StartTime,
+		Duration: e.Duration,
+		EndTime: e.EndTime,
+		Location: e.Location,
+		RoomName: e.RoomName,
+		TableNumber: e.TableNumber,
+		TicketsAvailable: e.TicketsAvailable,
+	}
 }
