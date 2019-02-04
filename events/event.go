@@ -8,6 +8,15 @@ import (
 	"unicode"
 )
 
+func CategoryFromEvent(rawEventId string) string {
+	category, _ := splitId(rawEventId)
+	return category
+}
+
+func YearFromEvent(rawEventId string) int {
+	_, year := splitId(rawEventId)
+	return year
+}
 
 func splitId(rawEventId string) (string, int) {
 	// Remove the letters on the left leaves us with <2 # year><id>

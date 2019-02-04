@@ -41,7 +41,7 @@ func rowToEvent(row *excelRow) *GenconEvent {
 	endTime := startTime.Add((time.Duration)(1e9 * 60 *  duration))
 
 	eventId := cells[0].String
-	category, year := splitId(eventId)
+	_, year := splitId(eventId)
 
 	indy, _ := time.LoadLocation("America/Indianapolis")
 	excelReferenceDate := time.Date(1900, time.January, 01, 0, 0, 0, 0, indy)
@@ -57,7 +57,7 @@ func rowToEvent(row *excelRow) *GenconEvent {
 		Title: cells[2].String,
 		ShortDescription: cells[3].String,
 		LongDescription: cells[4].String,
-		EventType: category,
+		EventType: cells[5].String,
 		GameSystem: cells[6].String,
 		RulesEdition: cells[7].String,
 		MinPlayers: (int)(cells[8].Number),
