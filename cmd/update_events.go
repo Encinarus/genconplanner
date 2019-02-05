@@ -11,9 +11,6 @@ import (
 	"strings"
 )
 
-var dbConnectString = flag.String("db", "", "postgres connect string")
-var sourceFile = flag.String("eventFile", "", "file path or url to load from")
-
 func parseSheet() []*events.GenconEvent {
 	fileReader, err := os.Open(*sourceFile)
 
