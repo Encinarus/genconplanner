@@ -1,0 +1,28 @@
+/* Main content */
+.main {
+    padding: 20px;
+    font-size: small;
+}
+@media (min-width: 768px) {
+    .main {
+        padding-right: 40px;
+        padding-left: 40px;
+    }
+}
+@media (max-width: 768px) {
+    h1 {
+        font-size: 14pt;
+    }
+}
+
+.main .page-header {
+    margin-top: 0;
+}
+
+.ticketsAvailable {
+    font-weight: bold;
+}
+
+body {
+    padding-top: 50px;
+}

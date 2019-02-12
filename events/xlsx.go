@@ -3,16 +3,16 @@ package events
 import (
 	"archive/zip"
 	"bytes"
-	"time"
-	"io/ioutil"
 	"encoding/xml"
+	"io/ioutil"
+	"time"
 )
 
 type excelCell struct {
-	Type string `xml:"t,attr"`
-	CellId string `xml:"r,attr"`
-	String string `xml:"is>t"`
-	Number float64  `xml:"v"`
+	Type   string  `xml:"t,attr"`
+	CellId string  `xml:"r,attr"`
+	String string  `xml:"is>t"`
+	Number float64 `xml:"v"`
 }
 
 type excelRow struct {
@@ -38,10 +38,10 @@ func rowToEvent(row *excelRow) *GenconEvent {
 	// We don't trust the end time supplied in the sheet, it's disagreed
 	// with what gencon.com listed, so calculate based on duration
 	// time.Duration is in nano seconds, convert minutes to seconds
-	endTime := startTime.Add((time.Duration)(1e9 * 60 *  duration))
+	endTime := startTime.Add((time.Duration)(1e9 * 60 * duration))
 
 	eventId := cells[0].String
-	_, year := splitId(eventId)
+	shortCategory, year := splitId(eventId)
 
 	indy, _ := time.LoadLocation("America/Indianapolis")
 	excelReferenceDate := time.Date(1900, time.January, 01, 0, 0, 0, 0, indy)
@@ -50,39 +50,40 @@ func rowToEvent(row *excelRow) *GenconEvent {
 	lastModified := excelReferenceDate.Add(lastModifiedDuration)
 
 	return &GenconEvent{
-		EventId : eventId,
-		Year: year,
-		Active: true,
-		Group: cells[1].String,
-		Title: cells[2].String,
-		ShortDescription: cells[3].String,
-		LongDescription: cells[4].String,
-		EventType: cells[5].String,
-		GameSystem: cells[6].String,
-		RulesEdition: cells[7].String,
-		MinPlayers: (int)(cells[8].Number),
-		MaxPlayers: (int)(cells[9].Number),
-		AgeRequired: cells[10].String,
-		ExperienceRequired: cells[11].String,
-		MaterialsProvided: cells[12].String == "Yes",
-		StartTime: startTime,
-		Duration: duration,
-		EndTime: endTime,
-		GMNames: cells[16].String,
-		Website: cells[17].String,
-		Email: cells[18].String,
-		Tournament: cells[19].String == "Yes",
-		RoundNumber: (int)(cells[20].Number),
-		TotalRounds: (int)(cells[21].Number),
-		MinPlayTime: (int)(60 * cells[22].Number),
+		EventId:              eventId,
+		Year:                 year,
+		Active:               true,
+		Group:                cells[1].String,
+		Title:                cells[2].String,
+		ShortDescription:     cells[3].String,
+		LongDescription:      cells[4].String,
+		EventType:            cells[5].String,
+		GameSystem:           cells[6].String,
+		RulesEdition:         cells[7].String,
+		MinPlayers:           (int)(cells[8].Number),
+		MaxPlayers:           (int)(cells[9].Number),
+		AgeRequired:          cells[10].String,
+		ExperienceRequired:   cells[11].String,
+		MaterialsProvided:    cells[12].String == "Yes",
+		StartTime:            startTime,
+		Duration:             duration,
+		EndTime:              endTime,
+		GMNames:              cells[16].String,
+		Website:              cells[17].String,
+		Email:                cells[18].String,
+		Tournament:           cells[19].String == "Yes",
+		RoundNumber:          (int)(cells[20].Number),
+		TotalRounds:          (int)(cells[21].Number),
+		MinPlayTime:          (int)(60 * cells[22].Number),
 		AttendeeRegistration: cells[23].String,
-		Cost: (int)(cells[24].Number),
-		Location: cells[25].String,
-		RoomName: cells[26].String,
-		TableNumber: cells[27].String,
-		SpecialCategory: cells[28].String,
-		TicketsAvailable: (int)(cells[29].Number),
-		LastModified: lastModified,
+		Cost:                 (int)(cells[24].Number),
+		Location:             cells[25].String,
+		RoomName:             cells[26].String,
+		TableNumber:          cells[27].String,
+		SpecialCategory:      cells[28].String,
+		TicketsAvailable:     (int)(cells[29].Number),
+		LastModified:         lastModified,
+		ShortCategory:        shortCategory,
 	}
 }
 
@@ -111,10 +112,10 @@ func ParseGenconSheet(rawBytes []byte) []*GenconEvent {
 
 	seenHeader := false
 	var events []*GenconEvent
-	for token, err := decoder.Token(); err == nil ; token, err = decoder.Token() {
+	for token, err := decoder.Token(); err == nil; token, err = decoder.Token() {
 		switch t := token.(type) {
 		case xml.StartElement:
-			if t.Name.Local == "row"{
+			if t.Name.Local == "row" {
 				// Header row won't fit in the text
 				if !seenHeader {
 					seenHeader = true

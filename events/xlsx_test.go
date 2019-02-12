@@ -18,7 +18,7 @@ func TestParseTime(t *testing.T) {
 	}
 	timezoneName, offset := parsedTime.Zone()
 	// offsets are in minutes, and we expect it to be -4 for EDT
-	if offset != -4 * 60 * 60{
+	if offset != -4*60*60 {
 		t.Errorf("%s is in %v offset, not -4 as expected", timezoneName, offset)
 	}
 }

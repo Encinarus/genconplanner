@@ -1,0 +1,39 @@
+{{$year := .year}}
+
+<html>
+<head>
+    {{ template "header" "Gencon Events"}}
+</head>
+
+<body>
+{{ template "navbar" $year }}
+<div class="container">
+<h1 class="page-header">{{ .pageHeader }} <small>{{ .subHeader }}</small></h1>
+<div class="row">
+<div class="main">
+
+<h4>{{ len .groups }} events</h4>
+    <div class="list-group col-md-12">
+        {{ range $row := .groups}}
+            <a href="/event/{{ $row.EventId }}"
+               class="list-group-item" style="font-size: small">
+                <h5>{{ $row.Name }}</h5>
+                <p>{{ $row.Description }}</p>
+                <ul class="list-inline">
+                    <li><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>
+                    <li><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>
+                    <li><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>
+                    <li><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>
+                    <li><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
+                </ul>
+            </a>
+        {{ end }}
+    </div>
+</div>
+</div>
+</div>
+</body>
+
+{{ template "scriptFooter" }}
+</body>
+</html>

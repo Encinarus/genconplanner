@@ -36,61 +36,62 @@ func splitId(rawEventId string) (string, int) {
 }
 
 type SlimEvent struct {
-	EventId string
-	StartTime time.Time
-	Duration int
-	EndTime time.Time
-	Location string
-	RoomName string
-	TableNumber string
+	EventId          string
+	StartTime        time.Time
+	Duration         int
+	EndTime          time.Time
+	Location         string
+	RoomName         string
+	TableNumber      string
 	TicketsAvailable int
 }
 
 type GenconEvent struct {
-	EventId string
-	Year int
-	Active bool
-	Group string
-	Title string
-	ShortDescription string
-	LongDescription string
-	EventType string
-	GameSystem string
-	RulesEdition string
-	MinPlayers int
-	MaxPlayers int
-	AgeRequired string
-	ExperienceRequired string
-	MaterialsProvided bool
-	StartTime time.Time
-	Duration int
-	EndTime time.Time
-	GMNames string
-	Website string
-	Email string
-	Tournament bool
-	RoundNumber int
-	TotalRounds int
-	MinPlayTime int
+	EventId              string
+	Year                 int
+	Active               bool
+	Group                string
+	Title                string
+	ShortDescription     string
+	LongDescription      string
+	EventType            string
+	GameSystem           string
+	RulesEdition         string
+	MinPlayers           int
+	MaxPlayers           int
+	AgeRequired          string
+	ExperienceRequired   string
+	MaterialsProvided    bool
+	StartTime            time.Time
+	Duration             int
+	EndTime              time.Time
+	GMNames              string
+	Website              string
+	Email                string
+	Tournament           bool
+	RoundNumber          int
+	TotalRounds          int
+	MinPlayTime          int
 	AttendeeRegistration string
-	Cost int
-	Location string
-	RoomName string
-	TableNumber string
-	SpecialCategory string
-	TicketsAvailable int
-	LastModified time.Time
+	Cost                 int
+	Location             string
+	RoomName             string
+	TableNumber          string
+	SpecialCategory      string
+	TicketsAvailable     int
+	LastModified         time.Time
+	ShortCategory        string
 }
 
 func (e *GenconEvent) SlimEvent() *SlimEvent {
 	return &SlimEvent{
-		EventId: e.EventId,
-		StartTime: e.StartTime,
-		Duration: e.Duration,
-		EndTime: e.EndTime,
-		Location: e.Location,
-		RoomName: e.RoomName,
-		TableNumber: e.TableNumber,
+		EventId:          e.EventId,
+		StartTime:        e.StartTime,
+		Duration:         e.Duration,
+		EndTime:          e.EndTime,
+		Location:         e.Location,
+		RoomName:         e.RoomName,
+		TableNumber:      e.TableNumber,
 		TicketsAvailable: e.TicketsAvailable,
 	}
 }

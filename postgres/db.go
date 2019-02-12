@@ -1,9 +1,7 @@
 package postgres
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/csv"
 	"fmt"
 	"github.com/Encinarus/genconplanner/events"
 	"github.com/lib/pq"
@@ -12,10 +10,98 @@ import (
 	"time"
 )
 
-type parsedQuery struct {
-	// TODO(alek): make a significantly more robust query parser
-	// add exact match on fields,
-	textQueries []string
+type CategorySummary struct {
+	Name  string
+	Code  string
+	Count int
+}
+
+type EventGroup struct {
+	Name         string
+	EventId      string
+	Description  string
+	Count        int
+	WedTickets   int
+	ThursTickets int
+	FriTickets   int
+	SatTickets   int
+	SunTickets   int
+}
+
+func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
+	var group EventGroup
+	if err := rows.Scan(
+		&group.Name,
+		&group.Description,
+		&group.Count,
+		&group.EventId,
+		&group.WedTickets,
+		&group.ThursTickets,
+		&group.FriTickets,
+		&group.SatTickets,
+		&group.SunTickets,
+	); err != nil {
+		return nil, err
+	}
+	return &group, nil
+}
+
+func LoadEventGroups(db *sql.DB, cat string, year int) ([]*EventGroup, error) {
+	rows, err := db.Query(`
+SELECT 
+       title, 
+       short_description, 
+       count(1),
+       min(event_id),
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets
+FROM event
+WHERE active and year=$1 and short_category=$2
+GROUP BY title, short_description, cluster_key
+ORDER BY sum(tickets_available) > 0 desc
+`, year, cat)
+	if err != nil {
+		return nil, err
+	}
+
+	groups := make([]*EventGroup, 0)
+
+	for rows.Next() {
+		group, err := rowToGroup(rows)
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, group)
+	}
+
+	return groups, nil
+}
+
+func LoadCategorySummary(db *sql.DB, year int) ([]*CategorySummary, error) {
+	rows, err := db.Query(`
+SELECT event_type, COUNT(1)
+FROM event
+where active and year = $1
+GROUP BY event_type
+ORDER BY event_type ASC`, year)
+
+	if err != nil {
+		return nil, err
+	}
+	countsPerCategory := make([]*CategorySummary, 0)
+	for rows.Next() {
+		var summary CategorySummary
+
+		if err = rows.Scan(&summary.Name, &summary.Count); err != nil {
+			return nil, err
+		}
+		summary.Code = strings.Split(summary.Name, " ")[0]
+		countsPerCategory = append(countsPerCategory, &summary)
+	}
+	return countsPerCategory, nil
 }
 
 func LoadSimilarEvents(db *sql.DB, eventId string) ([]*events.GenconEvent, error) {
@@ -46,85 +132,52 @@ WHERE e2.event_id = $1
 	return loadedEvents, nil
 }
 
-func FindEvents(db *sql.DB, searchQuery string) []*events.GenconEvent {
-	// Preprocess, removing symbols which are used in tsquery
-	searchQuery = strings.Replace(searchQuery, "!", "", -1)
-	searchQuery = strings.Replace(searchQuery, "&", "", -1)
-	searchQuery = strings.Replace(searchQuery, "(", "", -1)
-	searchQuery = strings.Replace(searchQuery, ")", "", -1)
-	searchQuery = strings.Replace(searchQuery, "|", "", -1)
+type ParsedQuery struct {
+	// TODO(alek): make a significantly more robust query parser
+	// add exact match on fields,
+	TextQueries []string
+	Year        int
+}
 
-	queryReader := csv.NewReader(bytes.NewBufferString(searchQuery))
-	queryReader.Comma = ' '
-
-	splitQuery, _ := queryReader.Read()
-
-	query := parsedQuery{}
-	// TODO(alek): consider adding a db field "searchable_text" rather than relying
-	// the trigger across many fields. Then exact matches do like vs that, while fuzzy
-	// matches go against the ts_vector column
-	for _, term := range splitQuery {
-		invertTerm := false
-		if strings.HasPrefix(term, "-") {
-			log.Println("Negated term:", term)
-			term = strings.TrimLeft(term, "-")
-			invertTerm = true
-		}
-		if strings.ContainsAny(term, ":<>=-~") {
-			// TODO(alek) Handle key:value searches
-			// : and = work as equals
-			// < > compare for dates or num tickets
-			// ~ is for checking if the string is in a field
-			continue
-		}
-
-		// Now remove remaining symbols we want to allow in field-specific
-		// searches, but not in the general text search
-		term = strings.Replace(term, "<", "", -1)
-		term = strings.Replace(term, ">", "", -1)
-		term = strings.Replace(term, "=", "", -1)
-		term = strings.Replace(term, "-", "", -1)
-		term = strings.Replace(term, "~", "", -1)
-		term = strings.TrimSpace(term)
-		if len(term) == 0 {
-			continue
-		}
-		if invertTerm {
-			term = "!" + term
-		}
-		query.textQueries = append(query.textQueries, term)
-	}
-	tsquery := strings.Join(query.textQueries, " & ")
+func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
+	tsquery := strings.Join(query.TextQueries, " & ")
 
 	// We get groups that have tickets first, then within
 	// that, we rank by how good a match the query was
-	loadedEvents := make([]*events.GenconEvent, 0)
+	loadedEvents := make([]*EventGroup, 0)
 	if len(tsquery) > 0 {
-		rawQuery := fmt.Sprintf(`
-SELECT %s
-FROM event, to_tsquery('%s') q
-WHERE active 
-  AND tsv @@ q
-ORDER BY tickets_available > 0 desc, ts_rank(tsv, q) desc
-`, strings.Join(eventFields(), ", "), tsquery)
-		fmt.Println(rawQuery)
-		rows, err := db.Query(rawQuery)
+		rows, err := db.Query(`
+SELECT 
+       title, 
+       short_description, 
+       count(1),
+       min(event_id),
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets
+FROM event, to_tsquery($1) q
+WHERE active and cluster_key @@ q and year = $2
+GROUP BY title, short_description, cluster_key, ts_rank(cluster_key, q)
+ORDER BY sum(tickets_available) > 0 desc, ts_rank(cluster_key, q) desc`, tsquery, query.Year)
+
 		if err != nil {
-			log.Fatalf("Unable to execute query %s, %v", searchQuery, err)
+			return nil, err
 		}
 
 		// Load all the events
 		for rows.Next() {
-			event, err := scanEvent(rows)
+			group, err := rowToGroup(rows)
 			if err != nil {
-				log.Fatalf("Unable to load event after query, %v", err)
+				return nil, err
 			}
 
-			loadedEvents = append(loadedEvents, event)
+			loadedEvents = append(loadedEvents, group)
 		}
 	}
 
-	return loadedEvents
+	return loadedEvents, nil
 }
 
 func loadEventIds(tx *sql.Tx, year int) (map[string]time.Time, map[string]time.Time, error) {
@@ -171,7 +224,7 @@ func bulkDelete(tx *sql.Tx, deletedEvents []string) error {
 		}
 		batch := make([]string, 0, batchSize)
 		for _, eventId := range deletedEvents[0:batchSize:batchSize] {
-			batch = append(batch, "'" + eventId + "'")
+			batch = append(batch, "'"+eventId+"'")
 		}
 
 		deletedEvents = deletedEvents[batchSize:]
@@ -192,7 +245,7 @@ func bulkDelete(tx *sql.Tx, deletedEvents []string) error {
 func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) error {
 	year := parsedEvents[0].Year
 	activeEvents, inactiveEvents, err := loadEventIds(tx, year)
-	persistedEvents := make(map[string]time.Time, len(activeEvents) + len(inactiveEvents))
+	persistedEvents := make(map[string]time.Time, len(activeEvents)+len(inactiveEvents))
 	for id, updateTime := range activeEvents {
 		persistedEvents[id] = updateTime
 	}
@@ -288,11 +341,13 @@ func eventFields() []string {
 		"special_category",
 		"tickets_available",
 		"last_modified",
+		"short_category",
 	}
 }
 
 func eventToDbFields(event *events.GenconEvent) []interface{} {
-	return []interface{} {
+
+	return []interface{}{
 		event.EventId,
 		event.Year,
 		event.Active,
@@ -326,10 +381,11 @@ func eventToDbFields(event *events.GenconEvent) []interface{} {
 		event.SpecialCategory,
 		event.TicketsAvailable,
 		event.LastModified,
+		event.ShortCategory,
 	}
 }
 
-func scanEvent(row *sql.Rows) (*events.GenconEvent, error){
+func scanEvent(row *sql.Rows) (*events.GenconEvent, error) {
 	var event events.GenconEvent
 
 	err := row.Scan(
@@ -365,7 +421,8 @@ func scanEvent(row *sql.Rows) (*events.GenconEvent, error){
 		&event.TableNumber,
 		&event.SpecialCategory,
 		&event.TicketsAvailable,
-		&event.LastModified)
+		&event.LastModified,
+		&event.ShortCategory)
 
 	return &event, err
 }
@@ -379,7 +436,7 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 			"(%s) = %s",
 			strings.Join(eventFields, ", "),
 			fmt.Sprintf(
-				"($%d" + strings.Repeat(", $%d", numEventFields - 1) + ")",
+				"($%d"+strings.Repeat(", $%d", numEventFields-1)+")",
 				rangeSlice(1, numEventFields)...))
 		updateStatement := fmt.Sprintf(
 			"UPDATE event SET %s WHERE event_id='%s'",
@@ -414,13 +471,13 @@ func bulkInsert(tx *sql.Tx, newRows []*events.GenconEvent) error {
 		newRows = newRows[batchSize:]
 
 		valueStrings := make([]string, 0, len(batch))
-		valueArgs := make([]interface{}, 0, len(batch) * numEventFields)
+		valueArgs := make([]interface{}, 0, len(batch)*numEventFields)
 		for i, row := range batch {
 			valueStrings = append(
 				valueStrings,
 				fmt.Sprintf(
-					"( $%d " + strings.Repeat(",$%d", numEventFields - 1) +" )",
-					rangeSlice(i*numEventFields + 1, i*numEventFields + numEventFields)...))
+					"( $%d "+strings.Repeat(",$%d", numEventFields-1)+" )",
+					rangeSlice(i*numEventFields+1, i*numEventFields+numEventFields)...))
 			valueArgs = append(valueArgs, eventToDbFields(row)...)
 		}
 		insertStatement := fmt.Sprintf(
@@ -437,4 +494,3 @@ func bulkInsert(tx *sql.Tx, newRows []*events.GenconEvent) error {
 
 	return nil
 }
-

@@ -1,0 +1,31 @@
+<html>
+<head>
+    {{ template "header" "Gencon Event Categories"}}
+</head>
+
+<body>
+{{ template "navbar" }}
+
+{{$year := .year}}
+<div class="container">
+  <h1 class="page-header">{{ $year }} Events by category</h1>
+  {{ range $row := .categories }}
+        <div class="row">
+            {{ range $cat := $row }}
+                <div class="col-md-6 col-sm-12" style="padding-bottom: 5px">
+                <a class="btn btn-default text-left"
+                   href="/cat/{{ $year }}/{{ $cat.Code }}"
+                   role="button"
+                   style="width:100%; white-space:normal">{{ $cat.Name }}
+                   <span class="badge">{{ $cat.Count }}</span></a>
+                </div>
+            {{ end }}
+        </div>
+  {{ else }}
+        <h2>Gen Con events aren't available yet.</h2>
+  {{ end }}
+</div>
+
+{{ template "scriptFooter" }}
+</body>
+</html>
