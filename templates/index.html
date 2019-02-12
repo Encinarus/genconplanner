@@ -1,12 +1,13 @@
+{{$year := .year}}
+
 <html>
 <head>
     {{ template "header" "Gencon Event Categories"}}
 </head>
 
 <body>
-{{ template "navbar" }}
+{{ template "navbar" $year }}
 
-{{$year := .year}}
 <div class="container">
   <h1 class="page-header">{{ $year }} Events by category</h1>
   {{ range $row := .categories }}
