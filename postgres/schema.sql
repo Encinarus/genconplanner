@@ -1,3 +1,4 @@
+
 -- Table: public.event
 
 -- DROP TABLE public.event;
@@ -35,19 +36,18 @@ CREATE TABLE public.event
   table_number text COLLATE pg_catalog."default",
   special_category text COLLATE pg_catalog."default",
   tickets_available integer,
-  tsv tsvector,
   year integer,
   cluster_key tsvector,
   last_modified timestamp with time zone,
+  short_category character varying(4) COLLATE pg_catalog."default",
+  title_tsv tsvector,
+  desc_tsv tsvector,
   CONSTRAINT event_pkey PRIMARY KEY (event_id)
 )
   WITH (
     OIDS = FALSE
   )
   TABLESPACE pg_default;
-
-ALTER TABLE public.event
-  OWNER to postgres;
 
 -- Trigger: cluster_vectorupdate
 
@@ -59,12 +59,22 @@ CREATE TRIGGER cluster_vectorupdate
   FOR EACH ROW
 EXECUTE PROCEDURE tsvector_update_trigger('cluster_key', 'pg_catalog.english', 'title', 'short_description', 'long_description', 'event_type', 'game_system');
 
--- Trigger: tsvectorupdate
+-- Trigger: desc_vectorupdate
 
--- DROP TRIGGER tsvectorupdate ON public.event;
+-- DROP TRIGGER desc_vectorupdate ON public.event;
 
-CREATE TRIGGER tsvectorupdate
+CREATE TRIGGER desc_vectorupdate
   BEFORE INSERT OR UPDATE
   ON public.event
   FOR EACH ROW
-EXECUTE PROCEDURE tsvector_update_trigger('tsv', 'pg_catalog.english', 'title', 'short_description', 'long_description', 'event_type', 'game_system', 'org_group', 'gm_names');
+EXECUTE PROCEDURE tsvector_update_trigger('desc_tsv', 'pg_catalog.english', 'short_description', 'long_description');
+
+-- Trigger: title_vectorupdate
+
+-- DROP TRIGGER title_vectorupdate ON public.event;
+
+CREATE TRIGGER title_vectorupdate
+  BEFORE INSERT OR UPDATE
+  ON public.event
+  FOR EACH ROW
+EXECUTE PROCEDURE tsvector_update_trigger('title_tsv', 'pg_catalog.english', 'title');

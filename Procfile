@@ -1,1 +1,1 @@
-web: genconplanner -p=$PORT -db=$DATABASE_URL
+web: genconplanner -port=$PORT -db=$DATABASE_URL
