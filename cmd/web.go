@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/csv"
 	"flag"
+	"fmt"
 	"github.com/Encinarus/genconplanner/events"
 	"github.com/Encinarus/genconplanner/postgres"
 	"github.com/gin-gonic/gin"
@@ -17,6 +18,7 @@ import (
 )
 
 var dbConnectString = flag.String("db", "", "postgres connect string")
+var port = flag.Int("port", 8080, "port to listen on")
 
 type LookupResult struct {
 	MainEvent     *events.GenconEvent
@@ -225,5 +227,5 @@ func main() {
 	r.GET("/", indexHandler)
 	r.GET("/index", indexHandler)
 	r.GET("/cat/:year", indexHandler)
-	r.Run() // listen and serve on 0.0.0.0:8080
+	r.Run(fmt.Sprintf(":%d", *port))
 }

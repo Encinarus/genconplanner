@@ -159,8 +159,10 @@ SELECT
        sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets
 FROM event, to_tsquery($1) q
 WHERE active and cluster_key @@ q and year = $2
-GROUP BY title, short_description, cluster_key, ts_rank(cluster_key, q)
-ORDER BY sum(tickets_available) > 0 desc, ts_rank(cluster_key, q) desc`, tsquery, query.Year)
+GROUP BY title, short_description, cluster_key, ts_rank(title_tsv, q), ts_rank(cluster_key, q)
+ORDER BY sum(tickets_available) > 0 desc, 
+         ts_rank(title_tsv, q) desc,
+         ts_rank(cluster_key, q) desc`, tsquery, query.Year)
 
 		if err != nil {
 			return nil, err
