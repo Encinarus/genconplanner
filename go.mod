@@ -1,6 +1,6 @@
 module github.com/Encinarus/genconplanner
 
-// +heroku install ./cmd/... ./events/... ./postgres/... ./static/... ./templates/...
+// +heroku install ./cmd/web.go ./events/... ./postgres/... ./static/... ./templates/...
 
 require (
 	github.com/gin-contrib/sse v0.0.0-20190125020943-a7658810eb74 // indirect
