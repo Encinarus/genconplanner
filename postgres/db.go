@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"github.com/Encinarus/genconplanner/events"
 	"github.com/lib/pq"
@@ -9,6 +10,12 @@ import (
 	"strings"
 	"time"
 )
+
+var dbConnectString = flag.String("db", "", "postgres connect string")
+
+func OpenDb() (*sql.DB, error) {
+	return sql.Open("postgres", *dbConnectString)
+}
 
 type CategorySummary struct {
 	Name  string

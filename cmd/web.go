@@ -17,7 +17,6 @@ import (
 	"time"
 )
 
-var dbConnectString = flag.String("db", "", "postgres connect string")
 var port = flag.Int("port", 8080, "port to listen on")
 
 type LookupResult struct {
@@ -205,7 +204,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 func main() {
 	flag.Parse()
 
-	db, err := sql.Open("postgres", *dbConnectString)
+	db, err := postgres.OpenDb()
 	if err != nil {
 		log.Fatal(err)
 	}

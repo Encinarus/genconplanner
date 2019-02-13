@@ -11,7 +11,6 @@ import (
 	"strings"
 )
 
-var dbConnectString = flag.String("db", "", "postgres connect string")
 var sourceFile = flag.String("eventFile", "", "file path or url to load from")
 
 func parseSheet() []*events.GenconEvent {
@@ -56,7 +55,7 @@ func writeEvents(db *sql.DB, genconEvents []*events.GenconEvent) {
 func main() {
 	flag.Parse()
 
-	db, err := sql.Open("postgres", *dbConnectString)
+	db, err := postgres.OpenDb()
 	if err != nil {
 		log.Fatal(err)
 	}
