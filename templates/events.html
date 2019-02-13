@@ -16,7 +16,7 @@
     <div class="list-group col-md-12">
         {{ range $row := .groups}}
             <a href="/event/{{ $row.EventId }}"
-               class="list-group-item" style="font-size: small">
+               class="list-group-item eventGroup" style="font-size: small">
                 <h5>{{ $row.Name }}</h5>
                 <p>{{ $row.Description }}</p>
                 <ul class="list-inline">

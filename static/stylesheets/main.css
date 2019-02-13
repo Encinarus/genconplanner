@@ -23,6 +23,20 @@
     font-weight: bold;
 }
 
+.eventGroup {
+    padding-top: .1em;
+    padding-bottom: .1em;
+}
+
+.eventGroup h5 {
+    margin-bottom: .2em;
+}
+
+.eventGroup p {
+    margin-bottom: .2em;
+    margin-left: 1em;
+}
+
 body {
     padding-top: 50px;
 }
