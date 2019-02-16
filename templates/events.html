@@ -1,4 +1,5 @@
 {{$year := .year}}
+{{$partitions := .partitions }}
 
 <html>
 <head>
@@ -8,27 +9,38 @@
 <body>
 {{ template "navbar" $year }}
 <div class="container">
-<h1 class="page-header">{{ .pageHeader }} <small>{{ .subHeader }}</small></h1>
+<h1 class="page-header" id="top">{{ .pageHeader }} <small>{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups</small></h1>
 <div class="row">
 <div class="main">
-
-<h4>{{ len .groups }} events</h4>
-    <div class="list-group col-md-12">
-        {{ range $row := .groups}}
-            <a href="/event/{{ $row.EventId }}"
-               class="list-group-item eventGroup" style="font-size: small">
-                <h5>{{ $row.Name }}</h5>
-                <p>{{ $row.Description }}</p>
-                <ul class="list-inline">
-                    <li><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>
-                    <li><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>
-                    <li><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>
-                    <li><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>
-                    <li><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
-                </ul>
-            </a>
+<ul class="nav flex-column col-md-2">
+    <h4>{{ .breakdown }}</h4>
+    {{ range $heading := .headings }}
+    <li class="nav-item">
+        <a class="nav-link groupLink" href="#{{ $heading | toId }}">{{ $heading }}
+            ({{ len (index $partitions $heading) }})</a>
+    </li>
+    {{ end }}
+</ul>
+<div class="list-group col-md-10">
+    <h4>Events</h4>
+    {{ range $heading := .headings }}
+        <h5 id="{{ $heading | toId }}">{{ $heading }} (<a href="#top">top</a>)</h5>
+        {{ range $row := (index $partitions $heading) }}
+        <a href="/event/{{ $row.EventId }}"
+           class="list-group-item eventGroup" style="font-size: small">
+            <h5>{{ $row.Name }} <small>{{ $row.GameSystem }}</small></h5>
+            <p>{{ $row.Description }}</p>
+            <ul class="list-inline">
+                <li><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>
+                <li><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>
+                <li><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>
+                <li><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>
+                <li><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
+            </ul>
+        </a>
         {{ end }}
-    </div>
+    {{ end }}
+</div>
 </div>
 </div>
 </div>

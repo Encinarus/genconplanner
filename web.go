@@ -10,8 +10,11 @@ import (
 	"github.com/Encinarus/genconplanner/postgres"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+	"html/template"
 	"log"
 	"net/http"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -154,6 +157,13 @@ func parseQuery(searchQuery string, yearParam string) *postgres.ParsedQuery {
 }
 
 func Search(db *sql.DB) func(c *gin.Context) {
+	keyFunc := func(g *postgres.EventGroup) string {
+		if len(strings.TrimSpace(g.ShortCategory)) == 0 {
+			return "Unknown"
+		}
+		return g.ShortCategory
+	}
+
 	return func(c *gin.Context) {
 		query := c.Query("q")
 		year := c.Query("y")
@@ -161,21 +171,57 @@ func Search(db *sql.DB) func(c *gin.Context) {
 
 		parsedQuery := parseQuery(query, year)
 
-		foundEvents, err := postgres.FindEvents(db, parsedQuery)
+		eventGroups, err := postgres.FindEvents(db, parsedQuery)
+		totalEvents := 0
+		for _, group := range eventGroups {
+			totalEvents += group.Count
+		}
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 		} else {
+			headings, partitions := partitionGroups(eventGroups, keyFunc)
 			c.HTML(http.StatusOK, "events.html", gin.H{
-				"year":       year,
-				"groups":     foundEvents,
-				"pageHeader": "Search",
-				"subHeader":  query,
+				"year":        year,
+				"headings":    headings,
+				"partitions":  partitions,
+				"totalEvents": totalEvents,
+				"groups":      len(eventGroups),
+				"breakdown":   "Category",
+				"pageHeader":  "Search",
+				"subHeader":   query,
 			})
 		}
 	}
 }
 
+func partitionGroups(
+	groups []*postgres.EventGroup,
+	keyFunction func(*postgres.EventGroup) string,
+) ([]string, map[string][]*postgres.EventGroup) {
+
+	partitions := make(map[string][]*postgres.EventGroup)
+	keys := make([]string, 0)
+
+	for _, group := range groups {
+		key := keyFunction(group)
+		partition, ok := partitions[key]
+		if !ok {
+			partition = make([]*postgres.EventGroup, 0)
+			keys = append(keys, key)
+		}
+		partitions[key] = append(partition, group)
+	}
+	sort.Strings(keys)
+	return keys, partitions
+}
+
 func ViewCategory(db *sql.DB) func(c *gin.Context) {
+	keyFunc := func(g *postgres.EventGroup) string {
+		if len(strings.TrimSpace(g.GameSystem)) == 0 {
+			return "Unspecified"
+		}
+		return g.GameSystem
+	}
 	return func(c *gin.Context) {
 		year, err := strconv.Atoi(c.Param("year"))
 		if err != nil {
@@ -193,16 +239,31 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 			c.AbortWithError(http.StatusBadRequest, err)
 		}
 
+		totalEvents := 0
+		for _, group := range eventGroups {
+			totalEvents += group.Count
+		}
+
+		headings, partitions := partitionGroups(eventGroups, keyFunc)
 		c.HTML(http.StatusOK, "events.html", gin.H{
-			"year":       year,
-			"groups":     eventGroups,
-			"pageHeader": "Category",
-			"subHeader":  cat,
+			"year":        year,
+			"headings":    headings,
+			"partitions":  partitions,
+			"totalEvents": totalEvents,
+			"groups":      len(eventGroups),
+			"breakdown":   "Systems",
+			"pageHeader":  "Category",
+			"subHeader":   cat,
 		})
 	}
 }
 func main() {
 	flag.Parse()
+
+	textStrippingRegex, _ := regexp.Compile("[^a-zA-Z0-9]+")
+	textToId := func(text string) string {
+		return textStrippingRegex.ReplaceAllString(strings.ToLower(text), "")
+	}
 
 	db, err := postgres.OpenDb()
 	if err != nil {
@@ -211,9 +272,11 @@ func main() {
 	defer db.Close()
 
 	r := gin.Default()
+	r.SetFuncMap(template.FuncMap{
+		"toId": textToId,
+	})
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/static/stylesheets", "static/stylesheets")
-
 	indexHandler := CategoryList(db)
 
 	r.GET("/event/:eid", func(c *gin.Context) {
@@ -226,5 +289,14 @@ func main() {
 	r.GET("/", indexHandler)
 	r.GET("/index", indexHandler)
 	r.GET("/cat/:year", indexHandler)
+	r.GET("/about", func(c *gin.Context) {
+		year, err := strconv.Atoi(c.Param("year"))
+		if err != nil {
+			year = time.Now().Year()
+		}
+		c.HTML(http.StatusOK, "about.html", gin.H{
+			"year": year,
+		})
+	})
 	r.Run(fmt.Sprintf(":%d", *port))
 }

@@ -1,0 +1,20 @@
+{{$year := .year}}
+
+<html>
+<head>
+    {{ template "header" "Gencon Events"}}
+</head>
+
+<body>
+{{ template "navbar" $year }}
+<div class="container">
+    <h1 class="page-header">About</h1>
+    <p>
+        Well, this is the about page. Fun stuff huh?
+    </p>
+</div>
+</body>
+
+{{ template "scriptFooter" }}
+</body>
+</html>

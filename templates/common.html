@@ -1,5 +1,6 @@
 {{ define "navbar" }}
-<div class="navbar navbar-default navbar-fixed-top" role="navigation">
+{{ $year := . }}
+<div class="navbar navbar-default navbar-fixed-top" role="navigation" id="navbar">
     <div class="container-fluid">
         <div class="navbar-header">
             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -12,12 +13,12 @@
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li class="active"><a href="#">Home</a></li>
-                <li><a href="#about">About</a></li>
+                <li class="active"><a href="/cat/{{ $year }}">Home</a></li>
+                <li><a href="/about">About</a></li>
             </ul>
             <form class="navbar-form navbar-right" action="/search">
                 <input type="text" class="form-control" placeholder="Search..." name="q"/>
-                <input type="hidden" name="y" value="{{ . }}"/>
+                <input type="hidden" name="y" value="{{ $year }}"/>
             </form>
         </div><!--/.nav-collapse -->
     </div>

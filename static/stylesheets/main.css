@@ -37,6 +37,18 @@
     margin-left: 1em;
 }
 
+li a.groupLink {
+    padding: .2em .5em
+}
+
 body {
     padding-top: 50px;
+}
+
+h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before {
+    display: block;
+    height: 6rem;
+    margin-top: -6rem;
+    visibility: hidden;
+    content: "";
 }
