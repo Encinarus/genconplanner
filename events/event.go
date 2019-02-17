@@ -1,6 +1,7 @@
 package events
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -81,6 +82,11 @@ type GenconEvent struct {
 	TicketsAvailable     int
 	LastModified         time.Time
 	ShortCategory        string
+}
+
+func (e *GenconEvent) GenconLink() string {
+	id := strings.TrimLeftFunc(e.EventId, unicode.IsLetter)[2:]
+	return fmt.Sprintf("http://gencon.com/events/%v", id)
 }
 
 func (e *GenconEvent) SlimEvent() *SlimEvent {

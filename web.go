@@ -23,8 +23,13 @@ import (
 var port = flag.Int("port", 8080, "port to listen on")
 
 type LookupResult struct {
-	MainEvent     *events.GenconEvent
-	SimilarEvents []*events.SlimEvent
+	MainEvent    *events.GenconEvent
+	Wednesday    []*events.SlimEvent
+	Thursday     []*events.SlimEvent
+	Friday       []*events.SlimEvent
+	Saturday     []*events.SlimEvent
+	Sunday       []*events.SlimEvent
+	TotalTickets int
 }
 
 func LookupEvent(db *sql.DB, eventId string) *LookupResult {
@@ -38,9 +43,27 @@ func LookupEvent(db *sql.DB, eventId string) *LookupResult {
 	for _, event := range foundEvents {
 		if event.EventId == eventId {
 			result.MainEvent = event
-		} else {
-			result.SimilarEvents = append(result.SimilarEvents, event.SlimEvent())
 		}
+
+		switch event.StartTime.Weekday() {
+		case time.Wednesday:
+			result.Wednesday = append(result.Wednesday, event.SlimEvent())
+			break
+		case time.Thursday:
+			result.Thursday = append(result.Thursday, event.SlimEvent())
+			break
+		case time.Friday:
+			result.Friday = append(result.Friday, event.SlimEvent())
+			break
+		case time.Saturday:
+			result.Saturday = append(result.Saturday, event.SlimEvent())
+			break
+		case time.Sunday:
+			result.Sunday = append(result.Sunday, event.SlimEvent())
+			break
+		}
+
+		result.TotalTickets += event.TicketsAvailable
 	}
 
 	return &result
@@ -85,7 +108,7 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 			categories[i] = summary[base:end]
 		}
 		log.Printf("Loaded %d categories in %d rows", len(summary), len(categories))
-		c.HTML(http.StatusOK, "index.html", gin.H{
+		c.HTML(http.StatusOK, "categories.html", gin.H{
 			"title":      "Main website",
 			"categories": categories,
 			"year":       year,
@@ -207,7 +230,7 @@ func Search(db *sql.DB) func(c *gin.Context) {
 			c.AbortWithError(http.StatusInternalServerError, err)
 		} else {
 			headings, partitions := partitionGroups(eventGroups, keyFunc)
-			c.HTML(http.StatusOK, "events.html", gin.H{
+			c.HTML(http.StatusOK, "results.html", gin.H{
 				"year":        year,
 				"headings":    headings,
 				"partitions":  partitions,
@@ -272,7 +295,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 		}
 
 		headings, partitions := partitionGroups(eventGroups, keyFunc)
-		c.HTML(http.StatusOK, "events.html", gin.H{
+		c.HTML(http.StatusOK, "results.html", gin.H{
 			"year":        year,
 			"headings":    headings,
 			"partitions":  partitions,
@@ -291,6 +314,19 @@ func main() {
 	textToId := func(text string) string {
 		return textStrippingRegex.ReplaceAllString(strings.ToLower(text), "")
 	}
+	dict := func(v ...interface{}) map[string]interface{} {
+		dict := map[string]interface{}{}
+		lenv := len(v)
+		for i := 0; i < lenv; i += 2 {
+			key := fmt.Sprintf("%s", v[i])
+			if i+1 >= lenv {
+				dict[key] = ""
+				continue
+			}
+			dict[key] = v[i+1]
+		}
+		return dict
+	}
 
 	db, err := postgres.OpenDb()
 	if err != nil {
@@ -301,21 +337,29 @@ func main() {
 	r := gin.Default()
 	r.SetFuncMap(template.FuncMap{
 		"toId": textToId,
+		"dict": dict,
 	})
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/static/stylesheets", "static/stylesheets")
-	indexHandler := CategoryList(db)
+	categoryList := CategoryList(db)
 
 	r.GET("/event/:eid", func(c *gin.Context) {
 		eventId := c.Param("eid")
 		result := LookupEvent(db, eventId)
-		c.JSON(http.StatusOK, result)
+		c.HTML(http.StatusOK, "event.html", gin.H{
+			"year":   result.MainEvent.Year,
+			"result": result,
+		})
 	})
 	r.GET("/search", Search(db))
 	r.GET("/cat/:year/:cat", ViewCategory(db))
-	r.GET("/", indexHandler)
-	r.GET("/index", indexHandler)
-	r.GET("/cat/:year", indexHandler)
+	index := func(c *gin.Context) {
+		year := time.Now().Year()
+		c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/cat/%d", year))
+	}
+	r.GET("/", index)
+	r.GET("/index", index)
+	r.GET("/cat/:year", categoryList)
 	r.GET("/about", func(c *gin.Context) {
 		year, err := strconv.Atoi(c.Param("year"))
 		if err != nil {

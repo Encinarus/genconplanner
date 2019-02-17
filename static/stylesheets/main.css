@@ -52,3 +52,18 @@ h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before {
     visibility: hidden;
     content: "";
 }
+
+ul.otherSessions {
+    list-style-type:none;
+    padding: 0
+}
+
+li.otherSession {
+    padding: 0 .2em;
+}
+
+button.sm-star {
+    height: 2.5em;
+    width: 2.5em;
+    padding: .5em;
+}

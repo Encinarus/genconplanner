@@ -1,0 +1,185 @@
+{{$year := .year}}
+{{ $e := .result.MainEvent }}
+
+{{ define "similar"}}
+    <ul class="otherSessions">
+        {{ $eventId := .eventId }}
+        {{ range $session := .sessions }}
+            <li class="otherSession">
+                {{ if false }}
+                    {{/*TODO(alek): Uncomment when ready for starring */}}
+                <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.8em">
+                <button type="button" class="btn btn-default btn-sm sm-star" id="star-TDA17117668">
+                    <span class="glyphicon glyphicon-star-empty"></span>
+                </button>
+                </div>
+                {{ end }}
+                <div style="display:inline-block;">
+                {{ if eq $eventId $session.EventId }}This event
+                {{ else }}<a href="/event/{{ $session.EventId }}">{{ $session.EventId }}</a>
+                {{ end }}
+                <br>
+                {{ $session.StartTime.Format "03:04 PM" }} - {{ $session.EndTime.Format "03:04 PM" }}
+                <br>
+                {{ $session.TicketsAvailable }} tickets available
+                </div>
+            </li>
+        {{ else }}
+            <li class="otherSession">
+                No events
+            </li>
+        {{ end }}
+    </ul>
+{{ end }}
+<html>
+<head>
+    {{ template "header" "Gencon Event "}}
+</head>
+
+<body>
+{{ template "navbar" $year }}
+
+{{ $wed := .result.Wednesday}}
+{{ $thurs := .result.Thursday}}
+{{ $fri := .result.Friday}}
+{{ $sat := .result.Saturday}}
+{{ $sun := .result.Sunday}}
+{{ $tickets := .result.TotalTickets }}
+
+<div class="container">
+    <h1 class="page-header">
+        {{ $e.Title }}
+        <small>{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each</small>
+
+    </h1>
+    <ol class="breadcrumb">
+        <li><a href="/cat/{{ $e.Year}}/{{ $e.ShortCategory}}" shape="rect">{{ $e.ShortCategory}}</a></li>
+        <li>{{ $e.EventId }}</li>
+    </ol>
+
+    <div class="row">
+        <div class="main">
+            <div class="col-md-12">
+                <em>{{ $e.ShortDescription}}</em>
+                <h3>Details</h3>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Timing:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ $e.StartTime.Format "Mon 03:04 PM"}} - {{ $e.EndTime.Format "Mon 03:04 PM"}}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Location:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ $e.Location }}
+                            {{ if $e.RoomName }} / {{ $e.RoomName }} {{ end }}
+                            {{ if $e.TableNumber }} / {{ $e.TableNumber }} {{ end }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Long Description:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ $e.LongDescription}}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Event Website:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ if $e.Website }}<a href="http://{{ $e.Website }}">{{ $e.Website }}</a>
+                            {{ else }}N/A
+                            {{ end }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Organizing Group:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ if $e.Group }}{{ $e.Group }}{{ else }}N/A{{ end }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>GM Names:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ $e.GMNames }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Event Type:</strong></div>
+                        <div class="col-xs-12 col-md-7"><a href="/cat/{{ $e.Year }}/{{ $e.ShortCategory }}">{{ $e.EventType }}</a></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Game System:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ if $e.GameSystem }}{{ $e.GameSystem }}{{ else }}N/A{{ end }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Rules Edition:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ if $e.RulesEdition }}{{ $e.RulesEdition }}{{ else }}N/A{{ end }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong># Players:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ $e.MinPlayers }} - {{ $e.MaxPlayers }} players
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Age Required:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ $e.AgeRequired }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Experience Required:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ $e.ExperienceRequired }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Materials Provided?:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ if $e.MaterialsProvided }}Yes{{ else }}No{{ end }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-2"><strong>Tournament?:</strong></div>
+                        <div class="col-xs-12 col-md-7">
+                            {{ if $e.Tournament }}Round {{ $e.RoundNumber }} of {{ $e.TotalRounds }}{{ else }}No{{ end }}
+                        </div>
+                    </div>
+            </div>
+            <div class="col-md-12"><h3>Sessions</h3>
+                {{ if $wed }}
+                <div class="col-md-3">
+                    <h4>Wednesday</h4>
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $wed) }}
+                </div>
+                {{ end }}
+
+                {{ if or $thurs $fri $sat $sun }}
+                <div class="col-md-3">
+                    <h4>Thursday</h4>
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $thurs) }}
+                </div>
+                <div class="col-md-3">
+                    <h4>Friday</h4>
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $fri) }}
+                </div>
+                <div class="col-md-3">
+                    <h4>Saturday</h4>
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $sat) }}
+                </div>
+                <div class="col-md-3">
+                    <h4>Sunday</h4>
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $sun) }}
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ template "scriptFooter" }}
+</body>
+</html>
