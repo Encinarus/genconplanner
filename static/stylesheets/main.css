@@ -58,8 +58,13 @@ ul.otherSessions {
     padding: 0
 }
 
-li.otherSession {
+ul.otherSessions li.otherSession {
     padding: 0 .2em;
+}
+
+ul.otherSessions li.thisSession {
+    padding: 0 .2em;
+    background-color: aliceblue;
 }
 
 button.sm-star {

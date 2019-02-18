@@ -1,4 +1,3 @@
-
 -- Table: public.event
 
 -- DROP TABLE public.event;
@@ -47,6 +46,36 @@ CREATE TABLE public.event
   WITH (
     OIDS = FALSE
   )
+  TABLESPACE pg_default;
+
+ALTER TABLE public.event
+  OWNER to postgres;
+
+-- Index: cat_hash_index
+
+-- DROP INDEX public.cat_hash_index;
+
+CREATE INDEX cat_hash_index
+  ON public.event USING hash
+    (short_category COLLATE pg_catalog."default")
+  TABLESPACE pg_default;
+
+-- Index: cluster_key_index
+
+-- DROP INDEX public.cluster_key_index;
+
+CREATE INDEX cluster_key_index
+  ON public.event USING gin
+    (cluster_key)
+  TABLESPACE pg_default;
+
+-- Index: year_hash_index
+
+-- DROP INDEX public.year_hash_index;
+
+CREATE INDEX year_hash_index
+  ON public.event USING hash
+    (year)
   TABLESPACE pg_default;
 
 -- Trigger: cluster_vectorupdate

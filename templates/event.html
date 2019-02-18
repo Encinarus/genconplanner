@@ -5,23 +5,28 @@
     <ul class="otherSessions">
         {{ $eventId := .eventId }}
         {{ range $session := .sessions }}
-            <li class="otherSession">
+            {{ $thisSession := (eq $eventId $session.EventId) }}
+            {{ $hasTickets := (ne $session.TicketsAvailable 0) }}
+            <li class="{{ if $thisSession }}thisSession{{ else }}otherSession{{ end }}
+            {{ if $hasTickets }}hasTickets{{ else }}noTickets{{ end }}">
                 {{ if false }}
-                    {{/*TODO(alek): Uncomment when ready for starring */}}
+                {{/*TODO(alek): Uncomment when ready for starring */}}
                 <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.8em">
-                <button type="button" class="btn btn-default btn-sm sm-star" id="star-TDA17117668">
-                    <span class="glyphicon glyphicon-star-empty"></span>
-                </button>
+                    <button type="button" class="btn btn-default btn-sm sm-star" id="star-TDA17117668">
+                        <span class="glyphicon glyphicon-star-empty"></span>
+                    </button>
                 </div>
                 {{ end }}
                 <div style="display:inline-block;">
-                {{ if eq $eventId $session.EventId }}This event
-                {{ else }}<a href="/event/{{ $session.EventId }}">{{ $session.EventId }}</a>
-                {{ end }}
-                <br>
-                {{ $session.StartTime.Format "03:04 PM" }} - {{ $session.EndTime.Format "03:04 PM" }}
-                <br>
-                {{ $session.TicketsAvailable }} tickets available
+                    {{ if $thisSession }}<em>This event</em>
+                    {{ else }}<a href="/event/{{ $session.EventId }}">{{ $session.EventId }}</a>
+                    {{ end }}
+                    <br>
+                    {{ $session.StartTime.Format "03:04 PM" }} - {{ $session.EndTime.Format "03:04 PM" }}
+                    <br>
+                    {{ if $hasTickets }}<strong>{{ $session.TicketsAvailable }} tickets available</strong>
+                    {{ else }}{{ $session.TicketsAvailable }} tickets available
+                    {{ end }}
                 </div>
             </li>
         {{ else }}
@@ -72,8 +77,8 @@
                         <div class="col-xs-12 col-md-2"><strong>Location:</strong></div>
                         <div class="col-xs-12 col-md-7">
                             {{ $e.Location }}
-                            {{ if $e.RoomName }} / {{ $e.RoomName }} {{ end }}
-                            {{ if $e.TableNumber }} / {{ $e.TableNumber }} {{ end }}
+                            {{ if $e.RoomName }} / Room {{ $e.RoomName }} {{ end }}
+                            {{ if $e.TableNumber }} / Table {{ $e.TableNumber }} {{ end }}
                         </div>
                     </div>
                     <div class="row">
@@ -149,7 +154,7 @@
                         </div>
                     </div>
             </div>
-            <div class="col-md-12"><h3>Sessions</h3>
+            <div class="col-md-12"><h3>Sessions <small><a onclick="$('li.noTickets').toggle()">Toggle Available Sessions</a></small></h3>
                 {{ if $wed }}
                 <div class="col-md-3">
                     <h4>Wednesday</h4>
