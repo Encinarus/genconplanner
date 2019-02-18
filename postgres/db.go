@@ -35,6 +35,7 @@ type EventGroup struct {
 	FriTickets    int
 	SatTickets    int
 	SunTickets    int
+	TotalTickets  int
 }
 
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
@@ -55,6 +56,7 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	); err != nil {
 		return nil, err
 	}
+	group.TotalTickets = group.WedTickets + group.ThursTickets + group.FriTickets + group.SatTickets + group.SunTickets
 	return &group, nil
 }
 
