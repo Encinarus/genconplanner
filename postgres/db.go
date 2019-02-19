@@ -64,7 +64,7 @@ func LoadEventGroups(db *sql.DB, cat string, year int) ([]*EventGroup, error) {
 	rows, err := db.Query(`
 SELECT 
        title, 
-       short_description,
+       min(short_description),
        short_category,
        game_system,
        count(1),
@@ -78,11 +78,10 @@ FROM event
 WHERE active and year=$1 and short_category=$2
 GROUP BY 
          title,
-         short_description,
          short_category,
          game_system,
          cluster_key
-ORDER BY sum(tickets_available) > 0 desc
+ORDER BY sum(tickets_available) > 0 desc, title
 `, year, cat)
 	if err != nil {
 		return nil, err
@@ -170,7 +169,7 @@ func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 		rows, err := db.Query(`
 SELECT 
        title, 
-       short_description, 
+       min(short_description), 
        short_category,    
        game_system,
        count(1),
@@ -184,7 +183,6 @@ FROM event, to_tsquery($1) q
 WHERE active and cluster_key @@ q and year = $2
 GROUP BY 
          title, 
-         short_description,
          short_category, 
          game_system,
          cluster_key,

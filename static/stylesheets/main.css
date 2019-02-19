@@ -72,3 +72,13 @@ button.sm-star {
     width: 2.5em;
     padding: .5em;
 }
+
+ul.eventTickets li.noTickets {
+    text-decoration: line-through;
+    color: lightgray;
+}
+
+ul.otherSessions li.noTickets {
+    text-decoration: line-through;
+    color: darkgrey;
+}

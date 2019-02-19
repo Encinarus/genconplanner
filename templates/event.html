@@ -24,7 +24,7 @@
                     <br>
                     {{ $session.StartTime.Format "03:04 PM" }} - {{ $session.EndTime.Format "03:04 PM" }}
                     <br>
-                    {{ if $hasTickets }}<strong>{{ $session.TicketsAvailable }} tickets available</strong>
+                    {{ if $hasTickets }}<strong>{{ $session.TicketsAvailable }}</strong> ticket{{ if ne 1 $session.TicketsAvailable }}s{{ end }} available
                     {{ else }}{{ $session.TicketsAvailable }} tickets available
                     {{ end }}
                 </div>
@@ -154,7 +154,7 @@
                         </div>
                     </div>
             </div>
-            <div class="col-md-12"><h3>Sessions <small><a onclick="$('li.noTickets').toggle()">Toggle Available Sessions</a></small></h3>
+            <div class="col-md-12"><h3>Sessions <small><a onclick="toggleAvailable()" class="toggleLink">Hide unavailable sessions</a></small></h3>
                 {{ if $wed }}
                 <div class="col-md-3">
                     <h4>Wednesday</h4>
@@ -185,6 +185,17 @@
     </div>
 </div>
 
+<script lang="javascript">
+    function toggleAvailable() {
+        if (window.eventsHidden) {
+            $('a.toggleLink').text("Hide unavailable sessions")
+        } else {
+            $('a.toggleLink').text("Show unavailable sessions")
+        }
+        window.eventsHidden = !window.eventsHidden;
+        $('li.noTickets').toggle()
+    }
+</script>
 {{ template "scriptFooter" }}
 </body>
 </html>

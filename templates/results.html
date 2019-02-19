@@ -24,18 +24,18 @@
 <div class="list-group col-md-10">
     <h4>Events</h4>
     {{ range $heading := .headings }}
-        <h5 id="{{ $heading | toId }}">{{ $heading }} (<a href="#top">top</a>) <a onclick="$('a.noTickets').toggle()" href="#{{ $heading | toId }}">toggle available</a></h5>
+        <h5 id="{{ $heading | toId }}">{{ $heading }} (<a href="#top">top</a>) <a onclick="toggleAvailable()" href="#{{ $heading | toId }}" class="toggleLink">hide unavailable events</a></h5>
         {{ range $row := (index $partitions $heading) }}
         <a href="/event/{{ $row.EventId }}"
            class="list-group-item eventGroup {{ if eq $row.TotalTickets 0 }}noTickets{{end}}" style="font-size: small">
             <h5>{{ $row.Name }} <small>{{ $row.GameSystem }}</small></h5>
             <p>{{ $row.Description }}</p>
-            <ul class="list-inline">
-                <li><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>
-                <li><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>
-                <li><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>
-                <li><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>
-                <li><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
+            <ul class="list-inline eventTickets">
+                <li {{ if eq $row.WedTickets 0 }}class="noTickets"{{end}}><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>
+                <li {{ if eq $row.ThursTickets 0 }}class="noTickets"{{end}}><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>
+                <li {{ if eq $row.FriTickets 0 }}class="noTickets"{{end}}><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>
+                <li {{ if eq $row.SatTickets 0 }}class="noTickets"{{end}}><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>
+                <li {{ if eq $row.SunTickets 0 }}class="noTickets"{{end}}><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
             </ul>
         </a>
         {{ end }}
@@ -44,8 +44,20 @@
 </div>
 </div>
 </div>
+
+<script lang="javascript">
+    function toggleAvailable() {
+        if (window.eventsHidden) {
+            $('a.toggleLink').text("hide unavailable events")
+        } else {
+            $('a.toggleLink').text("show unavailable events")
+        }
+        window.eventsHidden = !window.eventsHidden;
+        $('a.noTickets').toggle()
+    }
+</script>
+{{ template "scriptFooter" }}
+
 </body>
 
-{{ template "scriptFooter" }}
-</body>
 </html>
