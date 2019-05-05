@@ -1,4 +1,5 @@
-{{$year := .year}}
+{{ $context := .context }}
+{{ $year := .context.Year }}
 {{ $e := .result.MainEvent }}
 
 {{ define "similar"}}
@@ -42,7 +43,7 @@
 </head>
 
 <body>
-{{ template "navbar" $year }}
+{{ template "navbar" $context }}
 
 {{ $wed := .result.Wednesday}}
 {{ $thurs := .result.Thursday}}

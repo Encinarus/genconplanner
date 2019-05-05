@@ -1,5 +1,8 @@
 {{ define "navbar" }}
-{{ $year := . }}
+{{ $context := . }}
+{{ $year := $context.Year }}
+{{ $username := $context.Username }}
+
 <div class="navbar navbar-default navbar-fixed-top" role="navigation" id="navbar">
     <div class="container-fluid">
         <div class="navbar-header">
@@ -13,7 +16,17 @@
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li><a href="#">TODO: signin</a></li>
+                <li>{{ $username }}</li>
+                <li id="signinWidget" {{ if $username }}style="display: none;"{{end}}><a href="#" onclick="popupSignIn();">Signin</a></li>
+                <li id="myAccount" {{ if not $username }}style="display: none;"{{end}}>
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                        <span id="username">{{ $username }}</span>'s Account<b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/starred/{{ $year }}">Starred Events</a></li>
+                        <li class="divider"></li>
+                        <li><a onclick="signOut()">Sign out</a></li>
+                    </ul>
+                </li>
                 <li><a href="/about">About</a></li>
             </ul>
             <form class="navbar-form navbar-right" action="/search">
@@ -28,6 +41,88 @@
 {{ define "scriptFooter" }}
 <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/5.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/5.10.0/firebase-auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
+
+<script>
+    // Initialize Firebase
+    var config = {
+        apiKey: "AIzaSyAGtjwGiHYFnXE1UbzLTPeIz8Ix06WIdBs",
+        authDomain: "genconplanner-v2.firebaseapp.com",
+        databaseURL: "https://genconplanner-v2.firebaseio.com",
+        projectId: "genconplanner-v2",
+        storageBucket: "genconplanner-v2.appspot.com",
+        messagingSenderId: "630743534199"
+    };
+
+    function signOut() {
+        firebase.auth().signOut();
+        updateSigninWidget();
+    }
+
+    function updateSigninWidget() {
+        console.log("Updating signin")
+        var currentUser = firebase.auth().currentUser;
+        if(currentUser) {
+            var email = currentUser.email;
+            var atLocation = email.indexOf("@");
+            if (atLocation <= 0) {
+                atLocation = email.length;
+            }
+            var username = email.substring(0, atLocation);
+            console.log("Current user: " + username);
+            $("#username").text(username);
+            $("#signinWidget").hide();
+            $("#myAccount").show();
+
+        } else {
+            $("#signinWidget").show();
+            $("#myAccount").hide();
+
+            console.log("Reset widget");
+        }
+    }
+
+    // Initialize and refresh credentials
+    firebase.initializeApp(config);
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            user.getIdToken(/* forceRefresh */ true).then(function(idToken) {
+                console.log("Token");
+                console.log(idToken);
+                Cookies.set("signinToken", idToken);
+                updateSigninWidget();
+            }).catch(function(error) {
+                // Handle error
+            });
+            // User is signed in.
+        } else {
+            // No user is signed in.
+        }
+    });
+
+    function popupSignIn() {
+        var googleAuthProvider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(googleAuthProvider).then(function(result) {
+            // This gives you a Google Access Token. You can use it to access the Google API.
+            var idToken = result.credential.idToken;
+            Cookies.set("signinToken", idToken);
+
+            updateSigninWidget();
+        }).catch(function(error) {
+            // Handle Errors here.
+            var errorCode = error.code;
+            var errorMessage = error.message;
+            // The email of the user's account used.
+            var email = error.email;
+            // The firebase.auth.AuthCredential type that was used.
+            var credential = error.credential;
+            // ...
+        });
+    }
+</script>
 {{ end }}
 
 {{ define "header" }}

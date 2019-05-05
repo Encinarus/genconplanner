@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/csv"
+	"firebase.google.com/go"
 	"flag"
 	"fmt"
 	"github.com/Encinarus/genconplanner/events"
@@ -21,6 +23,11 @@ import (
 )
 
 var port = flag.Int("port", 8080, "port to listen on")
+
+type Context struct {
+	Year     int
+	Username string
+}
 
 type LookupResult struct {
 	MainEvent    *events.GenconEvent
@@ -74,22 +81,25 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 		defaultYear := time.Now().Year()
 
 		var err error
-		var year int
+		context := c.MustGet("context").(*Context)
+
 		if len(strings.TrimSpace(c.Param("year"))) > 0 {
-			year, err = strconv.Atoi(c.Param("year"))
+			context.Year, err = strconv.Atoi(c.Param("year"))
 			if err != nil {
 				log.Printf("Error parsing year")
 				c.AbortWithError(http.StatusBadRequest, err)
+				return
 			}
 		} else {
-			year = defaultYear
+			context.Year = defaultYear
 		}
 
-		summary, err := postgres.LoadCategorySummary(db, year)
+		summary, err := postgres.LoadCategorySummary(db, context.Year)
 
 		if err != nil {
 			log.Printf("Error loading categories, %v", err)
 			c.AbortWithError(500, err)
+			return
 		}
 
 		batchSize := 2
@@ -111,7 +121,7 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 		c.HTML(http.StatusOK, "categories.html", gin.H{
 			"title":      "Main website",
 			"categories": categories,
-			"year":       year,
+			"context":    context,
 		})
 	}
 }
@@ -228,6 +238,7 @@ func Search(db *sql.DB) func(c *gin.Context) {
 		}
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
+			return
 		} else {
 			headings, partitions := partitionGroups(eventGroups, keyFunc)
 			c.HTML(http.StatusOK, "results.html", gin.H{
@@ -273,20 +284,26 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 		return g.GameSystem
 	}
 	return func(c *gin.Context) {
-		year, err := strconv.Atoi(c.Param("year"))
+		appContext := c.MustGet("context").(*Context)
+		var err error
+
+		appContext.Year, err = strconv.Atoi(c.Param("year"))
 		if err != nil {
 			log.Printf("Error parsing year")
 			c.AbortWithError(http.StatusBadRequest, err)
+			return
 		}
 		cat := c.Param("cat")
 		if len(strings.TrimSpace(cat)) == 0 {
 			log.Printf("No category specified")
 			c.AbortWithStatus(http.StatusBadRequest)
+			return
 		}
-		eventGroups, err := postgres.LoadEventGroups(db, c.Param("cat"), year)
+		eventGroups, err := postgres.LoadEventGroups(db, c.Param("cat"), appContext.Year)
 		if err != nil {
 			log.Printf("Error loading event groups")
 			c.AbortWithError(http.StatusBadRequest, err)
+			return
 		}
 
 		totalEvents := 0
@@ -296,7 +313,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 
 		headings, partitions := partitionGroups(eventGroups, keyFunc)
 		c.HTML(http.StatusOK, "results.html", gin.H{
-			"year":        year,
+			"context":     appContext,
 			"headings":    headings,
 			"partitions":  partitions,
 			"totalEvents": totalEvents,
@@ -307,8 +324,27 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 		})
 	}
 }
+
+func bootstrapContext() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var context Context
+		// Process login: signinToken
+
+		// Create user if needed based on cookie
+		c.Set("context", &context)
+
+		c.Next()
+	}
+}
+
 func main() {
 	flag.Parse()
+
+	app, err := firebase.NewApp(context.Background(), nil)
+	if err != nil {
+		log.Fatalf("error initializing app: %v\n", err)
+	}
+	log.Print(app)
 
 	textStrippingRegex, _ := regexp.Compile("[^a-zA-Z0-9]+")
 	textToId := func(text string) string {
@@ -330,11 +366,13 @@ func main() {
 
 	db, err := postgres.OpenDb()
 	if err != nil {
+		log.Println("Error opening postgres")
 		log.Fatal(err)
 	}
 	defer db.Close()
 
 	r := gin.Default()
+	r.Use(bootstrapContext())
 	r.SetFuncMap(template.FuncMap{
 		"toId": textToId,
 		"dict": dict,
@@ -365,8 +403,10 @@ func main() {
 		if err != nil {
 			year = time.Now().Year()
 		}
+		appContext := c.MustGet("context").(*Context)
+		appContext.Year = year
 		c.HTML(http.StatusOK, "about.html", gin.H{
-			"year": year,
+			"context": appContext,
 		})
 	})
 	r.Run(fmt.Sprintf(":%d", *port))

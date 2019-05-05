@@ -1,12 +1,10 @@
-{{$year := .year}}
-
 <html>
 <head>
     {{ template "header" "Gencon Events"}}
 </head>
 
 <body>
-{{ template "navbar" $year }}
+{{ template "navbar" .context }}
 <div class="container">
     <h1 class="page-header">About</h1>
     <p>

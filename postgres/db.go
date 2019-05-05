@@ -14,6 +14,7 @@ import (
 var dbConnectString = flag.String("db", "", "postgres connect string")
 
 func OpenDb() (*sql.DB, error) {
+	fmt.Println("dbString", *dbConnectString)
 	return sql.Open("postgres", *dbConnectString)
 }
 

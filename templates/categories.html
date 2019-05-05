@@ -1,4 +1,4 @@
-{{$year := .year}}
+{{$year := .context.Year}}
 
 <html>
 <head>
@@ -6,7 +6,7 @@
 </head>
 
 <body>
-{{ template "navbar" $year }}
+{{ template "navbar" .context }}
 
 <div class="container">
   <h1 class="page-header">{{ $year }} Events by category</h1>
