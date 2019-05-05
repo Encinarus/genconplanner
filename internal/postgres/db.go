@@ -34,6 +34,7 @@ WHERE email=$1
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var user *User
 	for rows.Next() {
@@ -139,6 +140,7 @@ ORDER BY sum(tickets_available) > 0 desc, title
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	groups := make([]*EventGroup, 0)
 
@@ -164,6 +166,7 @@ ORDER BY event_type ASC`, year)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	countsPerCategory := make([]*CategorySummary, 0)
 	for rows.Next() {
 		var summary CategorySummary
@@ -193,6 +196,7 @@ WHERE e2.event_id = $1
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	loadedEvents := make([]*events.GenconEvent, 0)
 	for rows.Next() {
@@ -247,6 +251,7 @@ ORDER BY sum(tickets_available) > 0 desc,
 		if err != nil {
 			return nil, err
 		}
+		defer rows.Close()
 
 		// Load all the events
 		for rows.Next() {
@@ -271,6 +276,7 @@ WHERE year=$1`, year)
 	if err != nil {
 		return nil, nil, err
 	}
+	defer rows.Close()
 
 	var activeEvents map[string]time.Time
 	var inactiveEvents map[string]time.Time
@@ -535,7 +541,6 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 	}
 
 	return nil
-
 }
 
 func bulkInsert(tx *sql.Tx, newRows []*events.GenconEvent) error {
