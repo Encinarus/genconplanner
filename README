@@ -1,0 +1,1 @@
+To run server locally with Heroku, use `go build web.go && heroku local web`
