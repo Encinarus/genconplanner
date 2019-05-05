@@ -325,13 +325,35 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 	}
 }
 
-func bootstrapContext() gin.HandlerFunc {
+func bootstrapContext(app *firebase.App) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var context Context
+		var appContext Context
 		// Process login: signinToken
 
 		// Create user if needed based on cookie
-		c.Set("context", &context)
+
+		idToken, err := c.Cookie("signinToken")
+		if err == nil {
+			log.Println("Signin token:", idToken)
+
+			ctx := context.Background()
+			client, err := app.Auth(ctx)
+			if err != nil {
+				log.Printf("error getting Auth client: %v\n", err)
+				return
+			}
+			token, err := client.VerifyIDToken(ctx, idToken)
+			if err != nil {
+				log.Printf("error verifying ID token: %v\n", err)
+
+			}
+			email := token.Claims["email"]
+
+			appContext.Username = strings.Split(email.(string), "@")[0]
+			log.Printf("Username %v\n", appContext)
+		}
+
+		c.Set("context", &appContext)
 
 		c.Next()
 	}
@@ -372,7 +394,7 @@ func main() {
 	defer db.Close()
 
 	r := gin.Default()
-	r.Use(bootstrapContext())
+	r.Use(bootstrapContext(app))
 	r.SetFuncMap(template.FuncMap{
 		"toId": textToId,
 		"dict": dict,

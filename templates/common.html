@@ -16,7 +16,6 @@
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li>{{ $username }}</li>
                 <li id="signinWidget" {{ if $username }}style="display: none;"{{end}}><a href="#" onclick="popupSignIn();">Signin</a></li>
                 <li id="myAccount" {{ if not $username }}style="display: none;"{{end}}>
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
