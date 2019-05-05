@@ -336,8 +336,6 @@ func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 
 		idToken, err := c.Cookie("signinToken")
 		if err == nil {
-			log.Println("Signin token:", idToken)
-
 			ctx := context.Background()
 			client, err := app.Auth(ctx)
 			if err != nil {
@@ -352,8 +350,6 @@ func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 				email := token.Claims["email"].(string)
 
 				appContext.Username = strings.Split(email, "@")[0]
-				log.Printf("Username %v\n", appContext)
-
 				user, err := postgres.LoadOrCreateUser(db, email)
 				if err != nil {
 					log.Printf("Loading/creating user: %v\n", err)

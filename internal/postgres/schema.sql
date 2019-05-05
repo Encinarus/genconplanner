@@ -1,19 +1,19 @@
--- Table: public."user"
+-- Table: public.users
 
--- DROP TABLE public."user";
+-- DROP TABLE public.users;
 
-CREATE TABLE public."user"
+CREATE TABLE public.users
 (
   email text COLLATE pg_catalog."default" NOT NULL,
   calendar_id text COLLATE pg_catalog."default",
-  CONSTRAINT user_pkey PRIMARY KEY (email)
+  CONSTRAINT users_pkey PRIMARY KEY (email)
 )
   WITH (
     OIDS = FALSE
   )
   TABLESPACE pg_default;
 
-ALTER TABLE public."user"
+ALTER TABLE public.users
   OWNER to postgres;
 
 -- Table: public.events
