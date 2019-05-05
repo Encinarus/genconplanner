@@ -1,1 +1,6 @@
+Getting started:
+* clone repo
+* Install Heroku
+* Install Postgres following instructions here: https://devcenter.heroku.com/articles/heroku-postgresql#set-up-postgres-on-mac
 To run server locally with Heroku, use `go build web.go && heroku local web`
+
