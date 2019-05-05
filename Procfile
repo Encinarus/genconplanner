@@ -1,2 +1,2 @@
-web: ./web -port=$PORT -db=$DATABASE_URL
-update: ./update -db=$DATABASE_URL
+web: ./bin/web -port=$PORT -db=$DATABASE_URL
+update: ./bin/update -db=$DATABASE_URL
