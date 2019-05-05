@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 	"flag"
-	"github.com/Encinarus/genconplanner/events"
-	"github.com/Encinarus/genconplanner/postgres"
+	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/Encinarus/genconplanner/internal/postgres"
 	"io/ioutil"
 	"log"
 	"net/http"

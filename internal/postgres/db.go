@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"github.com/Encinarus/genconplanner/events"
+	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/lib/pq"
 	"log"
 	"strings"
