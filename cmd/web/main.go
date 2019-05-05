@@ -12,9 +12,11 @@ import (
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+	"google.golang.org/api/option"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -370,12 +372,6 @@ func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 func main() {
 	flag.Parse()
 
-	app, err := firebase.NewApp(context.Background(), nil)
-	if err != nil {
-		log.Fatalf("error initializing app: %v\n", err)
-	}
-	log.Print(app)
-
 	textStrippingRegex, _ := regexp.Compile("[^a-zA-Z0-9]+")
 	textToId := func(text string) string {
 		return textStrippingRegex.ReplaceAllString(strings.ToLower(text), "")
@@ -400,6 +396,12 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
+	opt := option.WithCredentialsJSON([]byte(os.Getenv("FIREBASE_CONFIG")))
+	app, err := firebase.NewApp(context.Background(), nil, opt)
+	if err != nil {
+		log.Fatalf("error initializing app: %v\n", err)
+	}
 
 	r := gin.Default()
 	r.Use(bootstrapContext(app, db))
