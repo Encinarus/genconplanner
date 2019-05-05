@@ -128,18 +128,13 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 	}
 }
 
-func parseQuery(searchQuery string, yearParam string) *postgres.ParsedQuery {
+func parseQuery(searchQuery string, year int) *postgres.ParsedQuery {
 	query := postgres.ParsedQuery{}
 
 	query.Year = time.Now().Year()
 
-	yearParam = strings.TrimSpace(yearParam)
-	if len(yearParam) > 0 {
-		// Silently ignore invalid year params
-		parsedYear, err := strconv.Atoi(yearParam)
-		if err == nil {
-			query.Year = parsedYear
-		}
+	if year <= query.Year && year > 2016 {
+		query.Year = year
 	}
 
 	// Preprocess, removing symbols which are used in tsquery
@@ -228,7 +223,10 @@ func Search(db *sql.DB) func(c *gin.Context) {
 
 	return func(c *gin.Context) {
 		query := c.Query("q")
-		year := c.Query("y")
+		year, err := strconv.Atoi(c.Query("y"))
+		if err != nil {
+			year = time.Now().Year()
+		}
 		log.Println("Raw Query: ", query)
 
 		parsedQuery := parseQuery(query, year)
@@ -242,9 +240,12 @@ func Search(db *sql.DB) func(c *gin.Context) {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		} else {
+			appContext := c.MustGet("context").(*Context)
+			appContext.Year = year
+
 			headings, partitions := partitionGroups(eventGroups, keyFunc)
 			c.HTML(http.StatusOK, "results.html", gin.H{
-				"year":        year,
+				"context":     appContext,
 				"headings":    headings,
 				"partitions":  partitions,
 				"totalEvents": totalEvents,
