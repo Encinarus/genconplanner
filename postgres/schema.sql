@@ -1,8 +1,26 @@
--- Table: public.event
+-- Table: public."user"
 
--- DROP TABLE public.event;
+-- DROP TABLE public."user";
 
-CREATE TABLE public.event
+CREATE TABLE public."user"
+(
+  email text COLLATE pg_catalog."default" NOT NULL,
+  calendar_id text COLLATE pg_catalog."default",
+  CONSTRAINT user_pkey PRIMARY KEY (email)
+)
+  WITH (
+    OIDS = FALSE
+  )
+  TABLESPACE pg_default;
+
+ALTER TABLE public."user"
+  OWNER to postgres;
+
+-- Table: public.events
+
+-- DROP TABLE public.events;
+
+CREATE TABLE public.events
 (
   event_id character varying(12) COLLATE pg_catalog."default" NOT NULL,
   active boolean,
@@ -48,7 +66,7 @@ CREATE TABLE public.event
   )
   TABLESPACE pg_default;
 
-ALTER TABLE public.event
+ALTER TABLE public.events
   OWNER to postgres;
 
 -- Index: cat_hash_index
@@ -56,7 +74,7 @@ ALTER TABLE public.event
 -- DROP INDEX public.cat_hash_index;
 
 CREATE INDEX cat_hash_index
-  ON public.event USING hash
+  ON public.events USING hash
     (short_category COLLATE pg_catalog."default")
   TABLESPACE pg_default;
 
@@ -65,7 +83,7 @@ CREATE INDEX cat_hash_index
 -- DROP INDEX public.cluster_key_index;
 
 CREATE INDEX cluster_key_index
-  ON public.event USING gin
+  ON public.events USING gin
     (cluster_key)
   TABLESPACE pg_default;
 
@@ -74,36 +92,36 @@ CREATE INDEX cluster_key_index
 -- DROP INDEX public.year_hash_index;
 
 CREATE INDEX year_hash_index
-  ON public.event USING hash
+  ON public.events USING hash
     (year)
   TABLESPACE pg_default;
 
 -- Trigger: cluster_vectorupdate
 
--- DROP TRIGGER cluster_vectorupdate ON public.event;
+-- DROP TRIGGER cluster_vectorupdate ON public.events;
 
 CREATE TRIGGER cluster_vectorupdate
   BEFORE INSERT OR UPDATE
-  ON public.event
+  ON public.events
   FOR EACH ROW
 EXECUTE PROCEDURE tsvector_update_trigger('cluster_key', 'pg_catalog.english', 'title', 'short_description', 'long_description', 'event_type', 'game_system');
 
 -- Trigger: desc_vectorupdate
 
--- DROP TRIGGER desc_vectorupdate ON public.event;
+-- DROP TRIGGER desc_vectorupdate ON public.events;
 
 CREATE TRIGGER desc_vectorupdate
   BEFORE INSERT OR UPDATE
-  ON public.event
+  ON public.events
   FOR EACH ROW
 EXECUTE PROCEDURE tsvector_update_trigger('desc_tsv', 'pg_catalog.english', 'short_description', 'long_description');
 
 -- Trigger: title_vectorupdate
 
--- DROP TRIGGER title_vectorupdate ON public.event;
+-- DROP TRIGGER title_vectorupdate ON public.events;
 
 CREATE TRIGGER title_vectorupdate
   BEFORE INSERT OR UPDATE
-  ON public.event
+  ON public.events
   FOR EACH ROW
 EXECUTE PROCEDURE tsvector_update_trigger('title_tsv', 'pg_catalog.english', 'title');

@@ -18,6 +18,58 @@ func OpenDb() (*sql.DB, error) {
 	return sql.Open("postgres", *dbConnectString)
 }
 
+type User struct {
+	Email      string
+	CalendarId string
+}
+
+func LoadOrCreateUser(db *sql.DB, email string) (*User, error) {
+	rows, err := db.Query(`
+SELECT 
+       email, 
+       calendar_id
+FROM users
+WHERE email=$1
+`, email)
+	if err != nil {
+		return nil, err
+	}
+
+	var user *User
+	for rows.Next() {
+		log.Print("Found a user!")
+		var loadedUser User
+		if err := rows.Scan(
+			&loadedUser.Email,
+			&loadedUser.CalendarId,
+		); err != nil {
+			log.Fatalf("Error loading user %v", err)
+		} else {
+			user = &loadedUser
+		}
+
+		break
+	}
+
+	if user == nil {
+		// Time to create a user
+		// TODO: Create calendar for user and share it
+		user = &User{
+			Email:      email,
+			CalendarId: "",
+		}
+
+		log.Print("Creating user!")
+		_, err := db.Exec("INSERT INTO users(email, calendar_id) VALUES ($1, $2)",
+			user.Email, user.CalendarId)
+		if err != nil {
+			log.Fatalf("Error creating user, %v", user)
+		}
+	}
+
+	return user, nil
+}
+
 type CategorySummary struct {
 	Name  string
 	Code  string
@@ -75,7 +127,7 @@ SELECT
        sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
        sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
        sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets
-FROM event
+FROM events
 WHERE active and year=$1 and short_category=$2
 GROUP BY 
          title,
@@ -104,7 +156,7 @@ ORDER BY sum(tickets_available) > 0 desc, title
 func LoadCategorySummary(db *sql.DB, year int) ([]*CategorySummary, error) {
 	rows, err := db.Query(`
 SELECT event_type, COUNT(1)
-FROM event
+FROM events
 where active and year = $1
 GROUP BY event_type
 ORDER BY event_type ASC`, year)
@@ -134,7 +186,7 @@ func LoadSimilarEvents(db *sql.DB, eventId string) ([]*events.GenconEvent, error
 	fields := "e1." + strings.Join(eventFields(), ", e1.")
 	rows, err := db.Query(fmt.Sprintf(`
 SELECT %s
-FROM event e1 join event e2 on e1.cluster_key = e2.cluster_key
+FROM events e1 join events e2 on e1.cluster_key = e2.cluster_key
 WHERE e2.event_id = $1
   AND e1.year = $2`, fields), eventId, year)
 
@@ -180,7 +232,7 @@ SELECT
        sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
        sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
        sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets
-FROM event, to_tsquery($1) q
+FROM events, to_tsquery($1) q
 WHERE active and cluster_key @@ q and year = $2
 GROUP BY 
          title, 
@@ -214,7 +266,7 @@ func loadEventIds(tx *sql.Tx, year int) (map[string]time.Time, map[string]time.T
 	// load all events: ids + last update time
 	rows, err := tx.Query(`
 SELECT event_id, active, last_modified
-FROM event
+FROM events
 WHERE year=$1`, year)
 	if err != nil {
 		return nil, nil, err
@@ -259,7 +311,7 @@ func bulkDelete(tx *sql.Tx, deletedEvents []string) error {
 
 		deletedEvents = deletedEvents[batchSize:]
 		updateStatement := fmt.Sprintf(
-			"UPDATE event SET active = FALSE WHERE event_id in (%s)",
+			"UPDATE events SET active = FALSE WHERE event_id in (%s)",
 			strings.Join(batch, ","))
 
 		_, err := tx.Exec(updateStatement)
@@ -469,7 +521,7 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 				"($%d"+strings.Repeat(", $%d", numEventFields-1)+")",
 				rangeSlice(1, numEventFields)...))
 		updateStatement := fmt.Sprintf(
-			"UPDATE event SET %s WHERE event_id='%s'",
+			"UPDATE events SET %s WHERE event_id='%s'",
 			whereClause,
 			row.EventId)
 
@@ -511,7 +563,7 @@ func bulkInsert(tx *sql.Tx, newRows []*events.GenconEvent) error {
 			valueArgs = append(valueArgs, eventToDbFields(row)...)
 		}
 		insertStatement := fmt.Sprintf(
-			"INSERT INTO event (%s) VALUES %s",
+			"INSERT INTO events (%s) VALUES %s",
 			strings.Join(eventFields, ","),
 			strings.Join(valueStrings, ","))
 		_, err := tx.Exec(insertStatement, valueArgs...)

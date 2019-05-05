@@ -7,11 +7,22 @@ import (
 	"github.com/Encinarus/genconplanner/postgres"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 )
 
-var sourceFile = flag.String("eventFile", "", "file path or url to load from")
+var sourceFile = flag.String("eventFile", "https://www.gencon.com/downloads/events.xlsx", "file path or url to load from")
+
+func parseHttp() []*events.GenconEvent {
+	resp, err := http.Get(*sourceFile)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	spreadsheetBytes, err := ioutil.ReadAll(resp.Body)
+	return events.ParseGenconSheet(spreadsheetBytes)
+}
 
 func parseSheet() []*events.GenconEvent {
 	fileReader, err := os.Open(*sourceFile)
@@ -68,7 +79,9 @@ func main() {
 		log.Fatalf("You must specify a source file")
 	}
 	if strings.HasPrefix(*sourceFile, "http") {
-		log.Fatalf("Downloading isn't implemented yet, use a local file")
+		events = parseHttp()
+		// log.Fatalf("Downloading isn't implemented yet, use a local file")
+
 	} else if strings.HasSuffix(*sourceFile, "xlsx") {
 		events = parseSheet()
 	} else {

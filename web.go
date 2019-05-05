@@ -325,7 +325,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 	}
 }
 
-func bootstrapContext(app *firebase.App) gin.HandlerFunc {
+func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var appContext Context
 		// Process login: signinToken
@@ -345,12 +345,20 @@ func bootstrapContext(app *firebase.App) gin.HandlerFunc {
 			token, err := client.VerifyIDToken(ctx, idToken)
 			if err != nil {
 				log.Printf("error verifying ID token: %v\n", err)
-
 			}
-			email := token.Claims["email"]
+			if token != nil {
+				email := token.Claims["email"].(string)
 
-			appContext.Username = strings.Split(email.(string), "@")[0]
-			log.Printf("Username %v\n", appContext)
+				appContext.Username = strings.Split(email, "@")[0]
+				log.Printf("Username %v\n", appContext)
+
+				user, err := postgres.LoadOrCreateUser(db, email)
+				if err != nil {
+					log.Printf("Loading/creating user: %v\n", err)
+				} else {
+					log.Printf("Loaded user: %v\n", user)
+				}
+			}
 		}
 
 		c.Set("context", &appContext)
@@ -394,7 +402,7 @@ func main() {
 	defer db.Close()
 
 	r := gin.Default()
-	r.Use(bootstrapContext(app))
+	r.Use(bootstrapContext(app, db))
 	r.SetFuncMap(template.FuncMap{
 		"toId": textToId,
 		"dict": dict,
