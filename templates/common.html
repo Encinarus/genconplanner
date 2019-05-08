@@ -1,7 +1,7 @@
 {{ define "navbar" }}
 {{ $context := . }}
 {{ $year := $context.Year }}
-{{ $username := $context.Username }}
+{{ $display_name := $context.DisplayName }}
 
 <div class="navbar navbar-default navbar-fixed-top" role="navigation" id="navbar">
     <div class="container-fluid">
@@ -16,10 +16,10 @@
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li id="signinWidget" {{ if $username }}style="display: none;"{{end}}><a href="#" onclick="popupSignIn();">Signin</a></li>
-                <li id="myAccount" {{ if not $username }}style="display: none;"{{end}}>
+                <li id="signinWidget" {{ if $display_name }}style="display: none;"{{end}}><a href="#" onclick="popupSignIn();">Signin</a></li>
+                <li id="myAccount" {{ if not $display_name }}style="display: none;"{{end}}>
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <span id="username">{{ $username }}</span>'s Account<b class="caret"></b></a>
+                        <span id="display_name">{{ $display_name }}</span>'s Account<b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li><a href="/starred/{{ $year }}">Starred Events</a></li>
                         <li class="divider"></li>
@@ -70,9 +70,9 @@
             if (atLocation <= 0) {
                 atLocation = email.length;
             }
-            var username = email.substring(0, atLocation);
-            console.log("Current user: " + username);
-            $("#username").text(username);
+            var display_name = email.substring(0, atLocation);
+            console.log("Current user: " + display_name);
+            $("#display_name").text(display_name);
             $("#signinWidget").hide();
             $("#myAccount").show();
 

@@ -1,0 +1,133 @@
+
+<html>
+<head>
+    {{ template "header" "Gencon Events"}}
+</head>
+
+<body>
+{{ template "navbar" .context }}
+
+<div class="container">
+<h1 class="page-header">Starred Events</h1>
+<div class="row">
+    <div class="main">
+
+        <ul class="nav nav-tabs nav-justified" id="starredgroup">
+            <li class="active"><a href="#calendar-tab" data-toggle="tab" shape="rect">Calendar</a></li>
+            <li><a href="#day-tab" data-toggle="tab" shape="rect">By day</a></li>
+            <li><a href="#type-tab" data-toggle="tab" shape="rect">By type</a></li>
+            <li><a href="#replace-tab" data-toggle="tab" shape="rect">Bulk replace starred</a></li>
+        </ul>
+        <!-- Tab panes -->
+        <div class="tab-content">
+            <div class="tab-pane" id="replace-tab">
+                <h3>Replace your starred events</h3>
+                <h3>TODO</h3>
+                <p>Click your user's tab from gencon.com and copy/paste the "My Schedule" section into this text box.</p>
+                <form method="post" enctype="application/x-www-form-urlencoded" action="/starred/">
+            <textarea rows="25" cols="100" name="schedule">
+            Drop your events here -- when you hit submit, your starred list will be replaced by events in here (even if there are none).
+            </textarea>
+                    <input type="submit" value="Submit" />
+                </form>
+            </div>
+            <div class="tab-pane" id="day-tab">
+                <div>
+                    <h3>Wednesday</h3>
+                    {{/*For event in wednesday events*/}}
+                    <div style="padding-left: 3em;">
+                        <ul class="list-unstyled">
+                            <li>
+                                <strong>
+                                    [start time] - [end time]
+                                </strong>: <a href="[genconplanner link]">[Event id]</a>
+                                [event name] (<a href="[gencon url]">Official Listing</a>)</li>
+                            <li style="padding-left: 2em">[Short description]</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <h3>Thursday</h3>
+                    {{/*For event in thursday events*/}}
+                    <div style="padding-left: 3em;">
+                        <ul class="list-unstyled">
+                            <li>
+                                <strong>
+                                    [start time] - [end time]
+                                </strong>: <a href="[genconplanner link]">[Event id]</a>
+                                [event name] (<a href="[gencon url]">Official Listing</a>)</li>
+                            <li style="padding-left: 2em">[Short description]</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <h3>Friday</h3>
+                    {{/*For event in friday events*/}}
+                    <div style="padding-left: 3em;">
+                        <ul class="list-unstyled">
+                            <li>
+                                <strong>
+                                    [start time] - [end time]
+                                </strong>: <a href="[genconplanner link]">[Event id]</a>
+                                [event name] (<a href="[gencon url]">Official Listing</a>)</li>
+                            <li style="padding-left: 2em">[Short description]</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <h3>Saturday</h3>
+                    {{/*For event in saturday events*/}}
+                    <div style="padding-left: 3em;">
+                        <ul class="list-unstyled">
+                            <li>
+                                <strong>
+                                    [start time] - [end time]
+                                </strong>: <a href="[genconplanner link]">[Event id]</a>
+                                [event name] (<a href="[gencon url]">Official Listing</a>)</li>
+                            <li style="padding-left: 2em">[Short description]</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <h3>Sunday</h3>
+                    {{/*For event in sunday events*/}}
+                    <div style="padding-left: 3em;">
+                        <ul class="list-unstyled">
+                            <li>
+                                <strong>
+                                    [start time] - [end time]
+                                </strong>: <a href="[genconplanner link]">[Event id]</a>
+                                [event name] (<a href="[gencon url]">Official Listing</a>)</li>
+                            <li style="padding-left: 2em">[Short description]</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane" id="type-tab">
+                {{/*for category in categories*/}}
+                <div>
+                    <h3>[Category name]</h3>
+
+                    <div style="padding-left: 3em;">
+                        {{/*for event in category*/}}
+                        <ul class="list-unstyled">
+                            <li><strong>
+                                    [Event day] [Event start time] - [event end time]
+                                </strong>: <a href="[gencon planner link]" shape="rect">[Event id]</a>
+                                [event name] (<a href="[gencon link]" shape="rect">Official Listing</a>)
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane active" id="calendar-tab">
+                <h2>TODO add calendar</h2>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{{ template "scriptFooter" }}
+</body>
+
+</html>

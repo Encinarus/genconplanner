@@ -19,15 +19,88 @@ func OpenDb() (*sql.DB, error) {
 }
 
 type User struct {
-	Email      string
-	CalendarId string
+	Email       string
+	DisplayName string
+	CalendarId  string
+}
+
+type UserStarredEvents struct {
+	Email         string
+	StarredEvents []string
+}
+
+func UpdateStarredEvent(db *sql.DB, email string, eventId string, related bool, add bool) (*UserStarredEvents, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	if related {
+		// Delete all similar events first, regardless
+		_, err = tx.Exec(`
+DELETE FROM starred_events s
+WHERE s.email = $1
+  AND s.event_id in (
+	  SELECT e2.event_id
+	  FROM events e1 join events e2 on e1.cluster_key = e2.cluster_key
+	  WHERE e1.event_id = $2
+  )
+`, email, eventId)
+
+		if err != nil && add {
+			// insert via select related ids
+			_, err = tx.Exec(`
+INSERT INTO starred_events(email, event_id)
+SELECT $1, e2.event_id
+FROM events e1 join events e2 on e1.cluster_key = e2.cluster_key
+WHERE e1.event_id = $2
+ON CONFLICT DO NOTHING
+`, email, eventId)
+		}
+	} else if add {
+		// insert one record
+		_, err = tx.Exec(`
+INSERT INTO starred_events(email, event_id)
+VALUES ($1, $2)
+ON CONFLICT DO NOTHING
+`, email, eventId)
+	} else {
+		// delete record
+		_, err = tx.Exec(`
+DELETE FROM starred_events s
+WHERE s.email = $1
+  AND s.event_id = $2
+`, email, eventId)
+	}
+
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	} else {
+		starredEvents := UserStarredEvents{
+			Email: email,
+		}
+
+		err = tx.QueryRow(`
+SELECT ARRAY(SELECT event_id
+FROM starred_events
+WHERE email = $1);
+`, email).Scan(pq.Array(&starredEvents.StarredEvents))
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		} else {
+			tx.Commit()
+			return &starredEvents, nil
+		}
+	}
 }
 
 func LoadOrCreateUser(db *sql.DB, email string) (*User, error) {
 	rows, err := db.Query(`
 SELECT 
        email, 
-       calendar_id
+       display_name
 FROM users
 WHERE email=$1
 `, email)
@@ -38,11 +111,10 @@ WHERE email=$1
 
 	var user *User
 	for rows.Next() {
-		log.Print("Found a user!")
 		var loadedUser User
 		if err := rows.Scan(
 			&loadedUser.Email,
-			&loadedUser.CalendarId,
+			&loadedUser.DisplayName,
 		); err != nil {
 			log.Fatalf("Error loading user %v", err)
 		} else {
@@ -54,15 +126,13 @@ WHERE email=$1
 
 	if user == nil {
 		// Time to create a user
-		// TODO: Create calendar for user and share it
 		user = &User{
-			Email:      email,
-			CalendarId: "",
+			Email:       email,
+			DisplayName: strings.Split(email, "@")[0],
 		}
 
-		log.Print("Creating user!")
-		_, err := db.Exec("INSERT INTO users(email, calendar_id) VALUES ($1, $2)",
-			user.Email, user.CalendarId)
+		_, err := db.Exec("INSERT INTO users(email, display_name) VALUES ($1, $2)",
+			user.Email, user.DisplayName)
 		if err != nil {
 			log.Fatalf("Error creating user, %v", user)
 		}

@@ -10,14 +10,13 @@
             {{ $hasTickets := (ne $session.TicketsAvailable 0) }}
             <li class="{{ if $thisSession }}thisSession{{ else }}otherSession{{ end }}
             {{ if $hasTickets }}hasTickets{{ else }}noTickets{{ end }}">
-                {{ if false }}
+
                 {{/*TODO(alek): Uncomment when ready for starring */}}
                 <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.8em">
                     <button type="button" class="btn btn-default btn-sm sm-star" id="star-TDA17117668">
                         <span class="glyphicon glyphicon-star-empty"></span>
                     </button>
                 </div>
-                {{ end }}
                 <div style="display:inline-block;">
                     {{ if $thisSession }}<em>This event</em>
                     {{ else }}<a href="/event/{{ $session.EventId }}">{{ $session.EventId }}</a>
@@ -54,6 +53,12 @@
 
 <div class="container">
     <h1 class="page-header">
+        <div style="display:inline-block;">
+            <button type="button" class="btn btn-default btn-md sm-star" id="star-all">
+                <span class="glyphicon glyphicon-star-empty"></span>
+            </button>
+        </div>
+
         {{ $e.Title }}
         <small>{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each</small>
 
