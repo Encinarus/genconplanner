@@ -57,13 +57,44 @@
     };
 
     function signOut() {
-        firebase.auth().signOut();
-        updateSigninWidget();
+        firebase.auth().signOut().then(function() {
+            refreshCookie();
+        });
+    }
+
+    function refreshCookie(postRefresh) {
+        let user = firebase.auth().currentUser;
+        if (user == null) {
+            Cookies.set("signinToken", "");
+            updateSigninWidget();
+            if (postRefresh != null) {
+                postRefresh();
+            }
+        } else {
+            user.getIdToken(/* forceRefresh */ true).then(function(idToken) {
+                Cookies.set("signinToken", idToken);
+                updateSigninWidget();
+                if (postRefresh != null) {
+                    postRefresh();
+                }
+            }).catch(function(error) {
+                // Handle error
+            });
+        }
+    }
+
+    function ensureLogin(behindSigninFunction) {
+        let user = firebase.auth().currentUser;
+        if (user == null) {
+            popupSignIn(behindSigninFunction);
+        } else {
+            refreshCookie(behindSigninFunction);
+        }
     }
 
     function updateSigninWidget() {
         console.log("Updating signin")
-        var currentUser = firebase.auth().currentUser;
+        let currentUser = firebase.auth().currentUser;
         if(currentUser) {
             var email = currentUser.email;
             var atLocation = email.indexOf("@");
@@ -71,11 +102,9 @@
                 atLocation = email.length;
             }
             var display_name = email.substring(0, atLocation);
-            console.log("Current user: " + display_name);
             $("#display_name").text(display_name);
             $("#signinWidget").hide();
             $("#myAccount").show();
-
         } else {
             $("#signinWidget").show();
             $("#myAccount").hide();
@@ -87,29 +116,13 @@
     // Initialize and refresh credentials
     firebase.initializeApp(config);
     firebase.auth().onAuthStateChanged(function(user) {
-        if (user) {
-            user.getIdToken(/* forceRefresh */ true).then(function(idToken) {
-                console.log("Token");
-                console.log(idToken);
-                Cookies.set("signinToken", idToken);
-                updateSigninWidget();
-            }).catch(function(error) {
-                // Handle error
-            });
-            // User is signed in.
-        } else {
-            // No user is signed in.
-        }
+        refreshCookie();
     });
 
-    function popupSignIn() {
+    function popupSignIn(onSignin) {
         var googleAuthProvider = new firebase.auth.GoogleAuthProvider();
         firebase.auth().signInWithPopup(googleAuthProvider).then(function(result) {
-            // This gives you a Google Access Token. You can use it to access the Google API.
-            var idToken = result.credential.idToken;
-            Cookies.set("signinToken", idToken);
-
-            updateSigninWidget();
+            refreshCookie(onSignin);
         }).catch(function(error) {
             // Handle Errors here.
             var errorCode = error.code;

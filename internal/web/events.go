@@ -20,8 +20,8 @@ type LookupResult struct {
 	TotalTickets int
 }
 
-func lookupEvent(db *sql.DB, eventId string) *LookupResult {
-	foundEvents, err := postgres.LoadSimilarEvents(db, eventId)
+func lookupEvent(db *sql.DB, eventId string, userEmail string) *LookupResult {
+	foundEvents, err := postgres.LoadSimilarEvents(db, eventId, userEmail)
 	if err != nil {
 		log.Fatalf("Unable to load events, err %v", err)
 	}
@@ -57,16 +57,32 @@ func lookupEvent(db *sql.DB, eventId string) *LookupResult {
 	return &result
 }
 
+func allStarred(events []*events.SlimEvent) bool {
+	for _, similar := range events {
+		if !similar.IsStarred {
+			return false
+		}
+	}
+	return true
+}
+
 func ViewEvent(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		eventId := c.Param("eid")
-		result := lookupEvent(db, eventId)
 		appContext := c.MustGet("context").(*Context)
+		result := lookupEvent(db, eventId, appContext.Email)
 		appContext.Year = result.MainEvent.Year
 
+		starred := allStarred(result.Wednesday)
+		starred = starred && allStarred(result.Thursday)
+		starred = starred && allStarred(result.Friday)
+		starred = starred && allStarred(result.Saturday)
+		starred = starred && allStarred(result.Sunday)
+
 		c.HTML(http.StatusOK, "event.html", gin.H{
-			"result":  result,
-			"context": appContext,
+			"result":     result,
+			"context":    appContext,
+			"allStarred": starred,
 		})
 	}
 }

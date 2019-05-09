@@ -47,15 +47,15 @@ WHERE s.email = $1
   )
 `, email, eventId)
 
-		if err != nil && add {
+		if err == nil && add {
 			// insert via select related ids
 			_, err = tx.Exec(`
 INSERT INTO starred_events(email, event_id)
 SELECT $1, e2.event_id
 FROM events e1 join events e2 on e1.cluster_key = e2.cluster_key
 WHERE e1.event_id = $2
-ON CONFLICT DO NOTHING
 `, email, eventId)
+			//ON CONFLICT DO NOTHING
 		}
 	} else if add {
 		// insert one record
@@ -250,7 +250,7 @@ ORDER BY event_type ASC`, year)
 	return countsPerCategory, nil
 }
 
-func LoadSimilarEvents(db *sql.DB, eventId string) ([]*events.GenconEvent, error) {
+func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.GenconEvent, error) {
 	// Might be slight overkill ensuring that the year matches, but
 	// folks could submit the same event two years in a row with the same
 	// description, making it cluster the same.
@@ -258,10 +258,12 @@ func LoadSimilarEvents(db *sql.DB, eventId string) ([]*events.GenconEvent, error
 
 	fields := "e1." + strings.Join(eventFields(), ", e1.")
 	rows, err := db.Query(fmt.Sprintf(`
-SELECT %s
-FROM events e1 join events e2 on e1.cluster_key = e2.cluster_key
+SELECT %s, se.event_id is not null
+FROM events e1 
+     JOIN events e2 ON e1.cluster_key = e2.cluster_key
+     LEFT JOIN starred_events se ON se.event_id = e1.event_id AND se.email = $3
 WHERE e2.event_id = $1
-  AND e1.year = $2`, fields), eventId, year)
+  AND e1.year = $2`, fields), eventId, year, userEmail)
 
 	if err != nil {
 		return nil, err
@@ -580,7 +582,8 @@ func scanEvent(row *sql.Rows) (*events.GenconEvent, error) {
 		&event.SpecialCategory,
 		&event.TicketsAvailable,
 		&event.LastModified,
-		&event.ShortCategory)
+		&event.ShortCategory,
+		&event.IsStarred)
 
 	return &event, err
 }

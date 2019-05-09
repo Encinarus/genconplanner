@@ -96,6 +96,8 @@ func main() {
 func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var appContext web.Context
+		appContext.Starred = &postgres.UserStarredEvents{}
+
 		// Create user if needed based on cookie
 		idToken, err := c.Cookie("signinToken")
 		if err == nil {
@@ -118,14 +120,18 @@ func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 					log.Printf("Error Loading/creating user: %v\n", err)
 				} else {
 					log.Printf("Loaded user: %v\n", user)
+					if user.DisplayName == "" {
+						user.DisplayName = strings.Split(email, "@")[0]
+					}
 					appContext.DisplayName = user.DisplayName
-
+					if err != nil {
+						log.Printf("error loading starred events for user %v\n", err)
+					}
 				}
 			}
 		}
 
 		c.Set("context", &appContext)
-
 		c.Next()
 	}
 }

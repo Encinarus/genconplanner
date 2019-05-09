@@ -1,5 +1,3 @@
-{{ $context := .context }}
-{{ $year := .context.Year }}
 {{ $e := .result.MainEvent }}
 
 {{ define "similar"}}
@@ -10,11 +8,12 @@
             {{ $hasTickets := (ne $session.TicketsAvailable 0) }}
             <li class="{{ if $thisSession }}thisSession{{ else }}otherSession{{ end }}
             {{ if $hasTickets }}hasTickets{{ else }}noTickets{{ end }}">
-
-                {{/*TODO(alek): Uncomment when ready for starring */}}
                 <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.8em">
-                    <button type="button" class="btn btn-default btn-sm sm-star" id="star-TDA17117668">
-                        <span class="glyphicon glyphicon-star-empty"></span>
+                    <button type="button"
+                            class="event-btn btn btn-default btn-sm sm-star {{ if $session.IsStarred }}active{{ end }}"
+                            id="star-{{ $session.EventId }}"
+                            onclick="javascript:starEvent('{{$session.EventId}}')">
+                        <span class="glyphicon glyphicon-star{{ if not $session.IsStarred }}-empty{{ end }}"></span>
                     </button>
                 </div>
                 <div style="display:inline-block;">
@@ -54,8 +53,12 @@
 <div class="container">
     <h1 class="page-header">
         <div style="display:inline-block;">
-            <button type="button" class="btn btn-default btn-md sm-star" id="star-all">
-                <span class="glyphicon glyphicon-star-empty"></span>
+            <button type="button"
+                    class="btn btn-default btn-md sm-star {{ if .allStarred }}active{{ end }}"
+                    id="star-all"
+                    onclick="javascript:starEvent('{{ $e.EventId }}', true)"
+            >
+                <span class="glyphicon glyphicon-star{{ if not .allStarred }}-empty{{ end }}"></span>
             </button>
         </div>
 
@@ -164,26 +167,26 @@
                 {{ if $wed }}
                 <div class="col-md-3">
                     <h4>Wednesday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $wed) }}
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $wed "context" .context) }}
                 </div>
                 {{ end }}
 
                 {{ if or $thurs $fri $sat $sun }}
                 <div class="col-md-3">
                     <h4>Thursday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $thurs) }}
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $thurs "context" .context) }}
                 </div>
                 <div class="col-md-3">
                     <h4>Friday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $fri) }}
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $fri "context" .context) }}
                 </div>
                 <div class="col-md-3">
                     <h4>Saturday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $sat) }}
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $sat "context" .context) }}
                 </div>
                 <div class="col-md-3">
                     <h4>Sunday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $sun) }}
+                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $sun "context" .context) }}
                 </div>
                 {{ end }}
             </div>
@@ -199,7 +202,65 @@
             $('a.toggleLink').text("Show unavailable sessions")
         }
         window.eventsHidden = !window.eventsHidden;
-        $('li.noTickets').toggle()
+        $('li.noTickets').toggle();
+    }
+
+    function starEvent(eventId, all) {
+        ensureLogin(function() {
+            var buttonId = '#star-' + eventId;
+            if (all) {
+                buttonId = '#star-all';
+            }
+            var isStarred = $(buttonId).hasClass('active');
+            console.log("Starring " + eventId + " : " + !isStarred);
+
+            $.ajax({
+                url: '/starEvent/',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    eventId: eventId,
+                    add: !isStarred,
+                    related: all,
+                },
+            }).done(function(data){
+                updateStarred(data);
+            });
+        });
+    }
+
+    function updateStarred(data) {
+        let starButtons = $(".event-btn").toArray().map(b => b.id);
+        let toStar = []
+        if (data != null) {
+            toStar = data['StarredEvents'].map(eventId => "star-" + eventId);
+        }
+
+        let starredCount = 0;
+        for (let i in starButtons) {
+            let buttonId = starButtons[i];
+            let needStar = toStar.includes(buttonId);
+            console.log(buttonId + " : " + needStar);
+            if (needStar) {
+                starredCount++;
+            }
+            fixButtonStar(buttonId, needStar);
+        }
+
+        fixButtonStar("star-all", starredCount == starButtons.length);
+    }
+
+    function fixButtonStar(buttonId, isStarred) {
+        buttonId = "#" + buttonId
+        let starId = buttonId + " span.glyphicon";
+
+        if (isStarred) {
+            $(buttonId).addClass('active');
+            $(starId).removeClass('glyphicon-star-empty').addClass('glyphicon-star');
+        } else {
+            $(buttonId).removeClass('active');
+            $(starId).removeClass('glyphicon-star').addClass('glyphicon-star-empty');
+        }
     }
 </script>
 {{ template "scriptFooter" }}

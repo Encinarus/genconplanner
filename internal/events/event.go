@@ -45,6 +45,7 @@ type SlimEvent struct {
 	RoomName         string
 	TableNumber      string
 	TicketsAvailable int
+	IsStarred        bool
 }
 
 type GenconEvent struct {
@@ -82,6 +83,7 @@ type GenconEvent struct {
 	TicketsAvailable     int
 	LastModified         time.Time
 	ShortCategory        string
+	IsStarred            bool
 }
 
 func (e *GenconEvent) GenconLink() string {
@@ -99,5 +101,6 @@ func (e *GenconEvent) SlimEvent() *SlimEvent {
 		RoomName:         e.RoomName,
 		TableNumber:      e.TableNumber,
 		TicketsAvailable: e.TicketsAvailable,
+		IsStarred:        e.IsStarred,
 	}
 }

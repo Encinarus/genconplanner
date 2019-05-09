@@ -30,6 +30,8 @@ func StarEvent(db *sql.DB) func(c *gin.Context) {
 			add = false
 		}
 
+		log.Printf("Updating starred: %v, %v, %v\n", eventId, related, add)
+
 		starredRows, err := postgres.UpdateStarredEvent(db, appContext.Email, eventId, related, add)
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)

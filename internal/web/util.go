@@ -9,6 +9,7 @@ type Context struct {
 	Year        int
 	DisplayName string
 	Email       string
+	Starred     *postgres.UserStarredEvents
 }
 
 func PartitionGroups(
