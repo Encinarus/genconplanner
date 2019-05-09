@@ -212,6 +212,7 @@
                 buttonId = '#star-all';
             }
             var isStarred = $(buttonId).hasClass('active');
+            $(buttonId).blur();
 
             $.ajax({
                 url: '/starEvent/',
