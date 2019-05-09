@@ -54,8 +54,8 @@ INSERT INTO starred_events(email, event_id)
 SELECT $1, e2.event_id
 FROM events e1 join events e2 on e1.cluster_key = e2.cluster_key
 WHERE e1.event_id = $2
+ON CONFLICT DO NOTHING
 `, email, eventId)
-			//ON CONFLICT DO NOTHING
 		}
 	} else if add {
 		// insert one record
