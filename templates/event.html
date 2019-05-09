@@ -212,7 +212,6 @@
                 buttonId = '#star-all';
             }
             var isStarred = $(buttonId).hasClass('active');
-            console.log("Starring " + eventId + " : " + !isStarred);
 
             $.ajax({
                 url: '/starEvent/',
@@ -240,7 +239,6 @@
         for (let i in starButtons) {
             let buttonId = starButtons[i];
             let needStar = toStar.includes(buttonId);
-            console.log(buttonId + " : " + needStar);
             if (needStar) {
                 starredCount++;
             }

@@ -6,7 +6,6 @@ CREATE TABLE public.starred_events
 (
   email text COLLATE pg_catalog."default" NOT NULL,
   event_id character varying(12) COLLATE pg_catalog."default" NOT NULL,
-  include_related boolean NOT NULL,
   CONSTRAINT starred_events_pkey PRIMARY KEY (event_id, email)
 )
   WITH (
@@ -24,7 +23,7 @@ ALTER TABLE public.starred_events
 CREATE TABLE public.users
 (
   email text COLLATE pg_catalog."default" NOT NULL,
-  calendar_id text COLLATE pg_catalog."default",
+  display_name text COLLATE pg_catalog."default",
   CONSTRAINT users_pkey PRIMARY KEY (email)
 )
   WITH (
