@@ -43,11 +43,11 @@
 <body>
 {{ template "navbar" .context }}
 
-{{ $wed := .result.Wednesday}}
-{{ $thurs := .result.Thursday}}
-{{ $fri := .result.Friday}}
-{{ $sat := .result.Saturday}}
-{{ $sun := .result.Sunday}}
+{{ $wed := .eventsPerDay.Wednesday}}
+{{ $thurs := .eventsPerDay.Thursday}}
+{{ $fri := .eventsPerDay.Friday}}
+{{ $sat := .eventsPerDay.Saturday}}
+{{ $sun := .eventsPerDay.Sunday}}
 {{ $tickets := .result.TotalTickets }}
 
 <div class="container">

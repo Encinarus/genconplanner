@@ -7,16 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"time"
 )
 
 type LookupResult struct {
 	MainEvent    *events.GenconEvent
-	Wednesday    []*events.SlimEvent
-	Thursday     []*events.SlimEvent
-	Friday       []*events.SlimEvent
-	Saturday     []*events.SlimEvent
-	Sunday       []*events.SlimEvent
+	EventsPerDay map[string][]*events.GenconEvent
 	TotalTickets int
 }
 
@@ -27,28 +22,12 @@ func lookupEvent(db *sql.DB, eventId string, userEmail string) *LookupResult {
 	}
 	log.Printf("Found %v events similar to %s", len(foundEvents), eventId)
 
-	var result LookupResult
+	result := LookupResult{
+		EventsPerDay: events.PartitionEventsByDay(foundEvents),
+	}
 	for _, event := range foundEvents {
 		if event.EventId == eventId {
 			result.MainEvent = event
-		}
-
-		switch event.StartTime.Weekday() {
-		case time.Wednesday:
-			result.Wednesday = append(result.Wednesday, event.SlimEvent())
-			break
-		case time.Thursday:
-			result.Thursday = append(result.Thursday, event.SlimEvent())
-			break
-		case time.Friday:
-			result.Friday = append(result.Friday, event.SlimEvent())
-			break
-		case time.Saturday:
-			result.Saturday = append(result.Saturday, event.SlimEvent())
-			break
-		case time.Sunday:
-			result.Sunday = append(result.Sunday, event.SlimEvent())
-			break
 		}
 
 		result.TotalTickets += event.TicketsAvailable
@@ -57,7 +36,7 @@ func lookupEvent(db *sql.DB, eventId string, userEmail string) *LookupResult {
 	return &result
 }
 
-func allStarred(events []*events.SlimEvent) bool {
+func allStarred(events []*events.GenconEvent) bool {
 	for _, similar := range events {
 		if !similar.IsStarred {
 			return false
@@ -73,16 +52,15 @@ func ViewEvent(db *sql.DB) gin.HandlerFunc {
 		result := lookupEvent(db, eventId, appContext.Email)
 		appContext.Year = result.MainEvent.Year
 
-		starred := allStarred(result.Wednesday)
-		starred = starred && allStarred(result.Thursday)
-		starred = starred && allStarred(result.Friday)
-		starred = starred && allStarred(result.Saturday)
-		starred = starred && allStarred(result.Sunday)
-
+		starred := true
+		for _, loadedEvents := range result.EventsPerDay {
+			starred = starred && allStarred(loadedEvents)
+		}
 		c.HTML(http.StatusOK, "event.html", gin.H{
-			"result":     result,
-			"context":    appContext,
-			"allStarred": starred,
+			"result":       result,
+			"eventsPerDay": result.EventsPerDay,
+			"context":      appContext,
+			"allStarred":   starred,
 		})
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/csv"
+	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -76,34 +77,8 @@ func Search(db *sql.DB) func(c *gin.Context) {
 		if len(strings.TrimSpace(g.ShortCategory)) == 0 {
 			return "Unknown"
 		}
-		longCat, found := map[string]string{
-			"ANI":  "Anime Activities",
-			"BGM":  "Board Games",
-			"CGM":  "Non-Collectable/Tradable Card Games",
-			"EGM":  "Electronic Games",
-			"ENT":  "Entertainment Events",
-			"FLM":  "Film Fest",
-			"HMN":  "Historical Miniatures",
-			"KID":  "Kids Activities",
-			"LRP":  "Larps",
-			"MHE":  "Miniature Hobby Events",
-			"NMN":  "Non-Historical Miniatures",
-			"RPG":  "Role Playing Games",
-			"RPGA": "Role Playing Game Association",
-			"SEM":  "Seminiars",
-			"SPA":  "Spousal Activities",
-			"TCG":  "Tradeable Card Game",
-			"TDA":  "True Dungeon",
-			"TRD":  "Trade Day Events",
-			"WKS":  "Workshop",
-			"ZED":  "Isle of Misfit Events",
-		}[g.ShortCategory]
 
-		if found {
-			return longCat
-		} else {
-			return g.ShortCategory
-		}
+		return events.LongCategory(g.ShortCategory)
 	}
 
 	return func(c *gin.Context) {

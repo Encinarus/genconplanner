@@ -9,6 +9,63 @@ import (
 	"unicode"
 )
 
+func PartitionEventsByDay(loadedEvents []*GenconEvent) map[string][]*GenconEvent {
+	eventsPerDay := make(map[string][]*GenconEvent)
+
+	for _, event := range loadedEvents {
+		day := event.StartTime.Weekday().String()
+		eventsPerDay[day] = append(eventsPerDay[day], event)
+	}
+
+	return eventsPerDay
+}
+
+func PartitionEventsByCategory(loadedEvents []*GenconEvent) map[string][]*GenconEvent {
+	eventsPerCategory := make(map[string][]*GenconEvent)
+
+	for _, event := range loadedEvents {
+		category := event.ShortCategory
+		eventsPerCategory[category] = append(eventsPerCategory[category], event)
+	}
+
+	return eventsPerCategory
+}
+
+func AllCategories() map[string]string {
+	return map[string]string{
+		"ANI":  "Anime Activities",
+		"BGM":  "Board Games",
+		"CGM":  "Non-Collectable/Tradable Card Games",
+		"EGM":  "Electronic Games",
+		"ENT":  "Entertainment Events",
+		"FLM":  "Film Fest",
+		"HMN":  "Historical Miniatures",
+		"KID":  "Kids Activities",
+		"LRP":  "Larps",
+		"MHE":  "Miniature Hobby Events",
+		"NMN":  "Non-Historical Miniatures",
+		"RPG":  "Role Playing Games",
+		"RPGA": "Role Playing Game Association",
+		"SEM":  "Seminiars",
+		"SPA":  "Spousal Activities",
+		"TCG":  "Tradeable Card Game",
+		"TDA":  "True Dungeon",
+		"TRD":  "Trade Day Events",
+		"WKS":  "Workshop",
+		"ZED":  "Isle of Misfit Events",
+	}
+}
+
+func LongCategory(shortCategory string) string {
+	longCat, found := AllCategories()[shortCategory]
+
+	if found {
+		return longCat
+	} else {
+		return shortCategory
+	}
+}
+
 func CategoryFromEvent(rawEventId string) string {
 	category, _ := splitId(rawEventId)
 	return category

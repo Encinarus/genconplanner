@@ -2,6 +2,7 @@ package web
 
 import (
 	"database/sql"
+	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -44,7 +45,7 @@ func StarEvent(db *sql.DB) func(c *gin.Context) {
 func StarredPage(db *sql.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		appContext := c.MustGet("context").(*Context)
-		defaultYear := time.Now().Year()
+		appContext.Year = time.Now().Year()
 
 		var err error
 		if len(strings.TrimSpace(c.Param("year"))) > 0 {
@@ -54,11 +55,20 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 				c.AbortWithError(http.StatusBadRequest, err)
 				return
 			}
-		} else {
-			appContext.Year = defaultYear
 		}
+
+		starredEvents, err := postgres.LoadStarredEvents(db, appContext.Email, appContext.Year)
+		if err != nil {
+			log.Printf("Error loading starred events")
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
 		c.HTML(http.StatusOK, "starred.html", gin.H{
-			"context": appContext,
+			"context":          appContext,
+			"eventsByDay":      events.PartitionEventsByDay(starredEvents),
+			"eventsByCategory": events.PartitionEventsByCategory(starredEvents),
+			"allCategories":    events.AllCategories(),
 		})
 	}
 }

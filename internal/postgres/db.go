@@ -29,6 +29,32 @@ type UserStarredEvents struct {
 	StarredEvents []string
 }
 
+func LoadStarredEvents(db *sql.DB, userEmail string, year int) ([]*events.GenconEvent, error) {
+	fields := "e1." + strings.Join(eventFields(), ", e1.")
+	rows, err := db.Query(fmt.Sprintf(`
+SELECT %s, true
+FROM events e1 
+     JOIN starred_events se ON se.event_id = e1.event_id
+WHERE se.email = $1
+  AND e1.year = $2
+ORDER BY e1.start_time`, fields), userEmail, year)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	loadedEvents := make([]*events.GenconEvent, 0)
+	for rows.Next() {
+		event, err := scanEvent(rows)
+		if err != nil {
+			return nil, err
+		}
+		loadedEvents = append(loadedEvents, event)
+	}
+	return loadedEvents, nil
+}
+
 func UpdateStarredEvent(db *sql.DB, email string, eventId string, related bool, add bool) (*UserStarredEvents, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -263,7 +289,8 @@ FROM events e1
      JOIN events e2 ON e1.cluster_key = e2.cluster_key
      LEFT JOIN starred_events se ON se.event_id = e1.event_id AND se.email = $3
 WHERE e2.event_id = $1
-  AND e1.year = $2`, fields), eventId, year, userEmail)
+  AND e1.year = $2
+ORDER BY e1.start_time`, fields), eventId, year, userEmail)
 
 	if err != nil {
 		return nil, err
