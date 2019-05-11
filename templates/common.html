@@ -16,16 +16,9 @@
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li id="signinWidget" {{ if $display_name }}style="display: none;"{{end}}><a href="#" onclick="popupSignIn();">Signin</a></li>
-                <li id="myAccount" {{ if not $display_name }}style="display: none;"{{end}}>
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <span id="display_name">{{ $display_name }}</span>'s Account<b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="/starred/{{ $year }}">Starred Events</a></li>
-                        <li class="divider"></li>
-                        <li><a onclick="signOut()">Sign out</a></li>
-                    </ul>
-                </li>
+                <li id="signinWidget" {{ if $display_name }}style="display: none;"{{end}}  class="loggedout"><a href="#" onclick="popupSignIn();">Signin</a></li>
+                <li {{ if not $display_name }}style="display: none;"{{end}} class="loggedin"><a href="/starred/{{ $year }}">My Starred Events</a></li>
+                <li {{ if not $display_name }}style="display: none;"{{end}} class="loggedin"><a href="#" onclick="signOut()">Sign out</a></li>
                 <li><a href="/about">About</a></li>
             </ul>
             <form class="navbar-form navbar-right" action="/search">
@@ -93,23 +86,12 @@
     }
 
     function updateSigninWidget() {
-        console.log("Updating signin")
-        let currentUser = firebase.auth().currentUser;
-        if(currentUser) {
-            var email = currentUser.email;
-            var atLocation = email.indexOf("@");
-            if (atLocation <= 0) {
-                atLocation = email.length;
-            }
-            var display_name = email.substring(0, atLocation);
-            $("#display_name").text(display_name);
-            $("#signinWidget").hide();
-            $("#myAccount").show();
+        if(firebase.auth().currentUser) {
+            $(".loggedout").hide();
+            $(".loggedin").show();
         } else {
-            $("#signinWidget").show();
-            $("#myAccount").hide();
-
-            console.log("Reset widget");
+            $(".loggedin").hide();
+            $(".loggedout").show();
         }
     }
 
