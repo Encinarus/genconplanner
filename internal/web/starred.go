@@ -63,12 +63,19 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 			c.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
-
+		groupedEvents, err := postgres.LoadStarredEventClusters(db, appContext.Email, appContext.Year, starredEvents)
+		if err != nil {
+			log.Printf("Error loading starred groups")
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+		log.Printf("Loaded calendar groups: %v\n", groupedEvents)
 		c.HTML(http.StatusOK, "starred.html", gin.H{
 			"context":          appContext,
 			"eventsByDay":      events.PartitionEventsByDay(starredEvents),
 			"eventsByCategory": events.PartitionEventsByCategory(starredEvents),
 			"allCategories":    events.AllCategories(),
+			"calendarGroups":   groupedEvents,
 		})
 	}
 }

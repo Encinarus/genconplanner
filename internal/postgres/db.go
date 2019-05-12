@@ -7,11 +7,14 @@ import (
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/lib/pq"
 	"log"
+	"sort"
 	"strings"
 	"time"
 )
 
 var dbConnectString = flag.String("db", "", "postgres connect string")
+
+var INDIANAPOLIS, _ = time.LoadLocation("America/Indiana/Indianapolis")
 
 func OpenDb() (*sql.DB, error) {
 	fmt.Println("dbString", *dbConnectString)
@@ -24,9 +27,98 @@ type User struct {
 	CalendarId  string
 }
 
-type UserStarredEvents struct {
-	Email         string
-	StarredEvents []string
+type CalendarEventCluster struct {
+	Title         string
+	StartTime     time.Time
+	EndTime       time.Time
+	GenconUrl     string
+	PlannerUrl    string
+	ShortCategory string
+}
+
+func newClusterForEvent(event *events.GenconEvent) *CalendarEventCluster {
+	log.Printf("Creating a new group\n")
+	return &CalendarEventCluster{
+		Title:         event.Title,
+		StartTime:     event.StartTime,
+		EndTime:       event.EndTime,
+		GenconUrl:     event.GenconLink(),
+		PlannerUrl:    event.PlannerLink(),
+		ShortCategory: event.ShortCategory,
+	}
+}
+
+func LoadStarredEventClusters(db *sql.DB, userEmail string, year int, starredEvents []*events.GenconEvent) ([]*CalendarEventCluster, error) {
+	rows, err := db.Query(`
+SELECT 
+    CASE EXTRACT(DOW FROM e.start_time) 
+		WHEN 3 THEN 'wed'
+		WHEN 4 THEN 'thu'
+		WHEN 5 THEN 'fri'
+		WHEN 6 THEN 'sat'
+		WHEN 0 THEN 'sun'
+	END AS day_of_week,	
+    ARRAY_AGG(se.event_id) event_ids
+FROM starred_events se 
+     JOIN events e ON e.event_id = se.event_id
+WHERE se.email = $1
+  AND e.year = $2
+GROUP BY e.cluster_key, day_of_week
+`, userEmail, year)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	eventsById := make(map[string]*events.GenconEvent)
+	for _, e := range starredEvents {
+		eventsById[e.EventId] = e
+	}
+
+	groupedEvents := make([]*CalendarEventCluster, 0)
+	for rows.Next() {
+		log.Println("Processing a row")
+		eventIds := make([]string, 0)
+		var dayOfWeek string
+		err = rows.Scan(&dayOfWeek, pq.Array(&eventIds))
+		if err != nil {
+			return nil, err
+		}
+
+		dayGroupEvents := make([]*events.GenconEvent, 0, len(eventIds))
+		for _, id := range eventIds {
+			// Guard against events being starred between the load and
+			// here. Should be _super_ rare, handle anyway.
+			if e, present := eventsById[id]; present {
+				dayGroupEvents = append(dayGroupEvents, e)
+			} else {
+				log.Printf("Can't find event %v in events", id)
+			}
+		}
+		log.Printf("Found %v events", len(dayGroupEvents))
+		// We sort the events by start time so we can reference
+		// the earliest one in each cluster
+		sort.Slice(dayGroupEvents, func(i, j int) bool {
+			return dayGroupEvents[i].StartTime.Before(dayGroupEvents[j].StartTime)
+		})
+
+		cluster := newClusterForEvent(dayGroupEvents[0])
+
+		for _, event := range dayGroupEvents[1:] {
+			if event.StartTime.After(cluster.EndTime) {
+				groupedEvents = append(groupedEvents, cluster)
+				cluster = newClusterForEvent(event)
+			} else if event.EndTime.After(cluster.EndTime) {
+				cluster.EndTime = event.EndTime
+			}
+		}
+
+		groupedEvents = append(groupedEvents, cluster)
+	}
+
+	log.Printf("Returning %v groups", len(groupedEvents))
+	return groupedEvents, nil
 }
 
 func LoadStarredEvents(db *sql.DB, userEmail string, year int) ([]*events.GenconEvent, error) {
@@ -53,6 +145,11 @@ ORDER BY e1.start_time`, fields), userEmail, year)
 		loadedEvents = append(loadedEvents, event)
 	}
 	return loadedEvents, nil
+}
+
+type UserStarredEvents struct {
+	Email         string
+	StarredEvents []string
 }
 
 func UpdateStarredEvent(db *sql.DB, email string, eventId string, related bool, add bool) (*UserStarredEvents, error) {
@@ -652,6 +749,8 @@ func scanEvent(row *sql.Rows) (*events.GenconEvent, error) {
 		&event.ShortCategory,
 		&event.IsStarred)
 
+	event.StartTime = event.StartTime.In(INDIANAPOLIS)
+	event.EndTime = event.EndTime.In(INDIANAPOLIS)
 	return &event, err
 }
 

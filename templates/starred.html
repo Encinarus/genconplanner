@@ -50,7 +50,35 @@
 
 <html>
 <head>
-    {{ template "header" "Gencon Events"}}
+    {{ template "header" "Starred Events"}}
+    <link type="text/css" rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.css"/>
+    <link type="text/css" rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print"/>
+    <style>
+        .calevent {
+            color: #FFFFFF;
+        }
+        a.calANI, tr.calANI {background-color: #A9177E;}
+        a.calBGM, tr.calBGM {background-color: #0073AA;}
+        a.calCGM, tr.calCGM {background-color: #6B2355;}
+        a.calEGM, tr.calEGM {background-color: #858E95;}
+        a.calENT, tr.calENT {background-color: #C94088;}
+        a.calFLM, tr.calFLM {background-color: #4B4761;}
+        a.calHMN, tr.calHMN {background-color: #2A3181;}
+        a.calKID, tr.calKID {background-color: #9470AA;}
+        a.calLRP, tr.calLRP {background-color: #AE8B1C;}
+        a.calMHE, tr.calMHE {background-color: #E8B51C;}
+        a.calNMN, tr.calNMN {background-color: #686F1F;}
+        a.calRPG, tr.calRPG {background-color: #448A80;}
+        a.calRPGA, tr.calRPGA {background-color: #D67917;}
+        a.calSEM, tr.calSEM {background-color: #009CDF;}
+        a.calSPA, tr.calSPA {background-color: #A6C749;}
+        a.calTCG, tr.calTCG {background-color: #1C944A;}
+        a.calTDA, tr.calTDA {background-color: #771F17;}
+        a.calTRD, tr.calTRD {background-color: #878F68;}
+        a.calWKS, tr.calWKS {background-color: #5E3C03;}
+        a.calZED, tr.calZED {background-color: #75B9B8;}
+        #eventContent { display: none; }
+    </style>
 </head>
 
 <body>
@@ -62,9 +90,9 @@
     <div class="main">
 
         <ul class="nav nav-tabs nav-justified" id="starredgroup">
-            <li><a href="#calendar-tab" data-toggle="tab" shape="rect">Calendar</a></li>
+            <li class="active"><a href="#calendar-tab" data-toggle="tab" shape="rect">Calendar</a></li>
             <li><a href="#day-tab" data-toggle="tab" shape="rect">By day</a></li>
-            <li class="active"><a href="#type-tab" data-toggle="tab" shape="rect">By type</a></li>
+            <li><a href="#type-tab" data-toggle="tab" shape="rect">By type</a></li>
         </ul>
         <!-- Tab panes -->
         <div class="tab-content">
@@ -75,7 +103,7 @@
                 {{ template "eventBlurb" (dict "events" $sat "day" "Saturday") }}
                 {{ template "eventBlurb" (dict "events" $sun "day" "Sunday") }}
             </div>
-            <div class="tab-pane active" id="type-tab">
+            <div class="tab-pane" id="type-tab">
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.ANI "fullCat" "ANI - Anime Activities") }}
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.BGM "fullCat" "BGM - Board Games") }}
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.CGM "fullCat" "CGM - Non-Collectable/Tradable Card Games") }}
@@ -97,14 +125,104 @@
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.WKS "fullCat" "WKS - Workshop") }}
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.ZED "fullCat" "ZED - Isle of Misfit Events") }}
             </div>
-            <div class="tab-pane" id="calendar-tab">
-                <h2>TODO add calendar</h2>
-            </div>
+            <div class="tab-pane active" id="calendar-tab">
+                <!-- This doesn't look as good as it should... -->
+                <ul class="nav nav-pills nav-justified" id="daygroup">
+                    <li><a href="#wednesday">Wednesday</a></li>
+                    <li class="active"><a href="#thursday">Thursday</a></li>
+                    <li><a href="#friday">Friday</a></li>
+                    <li><a href="#saturday">Saturday</a></li>
+                    <li><a href="#sunday">Sunday</a></li>
+                </ul>
+                <div id='calendar' class="tab-content" style="padding-top: 10px;"></div>            </div>
         </div>
     </div>
 </div>
 </div>
 {{ template "scriptFooter" }}
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.1/moment.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.16/moment-timezone-with-data-2012-2022.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+
+
+<script inline="javascript">
+    /*<![CDATA[*/
+    $('#starredgroup a').click(function (e) {
+        e.preventDefault();
+        $(this).tab('show');
+    });
+    $('#starredgroup a[href="#calendar-tab"]').click(function(e) {
+        // The calendar won't render when hidden, so when we select the tab, we need to show it again
+        $('#calendar').fullCalendar('render');
+    });
+    $('#daygroup a').click(function (e) {
+        e.preventDefault();
+        $(this).tab('show');
+    });
+    // These are all horribly redundant... but my js-foo isn't there yet.
+    $('#daygroup a[href="#wednesday"]').click(function(e) {
+        e.preventDefault();
+        $('#calendar').fullCalendar( 'gotoDate', "2019-07-31");
+    });
+    $('#daygroup a[href="#thursday"]').click(function(e) {
+        e.preventDefault();
+        $('#calendar').fullCalendar( 'gotoDate', "2019-08-01");
+    });
+    $('#daygroup a[href="#friday"]').click(function(e) {
+        e.preventDefault();
+        $('#calendar').fullCalendar( 'gotoDate', "2019-08-02");
+    });
+    $('#daygroup a[href="#saturday"]').click(function(e) {
+        e.preventDefault();
+        $('#calendar').fullCalendar( 'gotoDate', "2019-08-03");
+    });
+    $('#daygroup a[href="#sunday"]').click(function(e) {
+        e.preventDefault();
+        $('#calendar').fullCalendar( 'gotoDate', "2019-08-04");
+    });
+    $(document).ready(function() {
+        // And populate the calendar
+        var events = [
+            {{ range $e := .calendarGroups }}{
+                title: {{ $e.Title }},
+                start: moment.unix({{ $e.StartTime.Unix }}).tz("America/Indiana/Indianapolis"),
+                end: moment.unix({{ $e.EndTime.Unix }}).tz("America/Indiana/Indianapolis"),
+                url: {{ $e.PlannerUrl }},
+                className: ['cal{{ $e.ShortCategory }}', 'calevent'],
+            },
+            {{ end }}
+        ];
+        $('#calendar').fullCalendar({
+            header: {
+                left: 'prev,next',
+                center: 'title',
+                right: 'agendaWeek,agendaDay,listWeek'
+            },
+            views: {
+                agendaWeek: {
+                    buttonText: 'Week'
+                },
+                agendaDay: {
+                    buttonText: 'Day'
+                },
+                listWeek: {
+                    buttonText: 'Agenda View'
+                }
+            },
+            firstDay: 3,
+            defaultDate: '2019-07-31',
+            navLinks: false,
+            timezone: 'America/Indiana/Indianapolis',
+            defaultView: 'agendaWeek',
+            editable: false,
+            hiddenDays: [1, 2],
+            allDayDefault: false,
+            events: events
+        });
+    });
+    /*]]>*/
+</script>
 </body>
 
 </html>

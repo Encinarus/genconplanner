@@ -143,6 +143,10 @@ type GenconEvent struct {
 	IsStarred            bool
 }
 
+func (e *GenconEvent) PlannerLink() string {
+	return fmt.Sprintf("http://www.genconplanner.com/event/%v", e.EventId)
+}
+
 func (e *GenconEvent) GenconLink() string {
 	id := strings.TrimLeftFunc(e.EventId, unicode.IsLetter)[2:]
 	return fmt.Sprintf("http://gencon.com/events/%v", id)
