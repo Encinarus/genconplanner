@@ -15,10 +15,10 @@ type LookupResult struct {
 	TotalTickets int
 }
 
-func lookupEvent(db *sql.DB, eventId string, userEmail string) *LookupResult {
+func lookupEvent(db *sql.DB, eventId string, userEmail string) (*LookupResult, error) {
 	foundEvents, err := postgres.LoadSimilarEvents(db, eventId, userEmail)
 	if err != nil {
-		log.Fatalf("Unable to load events, err %v", err)
+		return nil, err
 	}
 	log.Printf("Found %v events similar to %s", len(foundEvents), eventId)
 
@@ -33,7 +33,7 @@ func lookupEvent(db *sql.DB, eventId string, userEmail string) *LookupResult {
 		result.TotalTickets += event.TicketsAvailable
 	}
 
-	return &result
+	return &result, nil
 }
 
 func allStarred(events []*events.GenconEvent) bool {
@@ -49,7 +49,12 @@ func ViewEvent(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		eventId := c.Param("eid")
 		appContext := c.MustGet("context").(*Context)
-		result := lookupEvent(db, eventId, appContext.Email)
+		result, err := lookupEvent(db, eventId, appContext.Email)
+		if err != nil {
+			log.Printf("Unable to lookup event %v\n", err)
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
 		appContext.Year = result.MainEvent.Year
 
 		starred := true

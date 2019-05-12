@@ -114,6 +114,24 @@ CREATE INDEX year_hash_index
     (year)
   TABLESPACE pg_default;
 
+-- Index: start_time_index
+
+-- DROP INDEX public.start_time_index;
+
+CREATE INDEX start_time_index
+  ON public.events USING hash
+    (start_time)
+  TABLESPACE pg_default;
+
+-- Index: title_index
+
+-- DROP INDEX public.title_index;
+
+CREATE INDEX title_index
+  ON public.events USING btree
+    (title COLLATE pg_catalog."default")
+  TABLESPACE pg_default;
+
 -- Trigger: cluster_vectorupdate
 
 -- DROP TRIGGER cluster_vectorupdate ON public.events;

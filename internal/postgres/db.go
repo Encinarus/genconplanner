@@ -68,7 +68,10 @@ DELETE FROM starred_events s
 WHERE s.email = $1
   AND s.event_id in (
 	  SELECT e2.event_id
-	  FROM events e1 join events e2 on e1.cluster_key = e2.cluster_key
+	  FROM events e1 join events e2 on e1.year = e2.year
+          AND e1.short_category = e2.short_category
+	      AND e1.title = e2.title
+          AND e1.cluster_key = e2.cluster_key
 	  WHERE e1.event_id = $2
   )
 `, email, eventId)
@@ -78,7 +81,10 @@ WHERE s.email = $1
 			_, err = tx.Exec(`
 INSERT INTO starred_events(email, event_id)
 SELECT $1, e2.event_id
-FROM events e1 join events e2 on e1.cluster_key = e2.cluster_key
+FROM events e1 join events e2 on e1.year = e2.year
+    AND e1.short_category = e2.short_category
+    AND e1.title = e2.title   
+    AND e1.cluster_key = e2.cluster_key
 WHERE e1.event_id = $2
 ON CONFLICT DO NOTHING
 `, email, eventId)
@@ -191,13 +197,14 @@ type EventGroup struct {
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	var group EventGroup
 	if err := rows.Scan(
+		&group.EventId,
 		&group.Name,
 		&group.Description,
 		&group.ShortCategory,
 		&group.GameSystem,
 		// Aggregate fields
 		&group.Count,
-		&group.EventId,
+		&group.TotalTickets,
 		&group.WedTickets,
 		&group.ThursTickets,
 		&group.FriTickets,
@@ -206,33 +213,47 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	); err != nil {
 		return nil, err
 	}
-	group.TotalTickets = group.WedTickets + group.ThursTickets + group.FriTickets + group.SatTickets + group.SunTickets
 	return &group, nil
 }
 
 func LoadEventGroups(db *sql.DB, cat string, year int) ([]*EventGroup, error) {
 	rows, err := db.Query(`
 SELECT 
-       title, 
-       min(short_description),
-       short_category,
-       game_system,
-       count(1),
-       min(event_id),
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets
-FROM events
-WHERE active and year=$1 and short_category=$2
-GROUP BY 
-         title,
-         short_category,
-         game_system,
-         cluster_key
-ORDER BY sum(tickets_available) > 0 desc, title
-`, year, cat)
+       e.event_id,
+	   e.title,
+	   e.short_description,
+	   e.short_category,
+       e.game_system,
+	   c.num_events,
+	   c.tickets_available,
+	   c.wednesday_tickets,
+	   c.thursday_tickets,
+	   c.friday_tickets,
+	   c.saturday_tickets,
+	   c.sunday_tickets
+FROM events e 
+	JOIN (
+		SELECT 
+			   cluster_key,
+			   short_category,
+			   title,
+			   min(start_time) as start_time,
+			   count(1) as num_events,
+			   sum(tickets_available) as tickets_available,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
+		FROM events
+		WHERE active and year=$1 and short_category=$2
+		GROUP BY cluster_key, short_category, title
+		) as c ON e.title = c.title 
+		       AND e.short_category = c.short_category
+			   AND e.cluster_key = c.cluster_key
+			   AND e.start_time = c.start_time
+WHERE e.year = $1
+ORDER BY c.tickets_available > 0 desc, title`, year, cat)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +307,10 @@ func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.
 	rows, err := db.Query(fmt.Sprintf(`
 SELECT %s, se.event_id is not null
 FROM events e1 
-     JOIN events e2 ON e1.cluster_key = e2.cluster_key
+     JOIN events e2 on e1.year = e2.year
+          AND e1.short_category = e2.short_category
+          AND e1.title = e2.title
+          AND e1.cluster_key = e2.cluster_key
      LEFT JOIN starred_events se ON se.event_id = e1.event_id AND se.email = $3
 WHERE e2.event_id = $1
   AND e1.year = $2
@@ -324,28 +348,44 @@ func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 	if len(tsquery) > 0 {
 		rows, err := db.Query(`
 SELECT 
-       title, 
-       min(short_description), 
-       short_category,    
-       game_system,
-       count(1),
-       min(event_id),
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-       sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets
-FROM events, to_tsquery($1) q
-WHERE active and cluster_key @@ q and year = $2
-GROUP BY 
-         title, 
-         short_category, 
-         game_system,
-         cluster_key,
-         ts_rank(title_tsv, q), ts_rank(cluster_key, q)
-ORDER BY sum(tickets_available) > 0 desc, 
-         ts_rank(title_tsv, q) desc,
-         ts_rank(cluster_key, q) desc`, tsquery, query.Year)
+       e.event_id,
+	   e.title,
+	   e.short_description,
+	   e.short_category,
+       e.game_system,       
+	   c.num_events,
+	   c.tickets_available,
+	   c.wednesday_tickets,
+	   c.thursday_tickets,
+	   c.friday_tickets,
+	   c.saturday_tickets,
+	   c.sunday_tickets
+FROM events e 
+	JOIN (
+		SELECT 
+			   cluster_key,
+			   short_category,
+			   title,
+			   min(start_time) as start_time,
+			   count(1) as num_events,
+			   sum(tickets_available) as tickets_available,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets,
+		       min(ts_rank(title_tsv, q)) as title_rank, 
+		       min(ts_rank(cluster_key, q)) as cluster_rank
+		FROM events, to_tsquery($1) q
+		WHERE active and year=$2 and cluster_key @@ q
+		GROUP BY cluster_key, short_category, title
+		) as c ON e.title = c.title 
+		       AND e.short_category = c.short_category
+			   AND e.cluster_key = c.cluster_key
+			   AND e.start_time = c.start_time
+WHERE e.year = $2
+ORDER BY c.tickets_available > 0 desc, c.title_rank desc, c.cluster_rank desc
+`, tsquery, query.Year)
 
 		if err != nil {
 			return nil, err
