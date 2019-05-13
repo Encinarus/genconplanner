@@ -26,6 +26,7 @@ func GetStarredEvents(db *sql.DB) func(c *gin.Context) {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
+		c.Header("Cache-Control", "no-cache")
 		c.JSON(http.StatusOK, starredRows)
 	}
 }
