@@ -31,6 +31,20 @@ func parseTime(dateString string) time.Time {
 	return parsed
 }
 
+func normalizeEvent(event *GenconEvent) *GenconEvent {
+	if event.GameSystem == "Shadows of ESteren" {
+		event.GameSystem = "Shadows of Esteren"
+	}
+	if event.GameSystem == "Dragon Age" {
+		event.GameSystem = "Dragon AGE"
+	}
+	if event.GameSystem == "Magic: the Gathering" {
+		event.GameSystem = "Magic: The Gathering"
+	}
+
+	return event
+}
+
 func rowToEvent(row *excelRow) *GenconEvent {
 	cells := row.Cells
 	startTime := parseTime(cells[13].String)
@@ -49,7 +63,7 @@ func rowToEvent(row *excelRow) *GenconEvent {
 	lastModifiedDuration := (time.Duration)(cells[30].Number * (float64)(time.Hour) * 24)
 	lastModified := excelReferenceDate.Add(lastModifiedDuration)
 
-	return &GenconEvent{
+	return normalizeEvent(&GenconEvent{
 		EventId:              eventId,
 		Year:                 year,
 		Active:               true,
@@ -84,7 +98,7 @@ func rowToEvent(row *excelRow) *GenconEvent {
 		TicketsAvailable:     (int)(cells[29].Number),
 		LastModified:         lastModified,
 		ShortCategory:        shortCategory,
-	}
+	})
 }
 
 func ParseGenconSheet(rawBytes []byte) []*GenconEvent {

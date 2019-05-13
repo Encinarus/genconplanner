@@ -132,6 +132,7 @@ func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.Set("context", &appContext)
+		c.Header("cache-control", "no-cache")
 		c.Next()
 	}
 }
