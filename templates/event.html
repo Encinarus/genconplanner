@@ -194,6 +194,7 @@
     </div>
 </div>
 
+{{ template "scriptFooter" }}
 <script lang="javascript">
     function toggleAvailable() {
         if (window.eventsHidden) {
@@ -232,7 +233,7 @@
     function updateStarred(data) {
         let starButtons = $(".event-btn").toArray().map(b => b.id);
         let toStar = []
-        if (data != null) {
+        if (data != null && data['StarredEvents'] != null) {
             toStar = data['StarredEvents'].map(eventId => "star-" + eventId);
         }
 
@@ -261,7 +262,17 @@
             $(starId).removeClass('glyphicon-star').addClass('glyphicon-star-empty');
         }
     }
+
+    firebase.auth().onAuthStateChanged(function(user) {
+        $.ajax({
+            url: '/starEvent/',
+            type: 'GET',
+            dataType: 'json',
+        }).done(function(data){
+            updateStarred(data);
+        });
+        updateSigninWidget();
+    });
 </script>
-{{ template "scriptFooter" }}
 </body>
 </html>

@@ -12,6 +12,24 @@ import (
 	"time"
 )
 
+func GetStarredEvents(db *sql.DB) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		appContext := c.MustGet("context").(*Context)
+
+		if appContext.Email == "" {
+			c.JSON(http.StatusOK, &postgres.UserStarredEvents{})
+			return
+		}
+
+		starredRows, err := postgres.GetStarredIds(db, appContext.Email)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		c.JSON(http.StatusOK, starredRows)
+	}
+}
+
 func StarEvent(db *sql.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		appContext := c.MustGet("context").(*Context)

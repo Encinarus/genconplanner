@@ -225,6 +225,23 @@ WHERE email = $1);
 	}
 }
 
+func GetStarredIds(db *sql.DB, email string) (*UserStarredEvents, error) {
+	starredEvents := UserStarredEvents{
+		Email: email,
+	}
+
+	err := db.QueryRow(`
+SELECT ARRAY(SELECT event_id
+FROM starred_events
+WHERE email = $1);
+`, email).Scan(pq.Array(&starredEvents.StarredEvents))
+	if err != nil {
+		return nil, err
+	} else {
+		return &starredEvents, nil
+	}
+}
+
 func LoadOrCreateUser(db *sql.DB, email string) (*User, error) {
 	rows, err := db.Query(`
 SELECT 

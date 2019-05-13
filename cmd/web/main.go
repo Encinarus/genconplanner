@@ -78,6 +78,7 @@ func main() {
 	r.GET("/cat/:year", web.CategoryList(db))
 	r.GET("/starred/:year", web.StarredPage(db))
 	r.POST("/starEvent/", web.StarEvent(db))
+	r.GET("/starEvent/", web.GetStarredEvents(db))
 
 	r.GET("/about", func(c *gin.Context) {
 		year, err := strconv.Atoi(c.Param("year"))
@@ -132,7 +133,6 @@ func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.Set("context", &appContext)
-		c.Header("cache-control", "no-cache")
 		c.Next()
 	}
 }
