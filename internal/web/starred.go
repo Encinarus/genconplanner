@@ -87,7 +87,9 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 			c.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
+
 		log.Printf("Loaded calendar groups: %v\n", groupedEvents)
+		c.Header("Cache-Control", "no-cache")
 		c.HTML(http.StatusOK, "starred.html", gin.H{
 			"context":          appContext,
 			"eventsByDay":      events.PartitionEventsByDay(starredEvents),
