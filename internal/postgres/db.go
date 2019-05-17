@@ -98,7 +98,7 @@ GROUP BY e.cluster_key, day_of_week
 				log.Printf("Can't find event %v in events", id)
 			}
 		}
-		log.Printf("Found %v events", len(dayGroupEvents))
+		log.Printf("Found %v events, title: %v", len(dayGroupEvents), dayGroupEvents[0].Title)
 		// We sort the events by start time so we can reference
 		// the earliest one in each cluster
 		sort.Slice(dayGroupEvents, func(i, j int) bool {
@@ -109,6 +109,7 @@ GROUP BY e.cluster_key, day_of_week
 
 		for _, event := range dayGroupEvents[1:] {
 			if event.StartTime.After(cluster.EndTime) {
+				log.Printf("Event %v: start time: %v cluster end %v \n", event.Title, event.StartTime, cluster.EndTime)
 				groupedEvents = append(groupedEvents, cluster)
 				cluster = newClusterForEvent(event)
 			} else if event.EndTime.After(cluster.EndTime) {
