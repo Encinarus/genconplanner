@@ -227,6 +227,12 @@
                     container: 'body'
                 });
             },
+            eventClick: function(event) {
+                if (event.url) {
+                    window.open(event.url, "_blank");
+                    return false;
+                }
+            },
             events: events,
 
         });
