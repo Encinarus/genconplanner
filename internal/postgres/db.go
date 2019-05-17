@@ -28,23 +28,25 @@ type User struct {
 }
 
 type CalendarEventCluster struct {
-	Title         string
-	StartTime     time.Time
-	EndTime       time.Time
-	GenconUrl     string
-	PlannerUrl    string
-	ShortCategory string
+	Title            string
+	StartTime        time.Time
+	EndTime          time.Time
+	GenconUrl        string
+	PlannerUrl       string
+	ShortCategory    string
+	ShortDescription string
 }
 
 func newClusterForEvent(event *events.GenconEvent) *CalendarEventCluster {
 	log.Printf("Creating a new group\n")
 	return &CalendarEventCluster{
-		Title:         event.Title,
-		StartTime:     event.StartTime,
-		EndTime:       event.EndTime,
-		GenconUrl:     event.GenconLink(),
-		PlannerUrl:    event.PlannerLink(),
-		ShortCategory: event.ShortCategory,
+		Title:            event.Title,
+		StartTime:        event.StartTime,
+		EndTime:          event.EndTime,
+		GenconUrl:        event.GenconLink(),
+		PlannerUrl:       event.PlannerLink(),
+		ShortCategory:    event.ShortCategory,
+		ShortDescription: event.ShortDescription,
 	}
 }
 
@@ -57,7 +59,7 @@ SELECT
 		WHEN 5 THEN 'fri'
 		WHEN 6 THEN 'sat'
 		WHEN 0 THEN 'sun'
-	END AS day_of_week,	
+	END AS day_of_week,
     ARRAY_AGG(se.event_id) event_ids
 FROM starred_events se 
      JOIN events e ON e.event_id = se.event_id

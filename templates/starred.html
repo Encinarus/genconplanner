@@ -145,7 +145,6 @@
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
 
-
 <script inline="javascript">
     /*<![CDATA[*/
     $('#starredgroup a').click(function (e) {
@@ -190,6 +189,7 @@
                 end: moment.unix({{ $e.EndTime.Unix }}).tz("America/Indiana/Indianapolis"),
                 url: {{ $e.PlannerUrl }},
                 className: ['cal{{ $e.ShortCategory }}', 'calevent'],
+                description: {{ $e.ShortDescription }}
             },
             {{ end }}
         ];
@@ -218,7 +218,17 @@
             editable: false,
             hiddenDays: [1, 2],
             allDayDefault: false,
-            events: events
+            eventRender: function(eventObj, $el) {
+                $el.popover({
+                    title: eventObj.title,
+                    content: eventObj.description,
+                    trigger: 'hover',
+                    placement: 'top',
+                    container: 'body'
+                });
+            },
+            events: events,
+
         });
     });
     /*]]>*/
