@@ -184,12 +184,18 @@
         // And populate the calendar
         var events = [
             {{ range $e := .calendarGroups }}{
+            {{if eq $e.SimilarCount 1 }}
                 title: {{ $e.Title }},
+            {{ else }}
+                title: {{ print $e.Title "\n\n (" $e.SimilarCount " similar)"}},
+            {{ end }}
                 start: moment.unix({{ $e.StartTime.Unix }}).tz("America/Indiana/Indianapolis"),
                 end: moment.unix({{ $e.EndTime.Unix }}).tz("America/Indiana/Indianapolis"),
                 url: {{ $e.PlannerUrl }},
                 className: ['cal{{ $e.ShortCategory }}', 'calevent'],
-                description: {{ $e.ShortDescription }}
+                description: {{ $e.ShortDescription }},
+                similarCount: {{ $e.SimilarCount }},
+                eventTitle: {{ $e.Title }}
             },
             {{ end }}
         ];
@@ -219,11 +225,15 @@
             hiddenDays: [1, 2],
             allDayDefault: false,
             eventRender: function(eventObj, $el) {
+                let popupTitle = eventObj.eventTitle
+                if (eventObj.similarCount > 1) {
+                    popupTitle += " (and " + eventObj.similarCount + " similar)"
+                }
                 $el.popover({
-                    title: eventObj.title,
+                    title: popupTitle,
                     content: eventObj.description,
                     trigger: 'hover',
-                    placement: 'top',
+                    placement: 'left',
                     container: 'body'
                 });
             },

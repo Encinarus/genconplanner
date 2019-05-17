@@ -35,10 +35,10 @@ type CalendarEventCluster struct {
 	PlannerUrl       string
 	ShortCategory    string
 	ShortDescription string
+	SimilarCount     int
 }
 
 func newClusterForEvent(event *events.GenconEvent) *CalendarEventCluster {
-	log.Printf("Creating a new group\n")
 	return &CalendarEventCluster{
 		Title:            event.Title,
 		StartTime:        event.StartTime,
@@ -47,6 +47,7 @@ func newClusterForEvent(event *events.GenconEvent) *CalendarEventCluster {
 		PlannerUrl:       event.PlannerLink(),
 		ShortCategory:    event.ShortCategory,
 		ShortDescription: event.ShortDescription,
+		SimilarCount:     1,
 	}
 }
 
@@ -111,6 +112,7 @@ GROUP BY e.cluster_key, day_of_week
 				cluster = newClusterForEvent(event)
 			} else if event.EndTime.After(cluster.EndTime) {
 				cluster.EndTime = event.EndTime
+				cluster.SimilarCount++
 			}
 		}
 
