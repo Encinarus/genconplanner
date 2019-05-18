@@ -31,6 +31,39 @@ func GetStarredEvents(db *sql.DB) func(c *gin.Context) {
 	}
 }
 
+func GetStarredEventGroups(db *sql.DB) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		appContext := c.MustGet("context").(*Context)
+		appContext.Year = time.Now().Year()
+
+		var err error
+		if len(strings.TrimSpace(c.Param("year"))) > 0 {
+			appContext.Year, err = strconv.Atoi(c.Param("year"))
+			if err != nil {
+				log.Printf("Error parsing year")
+				c.AbortWithError(http.StatusBadRequest, err)
+				return
+			}
+		}
+
+		starredEvents, err := postgres.LoadStarredEvents(db, appContext.Email, appContext.Year)
+		if err != nil {
+			log.Printf("Error loading starred events")
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+		groupedEvents, err := postgres.LoadStarredEventClusters(db, appContext.Email, appContext.Year, starredEvents)
+		if err != nil {
+			log.Printf("Error loading starred groups")
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		c.Header("Cache-Control", "no-cache")
+		c.JSON(http.StatusOK, groupedEvents)
+	}
+}
+
 func StarEvent(db *sql.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		appContext := c.MustGet("context").(*Context)

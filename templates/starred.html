@@ -182,13 +182,13 @@
     });
     $(document).ready(function() {
         // And populate the calendar
-        var events = [
-            {{ range $e := .calendarGroups }}{
-            {{if eq $e.SimilarCount 1 }}
+        let events = [
+                {{ range $e := .calendarGroups }}{
+                {{if eq $e.SimilarCount 1 }}
                 title: {{ $e.Title }},
-            {{ else }}
+                {{ else }}
                 title: {{ print $e.Title "\n\n (" $e.SimilarCount " similar)"}},
-            {{ end }}
+                {{ end }}
                 start: moment.unix({{ $e.StartTime.Unix }}).tz("America/Indiana/Indianapolis"),
                 end: moment.unix({{ $e.EndTime.Unix }}).tz("America/Indiana/Indianapolis"),
                 url: {{ $e.PlannerUrl }},
@@ -199,6 +199,7 @@
             },
             {{ end }}
         ];
+
         $('#calendar').fullCalendar({
             header: {
                 left: 'prev,next',
@@ -244,9 +245,48 @@
                 }
             },
             events: events,
-
         });
     });
+
+    function updateCalendar(eventGroups) {
+        let events = []
+        for (let i in eventGroups) {
+            let group = eventGroups[i]
+            let title = group.Title
+            if (group.SimilarCount > 1) {
+                title += "\n\n (" + group.SimilarCount + " similar)"
+            }
+            events.push({
+                title: title,
+                start: group.StartTime,
+                end: group.EndTime,
+                url: group.PlannerUrl,
+                className: ['cal' + group.ShortCategory, 'calevent'],
+                description: group.ShortDescription,
+                similarCount: group.similarCount,
+                eventTitle: group.Title
+            })
+        }
+
+        console.log("Updating events");
+        console.log(events);
+        $('#calendar').fullCalendar('removeEvents');
+        $('#calendar').fullCalendar('addEventSource', events);
+    }
+
+    // If the auth token is expired, we'll return an empty page,
+    // so handle it.
+    firebase.auth().onAuthStateChanged(function(user) {
+        updateSigninWidget();
+        $.ajax({
+            url: '/listStarredGroups/',
+            type: 'GET',
+            dataType: 'json',
+        }).done(function(data){
+            updateCalendar(data);
+        });
+    });
+
     /*]]>*/
 </script>
 </body>

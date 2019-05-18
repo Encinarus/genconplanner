@@ -59,12 +59,15 @@ func main() {
 
 	r := gin.Default()
 	r.Use(bootstrapContext(app, db))
+
 	r.SetFuncMap(template.FuncMap{
 		"toId": textToId,
 		"dict": dict,
 	})
 	r.LoadHTMLGlob("templates/*")
+
 	r.Static("/static/stylesheets", "static/stylesheets")
+	r.StaticFile("/robots.txt", "static/robots.txt")
 
 	r.GET("/event/:eid", web.ViewEvent(db))
 	r.GET("/search", web.Search(db))
@@ -79,6 +82,7 @@ func main() {
 	r.GET("/starred/:year", web.StarredPage(db))
 	r.POST("/starEvent/", web.StarEvent(db))
 	r.GET("/starEvent/", web.GetStarredEvents(db))
+	r.GET("/listStarredGroups/", web.GetStarredEventGroups(db))
 
 	r.GET("/about", func(c *gin.Context) {
 		year, err := strconv.Atoi(c.Param("year"))
@@ -99,6 +103,9 @@ func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 		var appContext web.Context
 		appContext.Starred = &postgres.UserStarredEvents{}
 
+		if c.Request.UserAgent() != "" {
+			log.Printf("UserAgent: %v\n", c.Request.UserAgent())
+		}
 		// Create user if needed based on cookie
 		idToken, err := c.Cookie("signinToken")
 		if err == nil {
