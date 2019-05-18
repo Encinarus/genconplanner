@@ -14,7 +14,7 @@
                     <ul class="list-unstyled">
                         <li>
                             <strong>
-                                {{ $e.StartTime.Format "03:04 PM" }} - {{ $e.EndTime.Format "03:04 PM" }}
+                                {{ $e.StartTime.Format "3:04 PM" }} - {{ $e.EndTime.Format "3:04 PM" }}
                             </strong>: <a href="/event/{{ $e.EventId }}">{{ $e.EventId }}</a>
                             {{ $e.Title }} (<a href="{{ $e.GenconLink }}">Official Listing</a>)</li>
                         <li style="padding-left: 2em">{{ $e.ShortDescription }}</li>
@@ -36,7 +36,7 @@
         <ul class="list-unstyled">
             <li><strong>
                     {{ $e.StartTime.Format "Monday" }}
-                    {{ $e.StartTime.Format "03:04 PM" }} - {{ $e.EndTime.Format "03:04 PM" }}
+                    {{ $e.StartTime.Format "3:04 PM" }} - {{ $e.EndTime.Format "3:04 PM" }}
                 </strong>: <a href="/event/{{ $e.EventId }}">{{ $e.EventId }}</a>
                 {{ $e.Title }} (<a href="{{ $e.GenconLink }}">Official Listing</a>)
             </li>

@@ -21,7 +21,7 @@
                     {{ else }}<a href="/event/{{ $session.EventId }}">{{ $session.EventId }}</a>
                     {{ end }}
                     <br>
-                    {{ $session.StartTime.Format "03:04 PM" }} - {{ $session.EndTime.Format "03:04 PM" }}
+                    {{ $session.StartTime.Format "3:04 PM" }} - {{ $session.EndTime.Format "3:04 PM" }}
                     <br>
                     {{ if $hasTickets }}<strong>{{ $session.TicketsAvailable }}</strong> ticket{{ if ne 1 $session.TicketsAvailable }}s{{ end }} available
                     {{ else }}{{ $session.TicketsAvailable }} tickets available
@@ -79,7 +79,7 @@
                     <div class="row">
                         <div class="col-xs-12 col-md-2"><strong>Timing:</strong></div>
                         <div class="col-xs-12 col-md-7">
-                            {{ $e.StartTime.Format "Mon 03:04 PM"}} - {{ $e.EndTime.Format "Mon 03:04 PM"}}
+                            {{ $e.StartTime.Format "Mon 3:04 PM"}} - {{ $e.EndTime.Format "Mon 3:04 PM"}}
                         </div>
                     </div>
                     <div class="row">
