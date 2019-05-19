@@ -82,3 +82,8 @@ ul.otherSessions li.noTickets {
     text-decoration: line-through;
     color: darkgrey;
 }
+
+ul.otherSessions li.cancelled {
+    text-decoration: line-through;
+    background-color: darkgrey;
+}

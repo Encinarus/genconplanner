@@ -5,16 +5,19 @@
         {{ $eventId := .eventId }}
         {{ range $session := .sessions }}
             {{ $thisSession := (eq $eventId $session.EventId) }}
+            {{ $active := $session.Active }}
             {{ $hasTickets := (ne $session.TicketsAvailable 0) }}
             <li class="{{ if $thisSession }}thisSession{{ else }}otherSession{{ end }}
-            {{ if $hasTickets }}hasTickets{{ else }}noTickets{{ end }}">
+            {{ if not $active }}cancelled{{ else if $hasTickets }}hasTickets{{ else }}noTickets{{ end }}">
                 <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.8em">
+                    {{if $active}}
                     <button type="button"
                             class="event-btn btn btn-default btn-sm sm-star {{ if $session.IsStarred }}active{{ end }}"
                             id="star-{{ $session.EventId }}"
                             onclick="javascript:starEvent('{{$session.EventId}}')">
                         <span class="glyphicon glyphicon-star{{ if not $session.IsStarred }}-empty{{ end }}"></span>
                     </button>
+                    {{end}}
                 </div>
                 <div style="display:inline-block;">
                     {{ if $thisSession }}<em>This event</em>
@@ -23,7 +26,8 @@
                     <br>
                     {{ $session.StartTime.Format "3:04 PM" }} - {{ $session.EndTime.Format "3:04 PM" }}
                     <br>
-                    {{ if $hasTickets }}<strong>{{ $session.TicketsAvailable }}</strong> ticket{{ if ne 1 $session.TicketsAvailable }}s{{ end }} available
+                    {{ if not $active }}<strong>This event has been cancelled</strong>
+                    {{ else if $hasTickets }}<strong>{{ $session.TicketsAvailable }}</strong> ticket{{ if ne 1 $session.TicketsAvailable }}s{{ end }} available
                     {{ else }}{{ $session.TicketsAvailable }} tickets available
                     {{ end }}
                 </div>
@@ -63,7 +67,11 @@
         </div>
 
         {{ $e.Title }}
+        {{ if $e.Active }}
         <small>{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each - (<a href="{{ $e.GenconLink }}">Official Listing</a>)</small>
+        {{ else }}
+        <small>This event has been cancelled.</small>
+        {{ end }}
 
     </h1>
     <ol class="breadcrumb">

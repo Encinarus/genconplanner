@@ -66,6 +66,7 @@ FROM starred_events se
      JOIN events e ON e.event_id = se.event_id
 WHERE se.email = $1
   AND e.year = $2
+  AND e.active
 GROUP BY e.cluster_key, day_of_week
 `, userEmail, year)
 
@@ -131,6 +132,7 @@ FROM events e1
      JOIN starred_events se ON se.event_id = e1.event_id
 WHERE se.email = $1
   AND e1.year = $2
+  AND e1.active
 ORDER BY e1.start_time`, fields), userEmail, year)
 
 	if err != nil {
