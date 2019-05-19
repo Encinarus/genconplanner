@@ -455,11 +455,17 @@ type ParsedQuery struct {
 	// add exact match on fields,
 	TextQueries []string
 	Year        int
+	DaysOfWeek  []int
 }
 
 func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 	tsquery := strings.Join(query.TextQueries, " & ")
 
+	daysOfWeek := []int{3, 4, 5, 6, 0}
+
+	if query.DaysOfWeek != nil && len(query.DaysOfWeek) > 0 {
+		daysOfWeek = query.DaysOfWeek
+	}
 	// We get groups that have tickets first, then within
 	// that, we rank by how good a match the query was
 	loadedEvents := make([]*EventGroup, 0)
@@ -501,9 +507,10 @@ FROM events e
 		       AND e.short_category = c.short_category
 			   AND e.cluster_key = c.cluster_key
 			   AND e.start_time = c.start_time
+			   AND EXTRACT (DOW FROM e.start_time AT TIME ZONE 'EDT') = ANY ($3)
 WHERE e.year = $2
 ORDER BY c.tickets_available > 0 desc, c.title_rank desc, c.cluster_rank desc
-`, tsquery, query.Year)
+`, tsquery, query.Year, pq.Array(daysOfWeek))
 
 		if err != nil {
 			return nil, err

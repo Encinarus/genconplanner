@@ -14,13 +14,35 @@ import (
 	"time"
 )
 
-func parseQuery(searchQuery string, year int) *postgres.ParsedQuery {
+func parseQuery(searchQuery string, year int, rawDays string) *postgres.ParsedQuery {
 	query := postgres.ParsedQuery{}
 
 	query.Year = time.Now().Year()
 
 	if year <= query.Year && year > 2016 {
 		query.Year = year
+	}
+
+	processedDays := make([]int, 0)
+	splitDays := strings.Split(strings.ToLower(rawDays), ",")
+	for _, day := range splitDays {
+		switch day {
+		case "sun":
+			processedDays = append(processedDays, 0)
+			break
+		case "wed":
+			processedDays = append(processedDays, 3)
+			break
+		case "thu":
+			processedDays = append(processedDays, 4)
+			break
+		case "fri":
+			processedDays = append(processedDays, 5)
+			break
+		case "sat":
+			processedDays = append(processedDays, 6)
+			break
+		}
 	}
 
 	// Preprocess, removing symbols which are used in tsquery
@@ -69,6 +91,7 @@ func parseQuery(searchQuery string, year int) *postgres.ParsedQuery {
 		}
 		query.TextQueries = append(query.TextQueries, term)
 	}
+	query.DaysOfWeek = processedDays
 	return &query
 }
 
@@ -88,8 +111,9 @@ func Search(db *sql.DB) func(c *gin.Context) {
 			year = time.Now().Year()
 		}
 		log.Println("Raw Query: ", query)
+		days := c.Query("days")
 
-		parsedQuery := parseQuery(query, year)
+		parsedQuery := parseQuery(query, year, days)
 
 		eventGroups, err := postgres.FindEvents(db, parsedQuery)
 		totalEvents := 0
