@@ -140,7 +140,7 @@ CREATE TRIGGER cluster_vectorupdate
   BEFORE INSERT OR UPDATE
   ON public.events
   FOR EACH ROW
-EXECUTE PROCEDURE tsvector_update_trigger('cluster_key', 'pg_catalog.english', 'title', 'short_description', 'long_description', 'event_type', 'game_system');
+EXECUTE PROCEDURE tsvector_update_trigger('cluster_key', 'pg_catalog.english', 'title', 'short_description', 'long_description', 'event_type', 'game_system', 'event_id');
 
 -- Trigger: desc_vectorupdate
 
