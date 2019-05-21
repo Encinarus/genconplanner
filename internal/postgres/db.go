@@ -54,7 +54,7 @@ func newClusterForEvent(event *events.GenconEvent) *CalendarEventCluster {
 func LoadStarredEventClusters(db *sql.DB, userEmail string, year int, starredEvents []*events.GenconEvent) ([]*CalendarEventCluster, error) {
 	rows, err := db.Query(`
 SELECT 
-    CASE EXTRACT(DOW FROM e.start_time AT TIME ZONE 'EDT') 
+    CASE e.day_of_week 
 		WHEN 3 THEN 'wed'
 		WHEN 4 THEN 'thu'
 		WHEN 5 THEN 'fri'
@@ -363,11 +363,11 @@ FROM events e
 			   min(start_time) as start_time,
 			   count(1) as num_events,
 			   sum(tickets_available) as tickets_available,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
+			   sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+			   sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+			   sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+			   sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+			   sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
 		FROM events
 		WHERE active and year=$1 and short_category=$2
 		GROUP BY cluster_key, short_category, title
@@ -375,7 +375,7 @@ FROM events e
 		       AND e.short_category = c.short_category
 			   AND e.cluster_key = c.cluster_key
 			   AND e.start_time = c.start_time
-			   AND EXTRACT (DOW FROM e.start_time AT TIME ZONE 'EDT') = ANY ($3)
+			   AND e.day_of_week = ANY ($3)
 WHERE e.year = $1
 ORDER BY c.tickets_available > 0 desc, title`, year, cat, pq.Array(daysOfWeek))
 	if err != nil {
@@ -499,11 +499,11 @@ FROM events e
 			   min(start_time) as start_time,
 			   count(1) as num_events,
 			   sum(tickets_available) as tickets_available,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-			   sum(CASE WHEN EXTRACT(DOW FROM start_time) = 0 THEN tickets_available ELSE 0 END) as sunday_tickets,
+			   sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+			   sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+			   sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+			   sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+			   sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets,
 		       min(ts_rank(title_tsv, q)) as title_rank, 
 		       min(ts_rank(cluster_key, q)) as cluster_rank
 		FROM events, to_tsquery($1) q
@@ -513,7 +513,7 @@ FROM events e
 		       AND e.short_category = c.short_category
 			   AND e.cluster_key = c.cluster_key
 			   AND e.start_time = c.start_time
-			   AND EXTRACT (DOW FROM e.start_time AT TIME ZONE 'EDT') = ANY ($3)
+			   AND e.day_of_week = ANY ($3)
 WHERE e.year = $2
 ORDER BY c.tickets_available > 0 desc, c.title_rank desc, c.cluster_rank desc
 `, tsquery, query.Year, pq.Array(daysOfWeek))

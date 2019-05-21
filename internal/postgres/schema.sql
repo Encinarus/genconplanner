@@ -87,6 +87,15 @@ CREATE TABLE public.events
 ALTER TABLE public.events
   OWNER to postgres;
 
+-- Index: dow_index
+
+-- DROP INDEX public.dow_index;
+
+CREATE INDEX dow_index
+  ON public.events USING btree
+    (day_of_week)
+  TABLESPACE pg_default;
+
 -- Index: cat_hash_index
 
 -- DROP INDEX public.cat_hash_index;
@@ -131,6 +140,21 @@ CREATE INDEX title_index
   ON public.events USING btree
     (title COLLATE pg_catalog."default")
   TABLESPACE pg_default;
+
+-- Trigger: update_dow
+
+-- DROP TRIGGER update_dow on public.events
+
+CREATE FUNCTION update_dow() RETURNS trigger AS $update_dow$
+BEGIN
+  NEW.day_of_week = EXTRACT (DOW FROM new.start_time AT TIME ZONE 'EDT');
+  RETURN NEW;
+END;
+$update_dow$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_dow BEFORE INSERT OR UPDATE ON public.events
+  FOR EACH ROW EXECUTE PROCEDURE update_dow();
+
 
 -- Trigger: cluster_vectorupdate
 
