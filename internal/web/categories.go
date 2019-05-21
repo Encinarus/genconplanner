@@ -84,7 +84,30 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
-		eventGroups, err := postgres.LoadEventGroups(db, c.Param("cat"), appContext.Year)
+
+		rawDays := c.Param("days")
+		processedDays := make([]int, 0)
+		splitDays := strings.Split(strings.ToLower(rawDays), ",")
+		for _, day := range splitDays {
+			switch day {
+			case "sun":
+				processedDays = append(processedDays, 0)
+				break
+			case "wed":
+				processedDays = append(processedDays, 3)
+				break
+			case "thu":
+				processedDays = append(processedDays, 4)
+				break
+			case "fri":
+				processedDays = append(processedDays, 5)
+				break
+			case "sat":
+				processedDays = append(processedDays, 6)
+				break
+			}
+		}
+		eventGroups, err := postgres.LoadEventGroups(db, cat, appContext.Year, processedDays)
 		if err != nil {
 			log.Printf("Error loading event groups")
 			c.AbortWithError(http.StatusBadRequest, err)

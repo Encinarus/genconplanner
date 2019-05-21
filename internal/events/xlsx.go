@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"io/ioutil"
+	"strconv"
 	"time"
 )
 
@@ -63,12 +64,16 @@ func rowToEvent(row *excelRow) *GenconEvent {
 	lastModifiedDuration := (time.Duration)(cells[30].Number * (float64)(time.Hour) * 24)
 	lastModified := excelReferenceDate.Add(lastModifiedDuration)
 
+	title := cells[2].String
+	if title == "" && cells[2].Number != 0 {
+		title = strconv.FormatInt((int64)(cells[2].Number), 10)
+	}
 	return normalizeEvent(&GenconEvent{
 		EventId:              eventId,
 		Year:                 year,
 		Active:               true,
 		Group:                cells[1].String,
-		Title:                cells[2].String,
+		Title:                title,
 		ShortDescription:     cells[3].String,
 		LongDescription:      cells[4].String,
 		EventType:            cells[5].String,

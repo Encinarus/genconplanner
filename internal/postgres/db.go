@@ -334,7 +334,12 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	return &group, nil
 }
 
-func LoadEventGroups(db *sql.DB, cat string, year int) ([]*EventGroup, error) {
+func LoadEventGroups(db *sql.DB, cat string, year int, days []int) ([]*EventGroup, error) {
+	daysOfWeek := []int{3, 4, 5, 6, 0}
+
+	if days != nil && len(days) > 0 {
+		daysOfWeek = days
+	}
 	rows, err := db.Query(`
 SELECT 
        e.event_id,
@@ -370,8 +375,9 @@ FROM events e
 		       AND e.short_category = c.short_category
 			   AND e.cluster_key = c.cluster_key
 			   AND e.start_time = c.start_time
+			   AND EXTRACT (DOW FROM e.start_time AT TIME ZONE 'EDT') = ANY ($3)
 WHERE e.year = $1
-ORDER BY c.tickets_available > 0 desc, title`, year, cat)
+ORDER BY c.tickets_available > 0 desc, title`, year, cat, pq.Array(daysOfWeek))
 	if err != nil {
 		return nil, err
 	}
@@ -615,10 +621,8 @@ func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) error {
 
 	latestUpdate := parsedEvents[0].LastModified
 	for _, parsedEvent := range parsedEvents {
-		if updateTime, found := persistedEvents[parsedEvent.EventId]; found {
-			if updateTime.Before(parsedEvent.LastModified) {
-				updatedEvents = append(updatedEvents, parsedEvent)
-			}
+		if _, found := persistedEvents[parsedEvent.EventId]; found {
+			updatedEvents = append(updatedEvents, parsedEvent)
 			delete(activeEvents, parsedEvent.EventId)
 		} else {
 			newEvents = append(newEvents, parsedEvent)
