@@ -23,28 +23,6 @@ func parseQuery(searchQuery string, year int, rawDays string) *postgres.ParsedQu
 		query.Year = year
 	}
 
-	processedDays := make([]int, 0)
-	splitDays := strings.Split(strings.ToLower(rawDays), ",")
-	for _, day := range splitDays {
-		switch day {
-		case "sun":
-			processedDays = append(processedDays, 0)
-			break
-		case "wed":
-			processedDays = append(processedDays, 3)
-			break
-		case "thu":
-			processedDays = append(processedDays, 4)
-			break
-		case "fri":
-			processedDays = append(processedDays, 5)
-			break
-		case "sat":
-			processedDays = append(processedDays, 6)
-			break
-		}
-	}
-
 	// Preprocess, removing symbols which are used in tsquery
 	searchQuery = strings.Replace(searchQuery, "!", "", -1)
 	searchQuery = strings.Replace(searchQuery, "&", "", -1)
@@ -91,17 +69,20 @@ func parseQuery(searchQuery string, year int, rawDays string) *postgres.ParsedQu
 		}
 		query.TextQueries = append(query.TextQueries, term)
 	}
-	query.DaysOfWeek = processedDays
+	query.DaysOfWeek = ParseDayQuery(rawDays)
 	return &query
 }
 
 func Search(db *sql.DB) func(c *gin.Context) {
-	keyFunc := func(g *postgres.EventGroup) string {
-		if len(strings.TrimSpace(g.ShortCategory)) == 0 {
-			return "Unknown"
+	keyFunc := func(g *postgres.EventGroup) (string, string) {
+		majorGroup := events.LongCategory(g.ShortCategory)
+		minorGroup := "Unspecified"
+
+		if len(strings.TrimSpace(g.GameSystem)) != 0 {
+			minorGroup = strings.TrimSpace(g.GameSystem)
 		}
 
-		return events.LongCategory(g.ShortCategory)
+		return majorGroup, minorGroup
 	}
 
 	return func(c *gin.Context) {
@@ -127,16 +108,17 @@ func Search(db *sql.DB) func(c *gin.Context) {
 			appContext := c.MustGet("context").(*Context)
 			appContext.Year = year
 
-			headings, partitions := PartitionGroups(eventGroups, keyFunc)
+			majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, keyFunc)
 			c.HTML(http.StatusOK, "results.html", gin.H{
-				"context":     appContext,
-				"headings":    headings,
-				"partitions":  partitions,
-				"totalEvents": totalEvents,
-				"groups":      len(eventGroups),
-				"breakdown":   "Category",
-				"pageHeader":  "Search",
-				"subHeader":   query,
+				"context":       appContext,
+				"majorHeadings": majorHeadings,
+				"minorHeadings": minorHeadings,
+				"partitions":    partitions,
+				"totalEvents":   totalEvents,
+				"groups":        len(eventGroups),
+				"breakdown":     "Category",
+				"pageHeader":    "Search",
+				"subHeader":     query,
 			})
 		}
 	}

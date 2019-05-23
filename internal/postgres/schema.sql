@@ -141,6 +141,15 @@ CREATE INDEX title_index
     (title COLLATE pg_catalog."default")
   TABLESPACE pg_default;
 
+-- Index: search_index
+
+-- DROP INDEX public.search_index;
+
+CREATE INDEX search_index
+  ON public.events USING gin
+    (search_key)
+  TABLESPACE pg_default;
+
 -- Trigger: update_dow
 
 -- DROP TRIGGER update_dow on public.events
@@ -164,7 +173,7 @@ CREATE TRIGGER cluster_vectorupdate
   BEFORE INSERT OR UPDATE
   ON public.events
   FOR EACH ROW
-EXECUTE PROCEDURE tsvector_update_trigger('cluster_key', 'pg_catalog.english', 'title', 'short_description', 'long_description', 'event_type', 'game_system', 'event_id');
+EXECUTE PROCEDURE tsvector_update_trigger('cluster_key', 'pg_catalog.english', 'title', 'short_description', 'org_group', 'event_type', 'game_system', 'rules_edition');
 
 -- Trigger: desc_vectorupdate
 
@@ -185,3 +194,13 @@ CREATE TRIGGER title_vectorupdate
   ON public.events
   FOR EACH ROW
 EXECUTE PROCEDURE tsvector_update_trigger('title_tsv', 'pg_catalog.english', 'title');
+
+-- Trigger: search_vectorupdate
+
+-- DROP TRIGGER search_vectorupdate ON public.events;
+
+CREATE TRIGGER search_vectorupdate
+  BEFORE INSERT OR UPDATE
+  ON public.events
+  FOR EACH ROW
+EXECUTE PROCEDURE tsvector_update_trigger('search_key', 'pg_catalog.english', 'title', 'short_description', 'long_description', 'org_group', 'event_type', 'event_id', 'game_system');
