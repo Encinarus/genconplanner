@@ -56,8 +56,8 @@ func PartitionGroups(
 	for _, group := range groups {
 		majorKey, minorKey := keyFunction(group)
 		if group.TotalTickets == 0 {
-			majorKey = soldOut
 			minorKey = majorKey
+			majorKey = soldOut
 		}
 		if _, found := majorPartitions[majorKey]; !found {
 			majorPartitions[majorKey] = make(map[string][]*postgres.EventGroup)
