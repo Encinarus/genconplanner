@@ -52,12 +52,14 @@ func PartitionGroups(
 	minorKeys := make(map[string][]string)
 
 	const soldOut = "Sold out"
+	hasSoldOut := false
 
 	for _, group := range groups {
 		majorKey, minorKey := keyFunction(group)
 		if group.TotalTickets == 0 {
 			minorKey = majorKey
 			majorKey = soldOut
+			hasSoldOut = true
 		}
 		if _, found := majorPartitions[majorKey]; !found {
 			majorPartitions[majorKey] = make(map[string][]*postgres.EventGroup)
@@ -76,8 +78,8 @@ func PartitionGroups(
 		sort.Strings(minorKeys[k])
 	}
 	// Now that we've sorted, move sold out to the end
-	index := sort.SearchStrings(majorKeys, soldOut)
-	if index > 0 && len(majorKeys) > 1 {
+	if hasSoldOut && len(majorKeys) > 1 {
+		index := sort.SearchStrings(majorKeys, soldOut)
 		majorKeys = append(majorKeys[:index], majorKeys[index+1:]...)
 		majorKeys = append(majorKeys, soldOut)
 	}
