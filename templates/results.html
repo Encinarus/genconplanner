@@ -13,79 +13,51 @@
 <h1 class="page-header" id="top">{{ .pageHeader }} <small>{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups</small></h1>
 <div class="row">
 <div class="main">
-<div class="flex-column col-md-2">
-<h3 style="margin-top: 0">{{ .breakdown }}</h3>
-    {{ range $major := $majorHeadings }}
-    {{ $subHeadings := (index $minorHeadings $major )}}
-    <h4>{{ $major }}</h4>
-    <ul class="nav">
-        {{ range $minor := $subHeadings }}
-        {{ $heading := (print $major "_" $minor| toId)}}
-        <li class="nav-item">
-            <a class="nav-link groupLink" href="#{{ $heading }}">{{ $minor }}
-                ({{ len (index $partitions $major $minor) }})</a>
-        </li>
-        {{ end }}
-        <li></li>
-    </ul>
-    {{ end }}
-</div>
-<div class="list-group col-md-10">
-    {{ range $major := $majorHeadings }}
+    <div class="flex-column col-md-2">
+    <h3 style="margin-top: 0">{{ .breakdown }}</h3>
+        {{ range $major := $majorHeadings }}
+        {{ $subHeadings := (index $minorHeadings $major )}}
         <h4>{{ $major }}</h4>
-        {{ range $minor := (index $minorHeadings $major) }}
+        <ul class="nav">
+            {{ range $minor := $subHeadings }}
             {{ $heading := (print $major "_" $minor| toId)}}
-            <h5 id="{{ $heading }}">{{ $minor }} (<a href="#top">top</a>) <a onclick="toggleAvailable()" href="#{{ $heading | toId }}" class="toggleLink">hide unavailable events</a></h5>
+            <li class="nav-item">
+                <a class="nav-link groupLink" href="#{{ $heading }}">{{ $minor }}
+                    ({{ len (index $partitions $major $minor) }})</a>
+            </li>
+            {{ end }}
+            <li></li>
+        </ul>
+        {{ end }}
+    </div>
+    <div class="list-group col-md-10">
+        {{ range $major := $majorHeadings }}
+            <h4>{{ $major }}</h4>
+            {{ range $minor := (index $minorHeadings $major) }}
+                {{ $heading := (print $major "_" $minor| toId)}}
+                <h5 id="{{ $heading }}">{{ $minor }} (<a href="#top">top</a>)</h5>
 
-            {{ range $row := (index $partitions $major $minor) }}
-                <a href="/event/{{ $row.EventId }}"
-                   class="list-group-item eventGroup {{ if eq $row.TotalTickets 0 }}noTickets{{end}}" style="font-size: small">
-                    <h5>{{ $row.Name }} <small>{{ $row.GameSystem }}</small></h5>
-                    <p>{{ $row.Description }}</p>
-                    <ul class="list-inline eventTickets">
-                        <li {{ if eq $row.WedTickets 0 }}class="noTickets"{{end}}><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>
-                        <li {{ if eq $row.ThursTickets 0 }}class="noTickets"{{end}}><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>
-                        <li {{ if eq $row.FriTickets 0 }}class="noTickets"{{end}}><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>
-                        <li {{ if eq $row.SatTickets 0 }}class="noTickets"{{end}}><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>
-                        <li {{ if eq $row.SunTickets 0 }}class="noTickets"{{end}}><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
-                    </ul>
-                </a>
+                {{ range $row := (index $partitions $major $minor) }}
+                    <a href="/event/{{ $row.EventId }}"
+                       class="list-group-item eventGroup {{ if eq $row.TotalTickets 0 }}noTickets{{end}}" style="font-size: small">
+                        <h5>{{ $row.Name }} <small>{{ $row.GameSystem }}</small></h5>
+                        <p>{{ $row.Description }}</p>
+                        <ul class="list-inline eventTickets">
+                            <li {{ if eq $row.WedTickets 0 }}class="noTickets"{{end}}><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>
+                            <li {{ if eq $row.ThursTickets 0 }}class="noTickets"{{end}}><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>
+                            <li {{ if eq $row.FriTickets 0 }}class="noTickets"{{end}}><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>
+                            <li {{ if eq $row.SatTickets 0 }}class="noTickets"{{end}}><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>
+                            <li {{ if eq $row.SunTickets 0 }}class="noTickets"{{end}}><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
+                        </ul>
+                    </a>
+                {{ end }}
             {{ end }}
         {{ end }}
-    {{ end }}
-    {{/*{{ range $heading := .headings }}*/}}
-        {{/*<h5 id="{{ $heading | toId }}">{{ $heading }} (<a href="#top">top</a>) <a onclick="toggleAvailable()" href="#{{ $heading | toId }}" class="toggleLink">hide unavailable events</a></h5>*/}}
-        {{/*{{ range $row := (index $partitions $heading) }}*/}}
-        {{/*<a href="/event/{{ $row.EventId }}"*/}}
-           {{/*class="list-group-item eventGroup {{ if eq $row.TotalTickets 0 }}noTickets{{end}}" style="font-size: small">*/}}
-            {{/*<h5>{{ $row.Name }} <small>{{ $row.GameSystem }}</small></h5>*/}}
-            {{/*<p>{{ $row.Description }}</p>*/}}
-            {{/*<ul class="list-inline eventTickets">*/}}
-                {{/*<li {{ if eq $row.WedTickets 0 }}class="noTickets"{{end}}><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>*/}}
-                {{/*<li {{ if eq $row.ThursTickets 0 }}class="noTickets"{{end}}><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>*/}}
-                {{/*<li {{ if eq $row.FriTickets 0 }}class="noTickets"{{end}}><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>*/}}
-                {{/*<li {{ if eq $row.SatTickets 0 }}class="noTickets"{{end}}><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>*/}}
-                {{/*<li {{ if eq $row.SunTickets 0 }}class="noTickets"{{end}}><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>*/}}
-            {{/*</ul>*/}}
-        {{/*</a>*/}}
-        {{/*{{ end }}*/}}
-    {{/*{{ end }}*/}}
-</div>
+    </div>
 </div>
 </div>
 </div>
 
-<script lang="javascript">
-    function toggleAvailable() {
-        if (window.eventsHidden) {
-            $('a.toggleLink').text("hide unavailable events")
-        } else {
-            $('a.toggleLink').text("show unavailable events")
-        }
-        window.eventsHidden = !window.eventsHidden;
-        $('a.noTickets').toggle()
-    }
-</script>
 {{ template "scriptFooter" }}
 
 </body>
