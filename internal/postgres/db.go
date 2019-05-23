@@ -505,9 +505,9 @@ FROM events e
 			   sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
 			   sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets,
 		       min(ts_rank(title_tsv, q)) as title_rank, 
-		       min(ts_rank(cluster_key, q)) as cluster_rank
+		       min(ts_rank(search_key, q)) as search_rank
 		FROM events, to_tsquery($1) q
-		WHERE active and year=$2 and cluster_key @@ q
+		WHERE active and year=$2 and search_key @@ q
 		GROUP BY cluster_key, short_category, title
 		) as c ON e.title = c.title 
 		       AND e.short_category = c.short_category
@@ -515,7 +515,7 @@ FROM events e
 			   AND e.start_time = c.start_time
 			   AND e.day_of_week = ANY ($3)
 WHERE e.year = $2
-ORDER BY c.tickets_available > 0 desc, c.title_rank desc, c.cluster_rank desc
+ORDER BY c.tickets_available > 0 desc, c.title_rank desc, c.search_rank desc
 `, tsquery, query.Year, pq.Array(daysOfWeek))
 
 		if err != nil {

@@ -77,7 +77,7 @@ func PartitionGroups(
 	}
 	// Now that we've sorted, move sold out to the end
 	index := sort.SearchStrings(majorKeys, soldOut)
-	if index > 0 {
+	if index > 0 && len(majorKeys) > 1 {
 		majorKeys = append(majorKeys[:index], majorKeys[index+1:]...)
 		majorKeys = append(majorKeys, soldOut)
 	}
