@@ -53,7 +53,6 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 			}
 			categories[i] = summary[base:end]
 		}
-		log.Printf("Loaded %d categories in %d rows", len(summary), len(categories))
 		c.HTML(http.StatusOK, "categories.html", gin.H{
 			"title":      "Main website",
 			"categories": categories,
@@ -91,8 +90,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 			return
 		}
 
-		rawDays := c.Param("days")
-		eventGroups, err := postgres.LoadEventGroups(db, cat, appContext.Year, ParseDayQuery(rawDays))
+		eventGroups, err := postgres.LoadEventGroups(db, cat, appContext.Year, []int{})
 		if err != nil {
 			log.Printf("Error loading event groups")
 			c.AbortWithError(http.StatusBadRequest, err)

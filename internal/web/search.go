@@ -7,20 +7,22 @@ import (
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func parseQuery(searchQuery string, year int, rawDays string) *postgres.ParsedQuery {
-	query := postgres.ParsedQuery{}
+func parseQuery(searchQuery string, year int, days map[string]bool) *postgres.ParsedQuery {
+	query := postgres.ParsedQuery{
+		Year:       year,
+		DaysOfWeek: days,
+		RawQuery:   searchQuery,
+	}
 
-	query.Year = time.Now().Year()
-
-	if year <= query.Year && year > 2016 {
-		query.Year = year
+	maxYear := time.Now().Year()
+	if year > maxYear || year < 2016 {
+		query.Year = maxYear
 	}
 
 	// Preprocess, removing symbols which are used in tsquery
@@ -35,13 +37,9 @@ func parseQuery(searchQuery string, year int, rawDays string) *postgres.ParsedQu
 
 	splitQuery, _ := queryReader.Read()
 
-	// TODO(alek): consider adding a db field "searchable_text" rather than relying
-	// the trigger across many fields. Then exact matches do like vs that, while fuzzy
-	// matches go against the ts_vector column
 	for _, term := range splitQuery {
 		invertTerm := false
 		if strings.HasPrefix(term, "-") {
-			log.Println("Negated term:", term)
 			term = strings.TrimLeft(term, "-")
 			invertTerm = true
 		}
@@ -69,8 +67,23 @@ func parseQuery(searchQuery string, year int, rawDays string) *postgres.ParsedQu
 		}
 		query.TextQueries = append(query.TextQueries, term)
 	}
-	query.DaysOfWeek = ParseDayQuery(rawDays)
+	query.DaysOfWeek = days
 	return &query
+}
+
+func parseHour(c *gin.Context, param string, defaultValue int) int {
+	raw, found := c.GetQuery(param)
+	if !found {
+		return defaultValue
+	}
+	parsed, err := strconv.Atoi(raw)
+	if err != nil {
+		return defaultValue
+	} else if parsed < 0 || parsed > 24 {
+		return defaultValue
+	} else {
+		return parsed
+	}
 }
 
 func Search(db *sql.DB) func(c *gin.Context) {
@@ -91,10 +104,23 @@ func Search(db *sql.DB) func(c *gin.Context) {
 		if err != nil {
 			year = time.Now().Year()
 		}
-		log.Println("Raw Query: ", query)
-		days := c.Query("days")
 
+		days := make(map[string]bool)
+		for _, day := range []string{"wed", "thu", "fri", "sat", "sun"} {
+			param, found := c.GetQuery(day)
+
+			if found && len(param) > 0 {
+				if b, err := strconv.ParseBool(param); err == nil {
+					days[day] = b
+				}
+			}
+		}
 		parsedQuery := parseQuery(query, year, days)
+
+		parsedQuery.StartBeforeHour = parseHour(c, "start_before", 24)
+		parsedQuery.StartAfterHour = parseHour(c, "start_after", 0)
+		parsedQuery.EndBeforeHour = parseHour(c, "end_before", 24)
+		parsedQuery.EndAfterHour = parseHour(c, "end_after", 0)
 
 		eventGroups, err := postgres.FindEvents(db, parsedQuery)
 		totalEvents := 0
@@ -119,6 +145,7 @@ func Search(db *sql.DB) func(c *gin.Context) {
 				"breakdown":     "Category",
 				"pageHeader":    "Search",
 				"subHeader":     query,
+				"query":         parsedQuery,
 			})
 		}
 	}

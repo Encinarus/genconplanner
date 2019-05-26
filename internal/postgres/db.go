@@ -459,24 +459,69 @@ ORDER BY e1.start_time`, fields), eventId, year, userEmail)
 type ParsedQuery struct {
 	// TODO(alek): make a significantly more robust query parser
 	// add exact match on fields,
-	TextQueries []string
-	Year        int
-	DaysOfWeek  []int
+	TextQueries     []string
+	Year            int
+	DaysOfWeek      map[string]bool
+	RawQuery        string
+	StartBeforeHour int
+	StartAfterHour  int
+	EndBeforeHour   int
+	EndAfterHour    int
 }
 
 func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
+	innerFrom := "events"
+	innerWhere := fmt.Sprintf("active AND year = %v", query.Year)
+	innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') <= %v", innerWhere, query.StartBeforeHour)
+	innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') >= %v", innerWhere, query.StartAfterHour)
+	innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') <= %v", innerWhere, query.EndBeforeHour)
+	innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') >= %v", innerWhere, query.EndAfterHour)
+	titleRank := "1"
+	searchRank := "1"
+
 	tsquery := strings.Join(query.TextQueries, " & ")
-
-	daysOfWeek := []int{3, 4, 5, 6, 0}
-
-	if query.DaysOfWeek != nil && len(query.DaysOfWeek) > 0 {
-		daysOfWeek = query.DaysOfWeek
-	}
-	// We get groups that have tickets first, then within
-	// that, we rank by how good a match the query was
-	loadedEvents := make([]*EventGroup, 0)
 	if len(tsquery) > 0 {
-		rows, err := db.Query(`
+		innerFrom = fmt.Sprintf("%v, to_tsquery('%v') q", innerFrom, tsquery)
+		innerWhere = fmt.Sprintf("%v AND search_key @@ q", innerWhere)
+		titleRank = "min(ts_rank(title_tsv, q))"
+		searchRank = "min(ts_rank(search_key, q))"
+	}
+
+	innerQuery := fmt.Sprintf(`
+SELECT 
+	cluster_key,
+	short_category,
+	title,
+	min(start_time) as start_time,
+	count(1) as num_events,
+	sum(tickets_available) as tickets_available,
+	sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wed_tickets,
+	sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thu_tickets,
+	sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as fri_tickets,
+	sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as sat_tickets,
+	sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sun_tickets,
+    %v as title_rank,
+    %v as search_rank
+FROM %v
+WHERE %v
+GROUP BY cluster_key, short_category, title
+`, titleRank, searchRank, innerFrom, innerWhere)
+
+	// Default to true so we don't filter anything out
+	// if no days were requested
+	dayPart := "true"
+	if len(query.DaysOfWeek) > 0 {
+		var days []string
+		for d := range query.DaysOfWeek {
+			if query.DaysOfWeek[d] {
+				days = append(days, fmt.Sprintf("c.%v_tickets > 0", d))
+			}
+		}
+		dayPart = strings.Join(days, " OR ")
+	}
+	fullWhere := fmt.Sprintf("e.year = %v AND (%v)", query.Year, dayPart)
+
+	fullQuery := fmt.Sprintf(`
 SELECT 
        e.event_id,
 	   e.title,
@@ -485,55 +530,36 @@ SELECT
        e.game_system,       
 	   c.num_events,
 	   c.tickets_available,
-	   c.wednesday_tickets,
-	   c.thursday_tickets,
-	   c.friday_tickets,
-	   c.saturday_tickets,
-	   c.sunday_tickets
-FROM events e 
-	JOIN (
-		SELECT 
-			   cluster_key,
-			   short_category,
-			   title,
-			   min(start_time) as start_time,
-			   count(1) as num_events,
-			   sum(tickets_available) as tickets_available,
-			   sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-			   sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-			   sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-			   sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-			   sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets,
-		       min(ts_rank(title_tsv, q)) as title_rank, 
-		       min(ts_rank(search_key, q)) as search_rank
-		FROM events, to_tsquery($1) q
-		WHERE active and year=$2 and search_key @@ q
-		GROUP BY cluster_key, short_category, title
-		) as c ON e.title = c.title 
-		       AND e.short_category = c.short_category
-			   AND e.cluster_key = c.cluster_key
-			   AND e.start_time = c.start_time
-			   AND e.day_of_week = ANY ($3)
-WHERE e.year = $2
-ORDER BY c.tickets_available > 0 desc, c.title_rank desc, c.search_rank desc
-`, tsquery, query.Year, pq.Array(daysOfWeek))
+	   c.wed_tickets,
+	   c.thu_tickets,
+	   c.fri_tickets,
+	   c.sat_tickets,
+	   c.sun_tickets
+FROM events e JOIN (%v) AS c 
+	ON e.title = c.title
+    AND e.short_category = c.short_category
+    AND e.cluster_key = c.cluster_key
+    AND e.start_time = c.start_time
+WHERE %v
+ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
+`, innerQuery, fullWhere)
 
+	loadedEvents := make([]*EventGroup, 0)
+	rows, err := db.Query(fullQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Load all the events
+	for rows.Next() {
+		group, err := rowToGroup(rows)
 		if err != nil {
 			return nil, err
 		}
-		defer rows.Close()
 
-		// Load all the events
-		for rows.Next() {
-			group, err := rowToGroup(rows)
-			if err != nil {
-				return nil, err
-			}
-
-			loadedEvents = append(loadedEvents, group)
-		}
+		loadedEvents = append(loadedEvents, group)
 	}
-
 	return loadedEvents, nil
 }
 

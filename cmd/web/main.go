@@ -127,7 +127,6 @@ func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 				if err != nil {
 					log.Printf("Error Loading/creating user: %v\n", err)
 				} else {
-					log.Printf("Loaded user: %v\n", user)
 					if user.DisplayName == "" {
 						user.DisplayName = strings.Split(email, "@")[0]
 					}

@@ -3,7 +3,6 @@ package web
 import (
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"sort"
-	"strings"
 )
 
 type Context struct {
@@ -11,35 +10,6 @@ type Context struct {
 	DisplayName string
 	Email       string
 	Starred     *postgres.UserStarredEvents
-}
-
-func ParseDayQuery(rawDays string) []int {
-	processedDays := make([]int, 0)
-	splitDays := strings.Split(strings.ToLower(rawDays), ",")
-	for _, day := range splitDays {
-		switch day {
-		case "sun":
-			processedDays = append(processedDays, 0)
-			break
-		case "wed":
-			processedDays = append(processedDays, 3)
-			break
-		case "thu":
-			processedDays = append(processedDays, 4)
-			break
-		case "fri":
-			processedDays = append(processedDays, 5)
-			break
-		case "sat":
-			processedDays = append(processedDays, 6)
-			break
-		}
-	}
-	if len(processedDays) == 0 {
-		return []int{0, 3, 4, 5, 6}
-	} else {
-		return processedDays
-	}
 }
 
 func PartitionGroups(
