@@ -127,15 +127,8 @@
             </div>
             <div class="tab-pane active" id="calendar-tab">
                 <!-- This doesn't look as good as it should... -->
-                <ul class="nav nav-pills nav-justified hidden-xs hidden-s" id="daygroup">
-                    <li><a href="#wednesday">Wednesday</a></li>
-                    <li class="active"><a href="#thursday">Thursday</a></li>
-                    <li><a href="#friday">Friday</a></li>
-                    <li><a href="#saturday">Saturday</a></li>
-                    <li><a href="#sunday">Sunday</a></li>
-                </ul>
                 <div id='calendar' class="tab-content" style="padding-top: 10px;"></div>            </div>
-        </div>
+            </div>
     </div>
 </div>
 </div>
@@ -158,27 +151,6 @@
     $('#daygroup a').click(function (e) {
         e.preventDefault();
         $(this).tab('show');
-    });
-    // These are all horribly redundant... but my js-foo isn't there yet.
-    $('#daygroup a[href="#wednesday"]').click(function(e) {
-        e.preventDefault();
-        $('#calendar').fullCalendar( 'gotoDate', "2019-07-31");
-    });
-    $('#daygroup a[href="#thursday"]').click(function(e) {
-        e.preventDefault();
-        $('#calendar').fullCalendar( 'gotoDate', "2019-08-01");
-    });
-    $('#daygroup a[href="#friday"]').click(function(e) {
-        e.preventDefault();
-        $('#calendar').fullCalendar( 'gotoDate', "2019-08-02");
-    });
-    $('#daygroup a[href="#saturday"]').click(function(e) {
-        e.preventDefault();
-        $('#calendar').fullCalendar( 'gotoDate', "2019-08-03");
-    });
-    $('#daygroup a[href="#sunday"]').click(function(e) {
-        e.preventDefault();
-        $('#calendar').fullCalendar( 'gotoDate', "2019-08-04");
     });
     $(document).ready(function() {
         // And populate the calendar
@@ -279,7 +251,7 @@
     firebase.auth().onAuthStateChanged(function(user) {
         updateSigninWidget();
         $.ajax({
-            url: '/listStarredGroups/',
+            url: '/listStarredGroups/{{.context.Year}}',
             type: 'GET',
             dataType: 'json',
         }).done(function(data){

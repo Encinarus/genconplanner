@@ -82,7 +82,7 @@ func main() {
 	r.GET("/starred/:year", web.StarredPage(db))
 	r.POST("/starEvent/", web.StarEvent(db))
 	r.GET("/starEvent/", web.GetStarredEvents(db))
-	r.GET("/listStarredGroups/", web.GetStarredEventGroups(db))
+	r.GET("/listStarredGroups/:year", web.GetStarredEventGroups(db))
 
 	r.GET("/about", func(c *gin.Context) {
 		year, err := strconv.Atoi(c.Param("year"))

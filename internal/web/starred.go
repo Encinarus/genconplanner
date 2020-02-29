@@ -45,6 +45,7 @@ func GetStarredEventGroups(db *sql.DB) func(c *gin.Context) {
 				return
 			}
 		}
+		log.Printf("Year: %v", appContext.Year)
 
 		starredEvents, err := postgres.LoadStarredEvents(db, appContext.Email, appContext.Year)
 		if err != nil {
