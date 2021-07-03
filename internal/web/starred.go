@@ -97,6 +97,7 @@ func StarEvent(db *sql.DB) func(c *gin.Context) {
 
 func StarredPage(db *sql.DB) func(c *gin.Context) {
 	var startDates = map[int]string{
+		2018: "2018-08-01",
 		2019: "2019-07-31",
 		2020: "2020-07-29",
 		2021: "2021-09-15",
