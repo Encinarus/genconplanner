@@ -86,7 +86,7 @@ func splitId(rawEventId string) (string, int) {
 	if err != nil {
 		log.Fatalf("Unable to parse year out of %s, %v", rawEventId, err)
 	}
-	if 15 > twoDigitYear || 19 < twoDigitYear {
+	if 15 > twoDigitYear {
 		log.Fatalf("Unsupported year being parsed! rawEventId %s", rawEventId)
 	}
 
