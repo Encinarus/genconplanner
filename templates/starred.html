@@ -3,6 +3,7 @@
 {{ $fri := .eventsByDay.Friday}}
 {{ $sat := .eventsByDay.Saturday}}
 {{ $sun := .eventsByDay.Sunday}}
+{{ $start := .startDate }}
 
 {{ define "eventBlurb" }}
 
@@ -190,7 +191,7 @@
                 }
             },
             firstDay: 3,
-            defaultDate: '2019-07-31',
+            defaultDate: '{{ $start }}',
             navLinks: false,
             timezone: 'America/Indiana/Indianapolis',
             defaultView: 'agendaWeek',

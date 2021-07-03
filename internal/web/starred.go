@@ -96,6 +96,15 @@ func StarEvent(db *sql.DB) func(c *gin.Context) {
 }
 
 func StarredPage(db *sql.DB) func(c *gin.Context) {
+	var startDates = map[int]string{
+		2019: "2019-07-31",
+		2020: "2020-07-29",
+		2021: "2021-09-15",
+		2022: "2022-08-03",
+		2023: "2023-08-02",
+		2024: "2024-07-31",
+	}
+
 	return func(c *gin.Context) {
 		appContext := c.MustGet("context").(*Context)
 		appContext.Year = time.Now().Year()
@@ -123,6 +132,11 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 			return
 		}
 
+		startDate, found := startDates[appContext.Year]
+		if !found {
+			startDate = "2019-07-31"
+		}
+
 		c.Header("Cache-Control", "no-cache")
 		c.HTML(http.StatusOK, "starred.html", gin.H{
 			"context":          appContext,
@@ -130,6 +144,7 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 			"eventsByCategory": events.PartitionEventsByCategory(starredEvents),
 			"allCategories":    events.AllCategories(),
 			"calendarGroups":   groupedEvents,
+			"startDate":        startDate,
 		})
 	}
 }
