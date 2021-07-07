@@ -1,3 +1,57 @@
+-- Table: public.boardgame
+
+-- DROP TABLE public.boardgame;
+
+CREATE TABLE public.boardgame
+(
+    name text COLLATE pg_catalog."default" NOT NULL,
+    bgg_id integer NOT NULL,
+    CONSTRAINT boardgame_pkey PRIMARY KEY (bgg_id)
+)
+    WITH (
+        OIDS = FALSE
+    )
+    TABLESPACE pg_default;
+
+ALTER TABLE public.boardgame
+    OWNER to postgres;
+
+-- Index: bg_name_idx
+
+-- DROP INDEX public.bg_name_idx;
+
+CREATE INDEX bg_name_idx
+    ON public.boardgame USING btree
+        (name COLLATE pg_catalog."default")
+    TABLESPACE pg_default;
+
+-- Table: public.boardgame_family
+
+-- DROP TABLE public.boardgame_family;
+
+CREATE TABLE public.boardgame_family
+(
+    name text COLLATE pg_catalog."default" NOT NULL,
+    bgg_id integer NOT NULL,
+    CONSTRAINT boardgame_family_pkey PRIMARY KEY (bgg_id)
+)
+    WITH (
+        OIDS = FALSE
+    )
+    TABLESPACE pg_default;
+
+ALTER TABLE public.boardgame_family
+    OWNER to postgres;
+
+-- Index: bgf_name_idx
+
+-- DROP INDEX public.bgf_name_idx;
+
+CREATE INDEX bgf_name_idx
+    ON public.boardgame_family USING btree
+        (name COLLATE pg_catalog."default")
+    TABLESPACE pg_default;
+
 -- Table: public.starred_events
 
 -- DROP TABLE public.starred_events;

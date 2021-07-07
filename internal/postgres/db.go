@@ -21,6 +21,60 @@ func OpenDb() (*sql.DB, error) {
 	return sql.Open("postgres", *dbConnectString)
 }
 
+type GameFamily struct {
+	Name  string
+	BggId int
+}
+
+type Game struct {
+	Name      string
+	BggId     int
+	FamilyIds []int
+}
+
+func (g *Game) Upsert(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+INSERT INTO boardgame(name, bgg_id)
+VALUES ($1, $2)
+ON CONFLICT (bgg_id) DO UPDATE SET name = $1
+`, g.Name, g.BggId)
+
+	if err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+	return err
+}
+
+func LoadGames(db *sql.DB) ([]*Game, error) {
+	rows, err := db.Query(`
+SELECT 
+    name,
+	bgg_id
+FROM boardgame bg
+`)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	games := make([]*Game, 0)
+
+	for rows.Next() {
+		var g Game
+		rows.Scan(&g.Name, &g.BggId)
+		games = append(games, &g)
+	}
+	return games, nil
+}
+
 type User struct {
 	Email       string
 	DisplayName string

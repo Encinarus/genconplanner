@@ -23,5 +23,6 @@ require (
 	golang.org/x/image v0.0.0-20190501045829-6d32002ffd75 // indirect
 	golang.org/x/mobile v0.0.0-20190415191353-3e0bab5405d6 // indirect
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
+	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 	google.golang.org/api v0.4.0
 )
