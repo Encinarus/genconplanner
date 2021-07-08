@@ -6,6 +6,7 @@ import (
 	"firebase.google.com/go"
 	"flag"
 	"fmt"
+	"github.com/Encinarus/genconplanner/internal/background"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/Encinarus/genconplanner/internal/web"
 	"github.com/gin-gonic/gin"
@@ -22,10 +23,56 @@ import (
 )
 
 var port = flag.Int("port", 8080, "port to listen on")
+var sourceFile = flag.String("eventFile", "https://www.gencon.com/downloads/events.xlsx", "file path or url to load from")
 
 func main() {
 	flag.Parse()
 
+	db, err := postgres.OpenDb()
+	if err != nil {
+		log.Println("Error opening postgres")
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	SetupBackground(db)
+
+	SetupWeb(db) // Must be last, won't return until server shutdown
+}
+
+func SetupBackground(db *sql.DB) {
+	// We run this in a background thread on web because running as a separate
+	// app would be expensive. Unlike updating from gencon, these take a long time to
+	// process, so the app would be running continually, costing a bit more money than
+	// we want.
+	// Update from BGG once per week
+	bggTicker := time.NewTicker(time.Hour * 24 * 7)
+
+	go func() {
+		for {
+			background.UpdateGamesFromBGG(db)
+			// Delay until the next tick
+			select {
+			case <-bggTicker.C:
+			}
+		}
+	}()
+
+	// TODO: decide if this should run here too.
+	if 1 == 2 {
+		genconTicker := time.NewTicker(time.Hour)
+		go func() {
+			for {
+				background.UpdateEventsFromGencon(db, *sourceFile)
+				select {
+				case <-genconTicker.C:
+				}
+			}
+		}()
+	}
+}
+
+func SetupWeb(db *sql.DB) {
 	textStrippingRegex, _ := regexp.Compile("[^a-zA-Z0-9]+")
 	textToId := func(text string) string {
 		return textStrippingRegex.ReplaceAllString(strings.ToLower(text), "")
@@ -43,13 +90,6 @@ func main() {
 		}
 		return dict
 	}
-
-	db, err := postgres.OpenDb()
-	if err != nil {
-		log.Println("Error opening postgres")
-		log.Fatal(err)
-	}
-	defer db.Close()
 
 	opt := option.WithCredentialsJSON([]byte(os.Getenv("FIREBASE_CONFIG")))
 	app, err := firebase.NewApp(context.Background(), nil, opt)

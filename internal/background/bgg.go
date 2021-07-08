@@ -1,37 +1,27 @@
-package main
+package background
 
 import (
 	"context"
-	"encoding/json"
-	"flag"
-	"fmt"
+	"database/sql"
 	"github.com/Encinarus/genconplanner/internal/bgg"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"log"
 	"time"
 )
 
-func main() {
-	flag.Parse()
-
-	db, err := postgres.OpenDb()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
+func UpdateGamesFromBGG(db *sql.DB) {
 	ctx := context.Background()
 	api := bgg.NewBggApi()
 
 	families := make(map[int64]*postgres.GameFamily)
 	games := make(map[int64]*postgres.Game)
 
-	db_games, err := postgres.LoadGames(db)
+	dbGames, err := postgres.LoadGames(db)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Unable to load games, continuing %v", err)
 	}
 
-	for _, g := range db_games {
+	for _, g := range dbGames {
 		games[g.BggId] = g
 	}
 
@@ -119,6 +109,4 @@ func main() {
 			games[id] = g
 		}
 	}
-	text, _ := json.MarshalIndent(families, "", "  ")
-	fmt.Printf("Family: %v", string(text))
 }
