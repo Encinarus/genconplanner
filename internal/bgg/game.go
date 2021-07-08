@@ -12,9 +12,11 @@ import (
 	"time"
 )
 
+// Game can be a game, or expansion, see the Item.Type field.
 type Game struct {
 	Item struct {
-		ID   int `xml:"id,attr"`
+		Type string `xml:"type,attr"`
+		ID   int64  `xml:"id,attr"`
 		Name []struct {
 			Type  string `xml:"type,attr"`
 			Value string `xml:"value,attr"`
@@ -22,7 +24,7 @@ type Game struct {
 		Description string `xml:"description"`
 		Link        []struct {
 			Type  string `xml:"type,attr"`
-			ID    int    `xml:"id,attr"`
+			ID    int64  `xml:"id,attr"`
 			Value string `xml:"value,attr"`
 		} `xml:"link"`
 	} `xml:"item"`
@@ -31,13 +33,13 @@ type Game struct {
 type Family struct {
 	Item struct {
 		Type string `xml:"type,attr"`
-		ID   int    `xml:"id,attr"`
+		ID   int64  `xml:"id,attr"`
 		Name struct {
 			Value string `xml:"value,attr"`
 		} `xml:"name"`
 		Link []struct {
 			Type  string `xml:"type,attr"`
-			ID    int    `xml:"id,attr"`
+			ID    int64  `xml:"id,attr"`
 			Value string `xml:"value,attr"`
 		} `xml:"link"`
 	} `xml:"item"`
@@ -77,8 +79,8 @@ func (bgg *BggApi) get(ctx context.Context, url string, v interface{}) error {
 	return xml.Unmarshal(bodyBytes, v)
 }
 
-func (bgg *BggApi) GetGame(ctx context.Context, id int) (*Game, error) {
-	url := fmt.Sprintf("http://boardgamegeek.com/xmlapi2/thing?type=boardgame&id=%d", id)
+func (bgg *BggApi) GetGame(ctx context.Context, id int64) (*Game, error) {
+	url := fmt.Sprintf("http://boardgamegeek.com/xmlapi2/thing?type=boardgame,boardgameexpansion&id=%d", id)
 	var game Game
 	err := bgg.get(ctx, url, &game)
 	if err != nil {
@@ -90,7 +92,7 @@ func (bgg *BggApi) GetGame(ctx context.Context, id int) (*Game, error) {
 	return &game, nil
 }
 
-func (bgg *BggApi) GetFamily(ctx context.Context, id int) (*Family, error) {
+func (bgg *BggApi) GetFamily(ctx context.Context, id int64) (*Family, error) {
 	url := fmt.Sprintf("http://boardgamegeek.com/xmlapi2/family?id=%d", id)
 	var family Family
 	err := bgg.get(ctx, url, &family)

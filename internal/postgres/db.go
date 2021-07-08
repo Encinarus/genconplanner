@@ -23,13 +23,14 @@ func OpenDb() (*sql.DB, error) {
 
 type GameFamily struct {
 	Name  string
-	BggId int
+	BggId int64
 }
 
 type Game struct {
-	Name      string
-	BggId     int
-	FamilyIds []int
+	Name       string
+	BggId      int64
+	FamilyIds  []int64
+	LastUpdate time.Time
 }
 
 func (g *Game) Upsert(db *sql.DB) error {
@@ -38,17 +39,29 @@ func (g *Game) Upsert(db *sql.DB) error {
 		return err
 	}
 
+	// Cleanup transaction!
+	defer func() {
+		var txErr error
+		if err != nil {
+			txErr = tx.Rollback()
+		} else {
+			txErr = tx.Commit()
+		}
+		if txErr != nil {
+			log.Printf("Error while resolving transaction: %v", txErr)
+		}
+	}()
+
 	_, err = tx.Exec(`
-INSERT INTO boardgame(name, bgg_id)
-VALUES ($1, $2)
-ON CONFLICT (bgg_id) DO UPDATE SET name = $1
-`, g.Name, g.BggId)
+INSERT INTO boardgame(name, bgg_id, family_ids, last_update)
+VALUES ($1, $2, $3, CURRENT_DATE)
+ON CONFLICT (bgg_id) DO UPDATE SET name = $1, family_ids = $3, last_update = CURRENT_DATE
+`, g.Name, g.BggId, pq.Array(g.FamilyIds))
 
 	if err != nil {
-		tx.Rollback()
-	} else {
-		tx.Commit()
+		return err
 	}
+
 	return err
 }
 
@@ -56,7 +69,9 @@ func LoadGames(db *sql.DB) ([]*Game, error) {
 	rows, err := db.Query(`
 SELECT 
     name,
-	bgg_id
+	bgg_id, 
+    family_ids,
+    last_update
 FROM boardgame bg
 `)
 
@@ -69,7 +84,14 @@ FROM boardgame bg
 
 	for rows.Next() {
 		var g Game
-		rows.Scan(&g.Name, &g.BggId)
+		var timeHolder pq.NullTime
+		err = rows.Scan(&g.Name, &g.BggId, pq.Array(&g.FamilyIds), &timeHolder)
+		if err != nil {
+			return nil, err
+		}
+		if timeHolder.Valid {
+			g.LastUpdate = timeHolder.Time
+		}
 		games = append(games, &g)
 	}
 	return games, nil
