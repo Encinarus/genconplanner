@@ -131,7 +131,7 @@
                     <div class="row">
                         <div class="col-xs-12 col-md-2"><strong>Game System:</strong></div>
                         <div class="col-xs-12 col-md-7">
-                            {{ if $e.GameSystem }}{{ $e.GameSystem }}{{ else }}N/A{{ end }}
+                            {{ template "bggLink" $e }}
                         </div>
                     </div>
                     <div class="row">

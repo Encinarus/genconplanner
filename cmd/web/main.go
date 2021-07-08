@@ -35,9 +35,11 @@ func main() {
 	}
 	defer db.Close()
 
+	cache := background.NewGameCache(db)
+	cache.PeriodicallyUpdate()
 	SetupBackground(db)
 
-	SetupWeb(db) // Must be last, won't return until server shutdown
+	SetupWeb(db, cache) // Must be last, won't return until server shutdown
 }
 
 func SetupBackground(db *sql.DB) {
@@ -72,7 +74,7 @@ func SetupBackground(db *sql.DB) {
 	}
 }
 
-func SetupWeb(db *sql.DB) {
+func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	textStrippingRegex, _ := regexp.Compile("[^a-zA-Z0-9]+")
 	textToId := func(text string) string {
 		return textStrippingRegex.ReplaceAllString(strings.ToLower(text), "")
@@ -91,6 +93,17 @@ func SetupWeb(db *sql.DB) {
 		return dict
 	}
 
+	bggPage := func(gameName string) string {
+		bggGames := cache.FindGame(gameName)
+		if len(bggGames) == 0 {
+			return ""
+		}
+
+		// We'll just use the first one. Hopefully conflicts don't actually come up in practice
+		bggId := bggGames[0].BggId
+		return fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", bggId)
+	}
+
 	opt := option.WithCredentialsJSON([]byte(os.Getenv("FIREBASE_CONFIG")))
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
@@ -101,8 +114,9 @@ func SetupWeb(db *sql.DB) {
 	r.Use(bootstrapContext(app, db))
 
 	r.SetFuncMap(template.FuncMap{
-		"toId": textToId,
-		"dict": dict,
+		"toId":    textToId,
+		"dict":    dict,
+		"bggPage": bggPage,
 	})
 	r.LoadHTMLGlob("templates/*")
 

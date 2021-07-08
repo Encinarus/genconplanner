@@ -30,6 +30,14 @@
 </div>
 {{ end }}
 
+{{ define "bggLink" }}
+    {{ $e := . }}
+    {{ $boardgame := (eq $e.ShortCategory "BGM") }}
+    {{ $url := (bggPage $e.GameSystem ) }}
+    {{ if and $boardgame $url }}<a href="{{ $url }}">{{ $e.GameSystem }}
+    </a>{{ else if $e.GameSystem }}{{ $e.GameSystem }}{{ else }}N/A{{ end }}
+{{ end }}
+
 {{ define "scriptFooter" }}
 <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
