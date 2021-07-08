@@ -26,7 +26,7 @@ func UpdateGamesFromBGG(db *sql.DB) {
 	}
 
 	nextFamilies := make([]int64, 0, 0)
-	nextFamilies = append(nextFamilies, 65191)
+	nextFamilies = append(nextFamilies, 65191, 27646, 71181, 66772, 6258, 65328, 41489)
 	// If we haven't updated in 2 weeks, update now
 	updateCutoff := time.Now().Add(-time.Hour * 24 * 14)
 
@@ -40,7 +40,7 @@ func UpdateGamesFromBGG(db *sql.DB) {
 		for _, id := range nextFamilies {
 			fam, err := api.GetFamily(ctx, id)
 			if err != nil {
-				log.Printf("Issue getting family %v", err)
+				log.Printf("Issue getting family: %v", err)
 				continue
 			}
 
@@ -101,6 +101,8 @@ func UpdateGamesFromBGG(db *sql.DB) {
 				BggId:      apiGame.Item.ID,
 				FamilyIds:  familyIds,
 				LastUpdate: time.Now(),
+				NumRatings: apiGame.Item.Statistics.Ratings.Usersrated.Value,
+				AvgRatings: apiGame.Item.Statistics.Ratings.Average.Value,
 			}
 			if err = g.Upsert(db); err != nil {
 				log.Printf("Issue storing apiGame %v", err)

@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// XML tags generated from https://www.onlinetool.io/xmltogo/
 // Game can be a game, or expansion, see the Item.Type field.
 type Game struct {
 	Item struct {
@@ -27,6 +28,19 @@ type Game struct {
 			ID    int64  `xml:"id,attr"`
 			Value string `xml:"value,attr"`
 		} `xml:"link"`
+		Statistics struct {
+			Ratings struct {
+				Text       string `xml:",chardata"`
+				Usersrated struct {
+					Text  string `xml:",chardata"`
+					Value int64  `xml:"value,attr"`
+				} `xml:"usersrated"`
+				Average struct {
+					Text  string  `xml:",chardata"`
+					Value float64 `xml:"value,attr"`
+				} `xml:"average"`
+			} `xml:"ratings"`
+		} `xml:"statistics"`
 	} `xml:"item"`
 }
 
@@ -80,7 +94,7 @@ func (bgg *BggApi) get(ctx context.Context, url string, v interface{}) error {
 }
 
 func (bgg *BggApi) GetGame(ctx context.Context, id int64) (*Game, error) {
-	url := fmt.Sprintf("http://boardgamegeek.com/xmlapi2/thing?type=boardgame,boardgameexpansion&id=%d", id)
+	url := fmt.Sprintf("http://boardgamegeek.com/xmlapi2/thing?type=boardgame,boardgameexpansion&stats=1&id=%d", id)
 	var game Game
 	err := bgg.get(ctx, url, &game)
 	if err != nil {

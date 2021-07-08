@@ -8,6 +8,8 @@ CREATE TABLE public.boardgame
     bgg_id integer NOT NULL,
     family_ids integer[],
     last_update date,
+    num_ratings integer,
+    avg_ratings double precision,
     CONSTRAINT boardgame_pkey PRIMARY KEY (bgg_id)
 )
     WITH (

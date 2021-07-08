@@ -31,6 +31,8 @@ type Game struct {
 	BggId      int64
 	FamilyIds  []int64
 	LastUpdate time.Time
+	NumRatings int64
+	AvgRatings float64
 }
 
 func (g *Game) Upsert(db *sql.DB) error {
@@ -53,10 +55,10 @@ func (g *Game) Upsert(db *sql.DB) error {
 	}()
 
 	_, err = tx.Exec(`
-INSERT INTO boardgame(name, bgg_id, family_ids, last_update)
-VALUES ($1, $2, $3, CURRENT_DATE)
-ON CONFLICT (bgg_id) DO UPDATE SET name = $1, family_ids = $3, last_update = CURRENT_DATE
-`, g.Name, g.BggId, pq.Array(g.FamilyIds))
+INSERT INTO boardgame(name, bgg_id, family_ids, num_ratings, avg_ratings, last_update)
+VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)
+ON CONFLICT (bgg_id) DO UPDATE SET name = $1, family_ids = $3, num_ratings = $4, avg_ratings = $5, last_update = CURRENT_DATE
+`, g.Name, g.BggId, pq.Array(g.FamilyIds), g.NumRatings, g.AvgRatings)
 
 	if err != nil {
 		return err
