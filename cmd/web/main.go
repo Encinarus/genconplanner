@@ -10,6 +10,9 @@ import (
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/Encinarus/genconplanner/internal/web"
 	"github.com/gin-gonic/gin"
+	"github.com/heroku/x/hmetrics"
+
+	_ "github.com/heroku/x/hmetrics/onload"
 	_ "github.com/lib/pq"
 	"google.golang.org/api/option"
 	"html/template"
@@ -27,6 +30,9 @@ var sourceFile = flag.String("eventFile", "https://www.gencon.com/downloads/even
 
 func main() {
 	flag.Parse()
+
+	// Don't care about canceling or errors
+	go hmetrics.Report(context.Background(), hmetrics.DefaultEndpoint, nil)
 
 	db, err := postgres.OpenDb()
 	if err != nil {
