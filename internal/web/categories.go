@@ -41,18 +41,19 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 		batchSize := 2
 		tail := len(summary) % batchSize
 		numBuckets := len(summary) / batchSize
-		if tail > 0 {
+		if tail != 0 {
 			numBuckets++
 		}
 		categories := make([][]*postgres.CategorySummary, numBuckets)
 		for i := range categories {
 			base := batchSize * i
 			end := base + batchSize
-			if i == len(categories)-1 {
-				end = base + tail
+			if end > len(summary) {
+				end = len(summary)
 			}
 			categories[i] = summary[base:end]
 		}
+
 		c.HTML(http.StatusOK, "categories.html", gin.H{
 			"title":      "Main website",
 			"categories": categories,
