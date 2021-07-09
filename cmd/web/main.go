@@ -148,6 +148,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.LoadHTMLGlob("templates/*")
 
 	r.Static("/static/stylesheets", "static/stylesheets")
+	r.Static("/static/img", "static/img")
 	r.StaticFile("/robots.txt", "static/robots.txt")
 
 	r.GET("/event/:eid", web.ViewEvent(db))

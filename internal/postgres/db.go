@@ -73,8 +73,8 @@ SELECT
     name,
 	bgg_id, 
     family_ids,
-   num_ratings,
-   avg_ratings,
+    num_ratings,
+    avg_ratings,
     last_update
 FROM boardgame bg
 `)
