@@ -21,9 +21,9 @@ func UpdateGamesFromBGG(db *sql.DB) {
 	ctx := context.Background()
 	api := bgg.NewBggApi()
 
-	// Initial seed families
+	// Initial seed with kickstarter, this is a big category, good for branching out everywhere :)
 	familyBacklog := map[int64]bool{
-		65191: true, 27646: true, 71181: true, 66772: true, 6258: true, 65328: true, 41489: true,
+		8374: true,
 	}
 	gameBacklog := make(map[int64]bool)
 
@@ -132,12 +132,14 @@ func UpdateGamesFromBGG(db *sql.DB) {
 			}
 
 			g := &postgres.Game{
-				Name:       name,
-				BggId:      apiGame.Item.ID,
-				FamilyIds:  familyIds,
-				LastUpdate: time.Now(),
-				NumRatings: apiGame.Item.Statistics.Ratings.NumRatings.Value,
-				AvgRatings: apiGame.Item.Statistics.Ratings.Average.Value,
+				Name:          name,
+				BggId:         apiGame.Item.ID,
+				FamilyIds:     familyIds,
+				LastUpdate:    time.Now(),
+				NumRatings:    apiGame.Item.Statistics.Ratings.NumRatings.Value,
+				AvgRatings:    apiGame.Item.Statistics.Ratings.Average.Value,
+				YearPublished: apiGame.Item.YearPublished.Value,
+				Type:          apiGame.Item.Type,
 			}
 			if err = g.Upsert(db); err != nil {
 				log.Printf("Issue storing apiGame %v", err)
