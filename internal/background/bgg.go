@@ -9,66 +9,92 @@ import (
 	"time"
 )
 
+func addIdsToBacklog(backlog map[int64]bool, newIds []int64) {
+	for _, id := range newIds {
+		if _, found := backlog[id]; !found {
+			backlog[id] = true
+		}
+	}
+}
+
 func UpdateGamesFromBGG(db *sql.DB) {
 	ctx := context.Background()
 	api := bgg.NewBggApi()
 
+	// Initial seed families
+	familyBacklog := map[int64]bool{
+		65191: true, 27646: true, 71181: true, 66772: true, 6258: true, 65328: true, 41489: true,
+	}
+	gameBacklog := make(map[int64]bool)
+
 	families := make(map[int64]*postgres.GameFamily)
 	games := make(map[int64]*postgres.Game)
+
+	dbFamilies, err := postgres.LoadFamilies(db)
+	if err != nil {
+		log.Printf("Unable to load game families, continuing %v", err)
+	}
+	for _, gf := range dbFamilies {
+		families[gf.BggId] = gf
+		addIdsToBacklog(gameBacklog, gf.GameIds)
+	}
 
 	dbGames, err := postgres.LoadGames(db)
 	if err != nil {
 		log.Printf("Unable to load games, continuing %v", err)
 	}
-
-	nextFamilies := map[int64]bool{
-		65191: true, 27646: true, 71181: true, 66772: true, 6258: true, 65328: true, 41489: true,
-	}
-
-	addFamilies := func(familyMap map[int64]bool, newFamilies []int64) {
-		for _, familyId := range newFamilies {
-			if _, found := families[familyId]; !found {
-				familyMap[familyId] = true
-			}
-		}
-	}
 	for _, g := range dbGames {
 		games[g.BggId] = g
-		addFamilies(nextFamilies, g.FamilyIds)
+		addIdsToBacklog(familyBacklog, g.FamilyIds)
 	}
 
+	// If we haven't updated in 2 days, update now
+	familyUpdateLimit := time.Now().Add(-time.Hour * 24 * 2)
 	// If we haven't updated in 2 weeks, update now
-	updateCutoff := time.Now().Add(-time.Hour * 24 * 14)
+	gameUpdateLimit := time.Now().Add(-time.Hour * 24 * 14)
 
-	log.Printf("Update cutoff: %v", updateCutoff)
-
-	for len(nextFamilies) > 0 {
-		log.Printf("Next batch size: %v", len(nextFamilies))
+	for len(familyBacklog) > 0 || len(gameBacklog) > 0 {
+		log.Printf("Family backlog: %v", len(familyBacklog))
+		log.Printf("Game backlog: %v", len(gameBacklog))
 		log.Printf("Processed %v families, %v games", len(families), len(games))
 
-		nextGames := make([]int64, 0, 0)
-		for id := range nextFamilies {
-			fam, err := api.GetFamily(ctx, id)
+		for id := range familyBacklog {
+			dbFamily, found := families[id]
+			if found && dbFamily.LastUpdate.After(familyUpdateLimit) {
+				addIdsToBacklog(gameBacklog, dbFamily.GameIds)
+				continue
+			}
+
+			bggFamily, err := api.GetFamily(ctx, id)
 			if err != nil {
 				log.Printf("Issue getting family: %v", err)
 				continue
 			}
-
-			families[id] = &postgres.GameFamily{
-				Name:  fam.Item.Name.Value,
-				BggId: fam.Item.ID,
+			gameIds := make([]int64, 0, 0)
+			for _, related := range bggFamily.Item.Link {
+				gameIds = append(gameIds, related.ID)
 			}
-			for _, related := range fam.Item.Link {
-				nextGames = append(nextGames, related.ID)
+
+			dbFamily = &postgres.GameFamily{
+				Name:       bggFamily.Item.Name.Value,
+				BggId:      bggFamily.Item.ID,
+				GameIds:    gameIds,
+				LastUpdate: time.Now(),
+			}
+			families[id] = dbFamily
+			err = families[id].Upsert(db)
+			if err != nil {
+				log.Printf("Issue saving family: %v", err)
+				continue
 			}
 		}
 
-		nextFamilies = make(map[int64]bool)
-		for _, id := range nextGames {
+		familyBacklog = make(map[int64]bool)
+		for id := range gameBacklog {
 			dbGame, found := games[id]
-			if found && dbGame.LastUpdate.After(updateCutoff) {
+			if found && dbGame.LastUpdate.After(gameUpdateLimit) {
 				// We still want this for identifying families to load
-				addFamilies(nextFamilies, dbGame.FamilyIds)
+				addIdsToBacklog(familyBacklog, dbGame.FamilyIds)
 				continue
 			}
 
@@ -94,7 +120,7 @@ func UpdateGamesFromBGG(db *sql.DB) {
 				familyIds = append(familyIds, related.ID)
 			}
 
-			addFamilies(nextFamilies, familyIds)
+			addIdsToBacklog(familyBacklog, familyIds)
 
 			// Default to 0 just in case none of them are primary
 			name := apiGame.Item.Name[0].Value
@@ -110,7 +136,7 @@ func UpdateGamesFromBGG(db *sql.DB) {
 				BggId:      apiGame.Item.ID,
 				FamilyIds:  familyIds,
 				LastUpdate: time.Now(),
-				NumRatings: apiGame.Item.Statistics.Ratings.Usersrated.Value,
+				NumRatings: apiGame.Item.Statistics.Ratings.NumRatings.Value,
 				AvgRatings: apiGame.Item.Statistics.Ratings.Average.Value,
 			}
 			if err = g.Upsert(db); err != nil {

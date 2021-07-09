@@ -156,6 +156,9 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 	if event.GameSystem == "7 wonders" {
 		event.GameSystem = "7 Wonders"
 	}
+	if event.GameSystem == "Disney's Villainous" {
+		event.GameSystem = "Disney Villainous"
+	}
 
 	return event
 }

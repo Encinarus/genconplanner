@@ -16,8 +16,12 @@ import (
 // Game can be a game, or expansion, see the Item.Type field.
 type Game struct {
 	Item struct {
-		Type string `xml:"type,attr"`
-		ID   int64  `xml:"id,attr"`
+		Type          string `xml:"type,attr"`
+		ID            int64  `xml:"id,attr"`
+		YearPublished struct {
+			Text  string `xml:",chardata"`
+			Value int64  `xml:"value,attr"`
+		} `xml:"yearpublished"`
 		Name []struct {
 			Type  string `xml:"type,attr"`
 			Value string `xml:"value,attr"`
@@ -31,7 +35,7 @@ type Game struct {
 		Statistics struct {
 			Ratings struct {
 				Text       string `xml:",chardata"`
-				Usersrated struct {
+				NumRatings struct {
 					Text  string `xml:",chardata"`
 					Value int64  `xml:"value,attr"`
 				} `xml:"usersrated"`

@@ -10,6 +10,8 @@ CREATE TABLE public.boardgame
     last_update date,
     num_ratings integer,
     avg_ratings double precision,
+    year_published integer,
+    type text COLLATE pg_catalog."default",
     CONSTRAINT boardgame_pkey PRIMARY KEY (bgg_id)
 )
     WITH (
@@ -26,6 +28,34 @@ ALTER TABLE public.boardgame
 
 CREATE INDEX bg_name_idx
     ON public.boardgame USING btree
+        (name COLLATE pg_catalog."default")
+    TABLESPACE pg_default;
+
+-- Table: public.boardgame_family
+
+-- DROP TABLE public.boardgame_family;
+
+CREATE TABLE public.boardgame_family
+(
+    name text COLLATE pg_catalog."default" NOT NULL,
+    bgg_id integer NOT NULL,
+    last_update date,
+    CONSTRAINT boardgame_family_pkey PRIMARY KEY (bgg_id)
+)
+    WITH (
+        OIDS = FALSE
+    )
+    TABLESPACE pg_default;
+
+ALTER TABLE public.boardgame_family
+    OWNER to postgres;
+
+-- Index: bgf_name_idx
+
+-- DROP INDEX public.bgf_name_idx;
+
+CREATE INDEX bgf_name_idx
+    ON public.boardgame_family USING btree
         (name COLLATE pg_catalog."default")
     TABLESPACE pg_default;
 
