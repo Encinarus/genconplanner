@@ -100,8 +100,17 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 		}
 
 		// We'll just use the first one. Hopefully conflicts don't actually come up in practice
-		bggId := bggGames[0].BggId
-		return fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", bggId)
+		return fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", bggGames[0].BggId)
+	}
+
+	bggRating := func(gameName string) string {
+		bggGames := cache.FindGame(gameName)
+		if len(bggGames) == 0 || bggGames[0].AvgRatings < 0.1 {
+			return ""
+		}
+
+		// We'll just use the first one. Hopefully conflicts don't actually come up in practice
+		return fmt.Sprintf("%2.1f", bggGames[0].AvgRatings)
 	}
 
 	opt := option.WithCredentialsJSON([]byte(os.Getenv("FIREBASE_CONFIG")))
@@ -114,9 +123,10 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.Use(bootstrapContext(app, db))
 
 	r.SetFuncMap(template.FuncMap{
-		"toId":    textToId,
-		"dict":    dict,
-		"bggPage": bggPage,
+		"toId":      textToId,
+		"dict":      dict,
+		"bggPage":   bggPage,
+		"bggRating": bggRating,
 	})
 	r.LoadHTMLGlob("templates/*")
 

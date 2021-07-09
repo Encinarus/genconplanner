@@ -42,6 +42,9 @@ func normalizeEvent(event *GenconEvent) *GenconEvent {
 	if event.GameSystem == "Magic: the Gathering" {
 		event.GameSystem = "Magic: The Gathering"
 	}
+	if event.GameSystem == "7 wonders" {
+		event.GameSystem = "7 Wonders"
+	}
 
 	return event
 }

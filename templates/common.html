@@ -31,11 +31,14 @@
 {{ end }}
 
 {{ define "bggLink" }}
-    {{ $e := . }}
-    {{ $boardgame := (eq $e.ShortCategory "BGM") }}
-    {{ $url := (bggPage $e.GameSystem ) }}
-    {{ if and $boardgame $url }}<a href="{{ $url }}">{{ $e.GameSystem }}
-    </a>{{ else if $e.GameSystem }}{{ $e.GameSystem }}{{ else }}N/A{{ end }}
+    {{ $sys := . }}
+    {{ if  $sys }}{{ $sys }}
+      {{ $url := (bggPage $sys ) }}
+      {{ $rating := (bggRating  $sys ) }}
+      {{ if $url }} -
+      <a href="{{ $url }}">BGG{{ if $rating }} Rating: {{ $rating }}{{end}}</a>
+      {{end}}
+    {{ else }}N/A{{ end }}
 {{ end }}
 
 {{ define "scriptFooter" }}

@@ -21,12 +21,22 @@ func UpdateGamesFromBGG(db *sql.DB) {
 		log.Printf("Unable to load games, continuing %v", err)
 	}
 
-	for _, g := range dbGames {
-		games[g.BggId] = g
+	nextFamilies := map[int64]bool{
+		65191: true, 27646: true, 71181: true, 66772: true, 6258: true, 65328: true, 41489: true,
 	}
 
-	nextFamilies := make([]int64, 0, 0)
-	nextFamilies = append(nextFamilies, 65191, 27646, 71181, 66772, 6258, 65328, 41489)
+	addFamilies := func(familyMap map[int64]bool, newFamilies []int64) {
+		for _, familyId := range newFamilies {
+			if _, found := families[familyId]; !found {
+				familyMap[familyId] = true
+			}
+		}
+	}
+	for _, g := range dbGames {
+		games[g.BggId] = g
+		addFamilies(nextFamilies, g.FamilyIds)
+	}
+
 	// If we haven't updated in 2 weeks, update now
 	updateCutoff := time.Now().Add(-time.Hour * 24 * 14)
 
@@ -37,7 +47,7 @@ func UpdateGamesFromBGG(db *sql.DB) {
 		log.Printf("Processed %v families, %v games", len(families), len(games))
 
 		nextGames := make([]int64, 0, 0)
-		for _, id := range nextFamilies {
+		for id := range nextFamilies {
 			fam, err := api.GetFamily(ctx, id)
 			if err != nil {
 				log.Printf("Issue getting family: %v", err)
@@ -53,12 +63,12 @@ func UpdateGamesFromBGG(db *sql.DB) {
 			}
 		}
 
-		nextFamilies = make([]int64, 0, 0)
+		nextFamilies = make(map[int64]bool)
 		for _, id := range nextGames {
 			dbGame, found := games[id]
 			if found && dbGame.LastUpdate.After(updateCutoff) {
 				// We still want this for identifying families to load
-				nextFamilies = append(nextFamilies, dbGame.FamilyIds...)
+				addFamilies(nextFamilies, dbGame.FamilyIds)
 				continue
 			}
 
@@ -82,10 +92,9 @@ func UpdateGamesFromBGG(db *sql.DB) {
 					continue
 				}
 				familyIds = append(familyIds, related.ID)
-				if _, found := families[related.ID]; !found {
-					nextFamilies = append(nextFamilies, related.ID)
-				}
 			}
+
+			addFamilies(nextFamilies, familyIds)
 
 			// Default to 0 just in case none of them are primary
 			name := apiGame.Item.Name[0].Value

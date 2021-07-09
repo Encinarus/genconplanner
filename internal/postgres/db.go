@@ -73,6 +73,8 @@ SELECT
     name,
 	bgg_id, 
     family_ids,
+   num_ratings,
+   avg_ratings,
     last_update
 FROM boardgame bg
 `)
@@ -87,13 +89,18 @@ FROM boardgame bg
 	for rows.Next() {
 		var g Game
 		var timeHolder pq.NullTime
-		err = rows.Scan(&g.Name, &g.BggId, pq.Array(&g.FamilyIds), &timeHolder)
+		var numRatingHolder sql.NullInt64
+		var avgRatingHolder sql.NullFloat64
+		err = rows.Scan(&g.Name, &g.BggId, pq.Array(&g.FamilyIds), &numRatingHolder, &avgRatingHolder, &timeHolder)
 		if err != nil {
 			return nil, err
 		}
 		if timeHolder.Valid {
 			g.LastUpdate = timeHolder.Time
 		}
+		// We don't check for valid since they'll default to 0 anyway.
+		g.NumRatings = numRatingHolder.Int64
+		g.AvgRatings = avgRatingHolder.Float64
 		games = append(games, &g)
 	}
 	return games, nil

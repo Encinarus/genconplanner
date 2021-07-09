@@ -196,7 +196,7 @@
             <h4>{{ $major }}</h4>
             {{ range $minor := (index $minorHeadings $major) }}
                 {{ $heading := (print $major "_" $minor| toId)}}
-                <h5 id="{{ $heading }}">{{ $minor }} (<a href="#top">top</a>)</h5>
+                <h5 id="{{ $heading }}">{{ template "bggLink" $minor }} (<a href="#top">top</a>)</h5>
 
                 {{ range $row := (index $partitions $major $minor) }}
                     <a href="/event/{{ $row.EventId }}"
