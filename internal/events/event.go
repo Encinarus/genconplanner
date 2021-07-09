@@ -143,6 +143,23 @@ type GenconEvent struct {
 	IsStarred            bool
 }
 
+func NormalizeEvent(event *GenconEvent) *GenconEvent {
+	if event.GameSystem == "Shadows of ESteren" {
+		event.GameSystem = "Shadows of Esteren"
+	}
+	if event.GameSystem == "Dragon Age" {
+		event.GameSystem = "Dragon AGE"
+	}
+	if event.GameSystem == "Magic: the Gathering" {
+		event.GameSystem = "Magic: The Gathering"
+	}
+	if event.GameSystem == "7 wonders" {
+		event.GameSystem = "7 Wonders"
+	}
+
+	return event
+}
+
 func (e *GenconEvent) PlannerLink() string {
 	return fmt.Sprintf("http://www.genconplanner.com/event/%v", e.EventId)
 }

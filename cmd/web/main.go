@@ -113,6 +113,16 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 		return fmt.Sprintf("%2.1f", bggGames[0].AvgRatings)
 	}
 
+	bggNumRatings := func(gameName string) string {
+		bggGames := cache.FindGame(gameName)
+		if len(bggGames) == 0 || bggGames[0].NumRatings == 0 {
+			return ""
+		}
+
+		// We'll just use the first one. Hopefully conflicts don't actually come up in practice
+		return fmt.Sprintf("%d", bggGames[0].NumRatings)
+	}
+
 	opt := option.WithCredentialsJSON([]byte(os.Getenv("FIREBASE_CONFIG")))
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
@@ -123,10 +133,11 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.Use(bootstrapContext(app, db))
 
 	r.SetFuncMap(template.FuncMap{
-		"toId":      textToId,
-		"dict":      dict,
-		"bggPage":   bggPage,
-		"bggRating": bggRating,
+		"toId":          textToId,
+		"dict":          dict,
+		"bggPage":       bggPage,
+		"bggRating":     bggRating,
+		"bggNumRatings": bggNumRatings,
 	})
 	r.LoadHTMLGlob("templates/*")
 

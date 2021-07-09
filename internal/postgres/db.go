@@ -536,7 +536,7 @@ ORDER BY e1.start_time`, fields), eventId, year, userEmail)
 		if err != nil {
 			return nil, err
 		}
-		loadedEvents = append(loadedEvents, event)
+		loadedEvents = append(loadedEvents, events.NormalizeEvent(event))
 	}
 	return loadedEvents, nil
 }

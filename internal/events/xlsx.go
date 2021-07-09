@@ -32,23 +32,6 @@ func parseTime(dateString string) time.Time {
 	return parsed
 }
 
-func normalizeEvent(event *GenconEvent) *GenconEvent {
-	if event.GameSystem == "Shadows of ESteren" {
-		event.GameSystem = "Shadows of Esteren"
-	}
-	if event.GameSystem == "Dragon Age" {
-		event.GameSystem = "Dragon AGE"
-	}
-	if event.GameSystem == "Magic: the Gathering" {
-		event.GameSystem = "Magic: The Gathering"
-	}
-	if event.GameSystem == "7 wonders" {
-		event.GameSystem = "7 Wonders"
-	}
-
-	return event
-}
-
 func rowToEvent(row *excelRow) *GenconEvent {
 	cells := row.Cells
 	startTime := parseTime(cells[13].String)
@@ -71,7 +54,7 @@ func rowToEvent(row *excelRow) *GenconEvent {
 	if title == "" && cells[2].Number != 0 {
 		title = strconv.FormatInt((int64)(cells[2].Number), 10)
 	}
-	return normalizeEvent(&GenconEvent{
+	return NormalizeEvent(&GenconEvent{
 		EventId:              eventId,
 		Year:                 year,
 		Active:               true,
