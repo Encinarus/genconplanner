@@ -1,8 +1,14 @@
 package web
 
 import (
+	"context"
+	"database/sql"
+	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/gin-gonic/gin"
+	"log"
 	"sort"
+	"strings"
 )
 
 type Context struct {
@@ -10,6 +16,50 @@ type Context struct {
 	DisplayName string
 	Email       string
 	Starred     *postgres.UserStarredEvents
+	User        *postgres.User
+}
+
+func BootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var appContext Context
+		appContext.Starred = &postgres.UserStarredEvents{}
+
+		if c.Request.UserAgent() != "" {
+			log.Printf("UserAgent: %v\n", c.Request.UserAgent())
+		}
+		// Create user if needed based on cookie
+		idToken, err := c.Cookie("signinToken")
+		if err == nil {
+			ctx := context.Background()
+			client, err := app.Auth(ctx)
+			if err != nil {
+				log.Printf("error getting Auth client: %v\n", err)
+				return
+			}
+			token, err := client.VerifyIDToken(ctx, idToken)
+			if err != nil {
+				log.Printf("error verifying ID token: %v\n", err)
+			}
+			if token != nil {
+				email := token.Claims["email"].(string)
+
+				appContext.Email = email
+				user, err := postgres.LoadOrCreateUser(db, email)
+				if err != nil {
+					log.Printf("Error Loading/creating user: %v\n", err)
+				} else {
+					appContext.User = user
+					if user.DisplayName == "" {
+						user.DisplayName = strings.Split(email, "@")[0]
+					}
+					appContext.DisplayName = user.DisplayName
+				}
+			}
+		}
+
+		c.Set("context", &appContext)
+		c.Next()
+	}
 }
 
 func PartitionGroups(
@@ -54,4 +104,23 @@ func PartitionGroups(
 		majorKeys = append(majorKeys, soldOut)
 	}
 	return majorKeys, minorKeys, majorPartitions
+}
+
+var genconDates = map[int]string{
+	2018: "2018-08-01",
+	2019: "2019-07-31",
+	2020: "2020-07-29",
+	2021: "2021-09-15",
+	2022: "2022-08-03",
+	2023: "2023-08-02",
+	2024: "2024-07-31",
+}
+
+func GenconStartDate(year int) string {
+	startDate, found := genconDates[year]
+	if !found {
+		startDate = "2019-07-31"
+	}
+
+	return startDate
 }

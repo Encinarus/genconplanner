@@ -48,8 +48,8 @@ func UpdateGamesFromBGG(db *sql.DB) {
 		addIdsToBacklog(familyBacklog, g.FamilyIds)
 	}
 
-	// If we haven't updated in 2 days, update now
-	familyUpdateLimit := time.Now().Add(-time.Hour * 24 * 2)
+	// If we haven't updated in 4 days, update now
+	familyUpdateLimit := time.Now().Add(-time.Hour * 24 * 4)
 	// If we haven't updated in 2 weeks, update now
 	gameUpdateLimit := time.Now().Add(-time.Hour * 24 * 14)
 

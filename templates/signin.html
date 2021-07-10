@@ -1,0 +1,17 @@
+<html>
+<head>
+    {{ template "header" "Signin"}}
+</head>
+
+<body>
+{{ template "navbar" .context }}
+<div class="container">
+    <h1 class="page-header">Please
+        <a href="#" onclick="popupSignIn(() => window.location.replace('{{ .redirect }}'));">Signin</a>
+    </h1>
+</div>
+</body>
+
+{{ template "scriptFooter" }}
+</body>
+</html>

@@ -258,6 +258,9 @@ WHERE email=$1
 			log.Fatalf("Error loading user %v", err)
 		} else {
 			user = &loadedUser
+			if user.DisplayName == "" {
+				user.DisplayName = strings.Split(email, "@")[0]
+			}
 		}
 
 		break

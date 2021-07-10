@@ -96,15 +96,6 @@ func StarEvent(db *sql.DB) func(c *gin.Context) {
 }
 
 func StarredPage(db *sql.DB) func(c *gin.Context) {
-	var startDates = map[int]string{
-		2018: "2018-08-01",
-		2019: "2019-07-31",
-		2020: "2020-07-29",
-		2021: "2021-09-15",
-		2022: "2022-08-03",
-		2023: "2023-08-02",
-		2024: "2024-07-31",
-	}
 
 	return func(c *gin.Context) {
 		appContext := c.MustGet("context").(*Context)
@@ -120,6 +111,14 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 			}
 		}
 
+		if appContext.Email == "" {
+			c.HTML(http.StatusUnauthorized, "signin.html", gin.H{
+				"context":  appContext,
+				"redirect": c.Request.URL,
+			})
+			return
+		}
+
 		starredEvents, err := postgres.LoadStarredEvents(db, appContext.Email, appContext.Year)
 		if err != nil {
 			log.Printf("Error loading starred events")
@@ -133,10 +132,7 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 			return
 		}
 
-		startDate, found := startDates[appContext.Year]
-		if !found {
-			startDate = "2019-07-31"
-		}
+		startDate := GenconStartDate(appContext.Year)
 
 		c.Header("Cache-Control", "no-cache")
 		c.HTML(http.StatusOK, "starred.html", gin.H{

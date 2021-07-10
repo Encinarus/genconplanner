@@ -42,7 +42,6 @@ func (gc *GameCache) PeriodicallyUpdate() {
 			}
 		}
 	}()
-
 }
 
 func (gc *GameCache) UpdateCache() error {

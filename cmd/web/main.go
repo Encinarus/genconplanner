@@ -15,13 +15,9 @@ import (
 	_ "github.com/heroku/x/hmetrics/onload"
 	_ "github.com/lib/pq"
 	"google.golang.org/api/option"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
-	"regexp"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -81,50 +77,6 @@ func SetupBackground(db *sql.DB) {
 }
 
 func SetupWeb(db *sql.DB, cache *background.GameCache) {
-	textStrippingRegex, _ := regexp.Compile("[^a-zA-Z0-9]+")
-	textToId := func(text string) string {
-		return textStrippingRegex.ReplaceAllString(strings.ToLower(text), "")
-	}
-	dict := func(v ...interface{}) map[string]interface{} {
-		dict := map[string]interface{}{}
-		lenv := len(v)
-		for i := 0; i < lenv; i += 2 {
-			key := fmt.Sprintf("%s", v[i])
-			if i+1 >= lenv {
-				dict[key] = ""
-				continue
-			}
-			dict[key] = v[i+1]
-		}
-		return dict
-	}
-
-	bggPage := func(gameName string) string {
-		bggGame := cache.FindGame(gameName)
-		if bggGame == nil {
-			return ""
-		}
-
-		return fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", bggGame.BggId)
-	}
-
-	bggRating := func(gameName string) string {
-		bggGame := cache.FindGame(gameName)
-		if bggGame == nil || bggGame.AvgRatings < 0.1 {
-			return ""
-		}
-
-		return fmt.Sprintf("%2.1f", bggGame.AvgRatings)
-	}
-
-	bggNumRatings := func(gameName string) string {
-		bggGame := cache.FindGame(gameName)
-		if bggGame == nil || bggGame.NumRatings == 0 {
-			return ""
-		}
-
-		return fmt.Sprintf("%d", bggGame.NumRatings)
-	}
 
 	opt := option.WithCredentialsJSON([]byte(os.Getenv("FIREBASE_CONFIG")))
 	app, err := firebase.NewApp(context.Background(), nil, opt)
@@ -133,15 +85,9 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	}
 
 	r := gin.Default()
-	r.Use(bootstrapContext(app, db))
+	r.Use(web.BootstrapContext(app, db))
 
-	r.SetFuncMap(template.FuncMap{
-		"toId":          textToId,
-		"dict":          dict,
-		"bggPage":       bggPage,
-		"bggRating":     bggRating,
-		"bggNumRatings": bggNumRatings,
-	})
+	r.SetFuncMap(web.GetTemplateFunctions(cache))
 	r.LoadHTMLGlob("templates/*")
 
 	r.Static("/static/stylesheets", "static/stylesheets")
@@ -162,62 +108,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.POST("/starEvent/", web.StarEvent(db))
 	r.GET("/starEvent/", web.GetStarredEvents(db))
 	r.GET("/listStarredGroups/:year", web.GetStarredEventGroups(db))
-
-	r.GET("/about", func(c *gin.Context) {
-		year, err := strconv.Atoi(c.Param("year"))
-		if err != nil {
-			year = time.Now().Year()
-		}
-		appContext := c.MustGet("context").(*web.Context)
-		appContext.Year = year
-		c.HTML(http.StatusOK, "about.html", gin.H{
-			"context": appContext,
-		})
-	})
+	r.GET("/about", web.About(db))
+	r.GET("/user", web.User(db))
 	r.Run(fmt.Sprintf(":%d", *port))
-}
-
-func bootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var appContext web.Context
-		appContext.Starred = &postgres.UserStarredEvents{}
-
-		if c.Request.UserAgent() != "" {
-			log.Printf("UserAgent: %v\n", c.Request.UserAgent())
-		}
-		// Create user if needed based on cookie
-		idToken, err := c.Cookie("signinToken")
-		if err == nil {
-			ctx := context.Background()
-			client, err := app.Auth(ctx)
-			if err != nil {
-				log.Printf("error getting Auth client: %v\n", err)
-				return
-			}
-			token, err := client.VerifyIDToken(ctx, idToken)
-			if err != nil {
-				log.Printf("error verifying ID token: %v\n", err)
-			}
-			if token != nil {
-				email := token.Claims["email"].(string)
-
-				appContext.Email = email
-				user, err := postgres.LoadOrCreateUser(db, email)
-				if err != nil {
-					log.Printf("Error Loading/creating user: %v\n", err)
-				} else {
-					if user.DisplayName == "" {
-						user.DisplayName = strings.Split(email, "@")[0]
-					}
-					appContext.DisplayName = user.DisplayName
-					if err != nil {
-						log.Printf("error loading starred events for user %v\n", err)
-					}
-				}
-			}
-		}
-
-		c.Set("context", &appContext)
-		c.Next()
-	}
 }

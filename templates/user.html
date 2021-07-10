@@ -1,0 +1,16 @@
+<html>
+<head>
+    {{ template "header" "Gencon Events"}}
+</head>
+
+<body>
+{{ template "navbar" .context }}
+<div class="container">
+    <h1 class="page-header">User info for {{ .context.User.DisplayName }}</h1>
+    
+</div>
+</body>
+
+{{ template "scriptFooter" }}
+</body>
+</html>
