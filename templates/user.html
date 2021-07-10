@@ -7,7 +7,28 @@
 {{ template "navbar" .context }}
 <div class="container">
     <h1 class="page-header">User info for {{ .context.User.DisplayName }}</h1>
-    
+    <hr/>
+    <h2>Start a party</h2>
+    <form action="/party/new" method="post">
+        <div class="form-group">
+            <label for="partyName">Party Name</label>
+            <input class="form-control" id="partyName" name="partyName" aria-describedby="partyNameHelp" placeholder="Ye awesome party">
+            <small id="partyNameHelp" class="form-text text-muted">What name should people see? This is not unique.</small>
+        </div>
+        <div class="form-group">
+            <label for="year">Year</label>
+            <select class="form-control" id="year" name="year">
+                <option value="2019">2019</option>
+                <option value="2021" selected>2021</option>
+            </select>
+            <small id="yearHelp" class="form-text text-muted">What year of gencon is this party going to?</small>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+    <h2>My Parties</h2>
+    <ul>
+        <li>link here later</li>
+    </ul>
 </div>
 </body>
 

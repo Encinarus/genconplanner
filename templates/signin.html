@@ -1,13 +1,13 @@
 <html>
 <head>
-    {{ template "header" "Signin"}}
+    {{ template "header" "Sign in"}}
 </head>
 
 <body>
 {{ template "navbar" .context }}
 <div class="container">
     <h1 class="page-header">Please
-        <a href="#" onclick="popupSignIn(() => window.location.replace('{{ .redirect }}'));">Signin</a>
+        <a href="#" onclick="popupSignIn(() => window.location.replace('{{ .redirect }}'));">Sign in</a>
     </h1>
 </div>
 </body>

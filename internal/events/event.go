@@ -144,20 +144,57 @@ type GenconEvent struct {
 }
 
 func NormalizeEvent(event *GenconEvent) *GenconEvent {
-	if event.GameSystem == "Shadows of ESteren" {
-		event.GameSystem = "Shadows of Esteren"
+	systemRemappings := map[string]string{
+		"Shadows of ESteren":        "Shadows of Esteren",
+		"Dragon Age":                "Dragon AGE",
+		"Magic: the Gathering":      "Magic: The Gathering",
+		"7 wonders":                 "7 Wonders",
+		"Disney's Villainous":       "Disney Villainous",
+		"Disney's Villianous":       "Disney Villainous",
+		"Tesla vs Edison":           "Tesla vs. Edison",
+		"Caverna w Forgotten Folks": "Caverna",
+		"Dead of Winter":            "Dead of Winter: A Crossroads Game",
+		"Dr. Who: Blink":            "Blink!",
+		"Dune Imperium":             "Dune: Imperium",
+		"Firefly":                   "Firefly: The Game",
+		"Formula De Mini":           "Formula Dé Mini",
+		"Funkoverse":                "Funkoverse Strategy Game",
+		"Marvel Villainous":         "Marvel Villainous: Infinite Power",
+
+		"Manhattan Project: Energy Empire":          "The Manhattan Project: Energy Empire",
+		"Extraordinary Adventures: Pirates!":        "Extraordinary Adventures: Pirates",
+		"Fangs: Werewolves vs. Vampires vs. Humans": "Fangs: Werewolves vs Vampires vs Humans",
+
+		// The difference on this one is the emdash!
+		"Disney: The Haunted Mansion - Call of the Spirits Game": "Disney: The Haunted Mansion – Call of the Spirits Game",
 	}
-	if event.GameSystem == "Dragon Age" {
-		event.GameSystem = "Dragon AGE"
+
+	if canonicalSystem, found := systemRemappings[event.GameSystem]; found {
+		event.GameSystem = canonicalSystem
 	}
-	if event.GameSystem == "Magic: the Gathering" {
-		event.GameSystem = "Magic: The Gathering"
+
+	if event.GameSystem == "Dominion" && event.RulesEdition == "Intrigue" {
+		event.GameSystem = "Dominion: Intrigue"
 	}
-	if event.GameSystem == "7 wonders" {
-		event.GameSystem = "7 Wonders"
+
+	if event.GameSystem == "Dungeons & Dragons Adventure Board Game" && event.RulesEdition == "Castle Ravenloft" {
+		event.GameSystem = "Dungeons & Dragons: Castle Ravenloft Board Game"
 	}
-	if event.GameSystem == "Disney's Villainous" {
-		event.GameSystem = "Disney Villainous"
+
+	if event.GameSystem == "Dungeons & Dragons Adventure Board Game" && event.RulesEdition == "The Legend of Drizzt" {
+		event.GameSystem = "Dungeons & Dragons: The Legend of Drizzt Board Game"
+	}
+
+	if event.Title == "Exit: The Forgotten Island" && event.GameSystem == "EXIT" {
+		event.GameSystem = "Exit: The Game – The Forgotten Island"
+	}
+	if event.Title == "Exit: The Haunted Rollercoaster" && event.GameSystem == "EXIT" {
+		event.GameSystem = "Exit: The Game – The Haunted Roller Coaster"
+	}
+	if event.GameSystem == "Game of Thrones" &&
+		event.Title == "Game of Thrones: The Board Game" &&
+		event.RulesEdition == "2nd" {
+		event.GameSystem = "A Game of Thrones: The Board Game (Second Edition)"
 	}
 
 	return event

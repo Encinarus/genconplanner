@@ -110,5 +110,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.GET("/listStarredGroups/:year", web.GetStarredEventGroups(db))
 	r.GET("/about", web.About(db))
 	r.GET("/user", web.User(db))
+
+	r.POST("/party/new", web.NewParty(db))
 	r.Run(fmt.Sprintf(":%d", *port))
 }
