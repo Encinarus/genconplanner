@@ -100,33 +100,30 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	}
 
 	bggPage := func(gameName string) string {
-		bggGames := cache.FindGame(gameName)
-		if len(bggGames) == 0 {
+		bggGame := cache.FindGame(gameName)
+		if bggGame == nil {
 			return ""
 		}
 
-		// We'll just use the first one. Hopefully conflicts don't actually come up in practice
-		return fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", bggGames[0].BggId)
+		return fmt.Sprintf("https://boardgamegeek.com/boardgame/%d", bggGame.BggId)
 	}
 
 	bggRating := func(gameName string) string {
-		bggGames := cache.FindGame(gameName)
-		if len(bggGames) == 0 || bggGames[0].AvgRatings < 0.1 {
+		bggGame := cache.FindGame(gameName)
+		if bggGame == nil || bggGame.AvgRatings < 0.1 {
 			return ""
 		}
 
-		// We'll just use the first one. Hopefully conflicts don't actually come up in practice
-		return fmt.Sprintf("%2.1f", bggGames[0].AvgRatings)
+		return fmt.Sprintf("%2.1f", bggGame.AvgRatings)
 	}
 
 	bggNumRatings := func(gameName string) string {
-		bggGames := cache.FindGame(gameName)
-		if len(bggGames) == 0 || bggGames[0].NumRatings == 0 {
+		bggGame := cache.FindGame(gameName)
+		if bggGame == nil || bggGame.NumRatings == 0 {
 			return ""
 		}
 
-		// We'll just use the first one. Hopefully conflicts don't actually come up in practice
-		return fmt.Sprintf("%d", bggGames[0].NumRatings)
+		return fmt.Sprintf("%d", bggGame.NumRatings)
 	}
 
 	opt := option.WithCredentialsJSON([]byte(os.Getenv("FIREBASE_CONFIG")))

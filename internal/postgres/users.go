@@ -21,6 +21,30 @@ type UserStarredEvents struct {
 	StarredEvents []string
 }
 
+func (u *User) UpdateInfo(db *sql.DB, displayName string) error {
+	u.DisplayName = displayName
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// Cleanup transaction!
+	defer func() {
+		var txErr error
+		if err != nil {
+			txErr = tx.Rollback()
+		} else {
+			txErr = tx.Commit()
+		}
+		if txErr != nil {
+			log.Printf("Error while resolving transaction: %v", txErr)
+		}
+	}()
+
+	return nil
+}
+
 func LoadStarredEventClusters(db *sql.DB, userEmail string, year int, starredEvents []*events.GenconEvent) ([]*CalendarEventCluster, error) {
 	rows, err := db.Query(`
 SELECT 

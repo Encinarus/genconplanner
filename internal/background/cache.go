@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"log"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -62,9 +63,27 @@ func (gc *GameCache) UpdateCache() error {
 	return nil
 }
 
-func (gc *GameCache) FindGame(name string) []*postgres.Game {
+func (gc *GameCache) FindGame(name string) *postgres.Game {
 	gc.mu.Lock()
 	defer gc.mu.Unlock()
 
-	return gc.games[strings.TrimSpace(strings.ToLower(name))]
+	matches := gc.games[strings.TrimSpace(strings.ToLower(name))]
+	if len(matches) == 0 {
+		return nil
+	}
+
+	// There can be multiple matches, like arkham horror from 2005 vs 1987
+	// So, lets pick the latest one. We're sorting so that newer/better
+	// games are earlier in the slice.
+	sort.Slice(matches, func(i, j int) bool {
+		first := matches[i]
+		second := matches[j]
+		// we might not have pulled down year published yet, so go with it _if_ we have it.
+		if first.YearPublished != 0 && second.YearPublished != 0 {
+			return first.YearPublished > second.YearPublished
+		}
+		return matches[i].NumRatings > matches[j].NumRatings
+	})
+
+	return matches[0]
 }
