@@ -68,14 +68,14 @@ FROM boardgame_family bg
 
 	for rows.Next() {
 		var gf GameFamily
-		var timeHolder pq.NullTime
+		var lastUpdateHolder pq.NullTime
 		err = rows.Scan(
-			&gf.Name, &gf.BggId, pq.Array(&gf.GameIds), &timeHolder)
+			&gf.Name, &gf.BggId, pq.Array(&gf.GameIds), &lastUpdateHolder)
 		if err != nil {
 			return nil, err
 		}
 		// We don't check for valid since they'll default to 0 anyway.
-		gf.LastUpdate = timeHolder.Time
+		gf.LastUpdate = lastUpdateHolder.Time
 		families = append(families, &gf)
 	}
 	return families, nil
@@ -150,7 +150,7 @@ FROM boardgame bg
 
 	for rows.Next() {
 		var g Game
-		var timeHolder pq.NullTime
+		var lastUpdateHolder pq.NullTime
 		var numRatingHolder sql.NullInt64
 		var avgRatingHolder sql.NullFloat64
 		var yearPublishedHolder sql.NullInt64
@@ -158,7 +158,7 @@ FROM boardgame bg
 		err = rows.Scan(
 			&g.Name, &g.BggId, pq.Array(&g.FamilyIds),
 			&numRatingHolder, &avgRatingHolder, &yearPublishedHolder,
-			&typeHolder, &timeHolder)
+			&typeHolder, &lastUpdateHolder)
 		if err != nil {
 			return nil, err
 		}
@@ -166,6 +166,7 @@ FROM boardgame bg
 		g.NumRatings = numRatingHolder.Int64
 		g.AvgRatings = avgRatingHolder.Float64
 		g.YearPublished = yearPublishedHolder.Int64
+		g.LastUpdate = lastUpdateHolder.Time
 
 		if typeHolder.Valid {
 			g.Type = typeHolder.String

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"log"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -53,7 +54,8 @@ func (gc *GameCache) UpdateCache() error {
 	newGames := make(map[string][]*postgres.Game)
 
 	for _, g := range dbGames {
-		newGames[strings.TrimSpace(strings.ToLower(g.Name))] = append(newGames[g.Name], g)
+		normalizedName := strings.TrimSpace(strings.ToLower(g.Name))
+		newGames[normalizedName] = append(newGames[normalizedName], g)
 	}
 
 	gc.mu.Lock()
@@ -73,16 +75,28 @@ func (gc *GameCache) FindGame(name string) *postgres.Game {
 	}
 
 	// There can be multiple matches, like arkham horror from 2005 vs 1987
-	// So, lets pick the latest one. We're sorting so that newer/better
+	// So, lets pick the better one. We're sorting so that newer/better
 	// games are earlier in the slice.
 	sort.Slice(matches, func(i, j int) bool {
 		first := matches[i]
 		second := matches[j]
-		// we might not have pulled down year published yet, so go with it _if_ we have it.
+
+		// First, we'll try to figure out which has more buzz. Going for which has more ratings per year, within
+		// an order of magnitude. New games with a lot of buzz will have few years and relatively many ratings.
+		// Older games should have fewer ratings per year on average. If something is super new, it likely won't be
+		// established enough yet.
 		if first.YearPublished != 0 && second.YearPublished != 0 {
-			return first.YearPublished > second.YearPublished
+			magnitude := func(num, denom int64) int { return int(math.Log10(float64(num) / math.Max(float64(denom), 1))) }
+			firstRatingsPerYear := magnitude(first.NumRatings, int64(time.Now().Year())-first.YearPublished)
+			secondRatingsPerYear := magnitude(second.NumRatings, int64(time.Now().Year())-second.YearPublished)
+
+			// If one is clearly hotter than the other, return that one.
+			if firstRatingsPerYear != secondRatingsPerYear {
+				return firstRatingsPerYear > secondRatingsPerYear
+			}
 		}
-		return matches[i].NumRatings > matches[j].NumRatings
+
+		return first.AvgRatings > second.AvgRatings
 	})
 
 	return matches[0]
