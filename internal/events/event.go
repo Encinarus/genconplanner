@@ -152,7 +152,7 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		"Disney's Villainous":       "Disney Villainous",
 		"Disney's Villianous":       "Disney Villainous",
 		"Tesla vs Edison":           "Tesla vs. Edison",
-		"Caverna w Forgotten Folks": "Caverna",
+		"Caverna w Forgotten Folks": "Caverna: The Cave Farmers",
 		"Dead of Winter":            "Dead of Winter: A Crossroads Game",
 		"Dr. Who: Blink":            "Blink!",
 		"Dune Imperium":             "Dune: Imperium",
