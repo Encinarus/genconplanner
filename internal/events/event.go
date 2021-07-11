@@ -160,6 +160,10 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		"Formula De Mini":           "Formula Dé Mini",
 		"Funkoverse":                "Funkoverse Strategy Game",
 		"Marvel Villainous":         "Marvel Villainous: Infinite Power",
+		"SpaceCorp: 2025-2300 AD":   "SpaceCorp: 2025-2300AD",
+		"Spector Ops":               "Specter Ops",
+		"Star Trek Ascendancy":      "Star Trek: Ascendancy",
+		"Strat-O-matic":             "Strat-O-Matic Baseball",
 
 		"Manhattan Project: Energy Empire":          "The Manhattan Project: Energy Empire",
 		"Extraordinary Adventures: Pirates!":        "Extraordinary Adventures: Pirates",
@@ -196,7 +200,17 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		event.RulesEdition == "2nd" {
 		event.GameSystem = "A Game of Thrones: The Board Game (Second Edition)"
 	}
+	if event.GameSystem == "St Petersburg" {
+		if event.RulesEdition == "1st" {
+			event.GameSystem = "Saint Petersburg"
+		} else {
+			event.GameSystem = "Saint Petersburg (Second Edition)"
+		}
+	}
 
+	if strings.Contains(event.Title, "The Boys: This Is Going to Hurt") && event.GameSystem == "Tabletop" {
+		event.GameSystem = "The Boys: This Is Going to Hurt"
+	}
 	return event
 }
 
