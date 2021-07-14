@@ -164,6 +164,8 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		"Spector Ops":               "Specter Ops",
 		"Star Trek Ascendancy":      "Star Trek: Ascendancy",
 		"Strat-O-matic":             "Strat-O-Matic Baseball",
+		"Swords and Sorcery":        "Sword & Sorcery",
+		"Dungeon Fun":               "Dungeon Party",
 
 		"Manhattan Project: Energy Empire":          "The Manhattan Project: Energy Empire",
 		"Extraordinary Adventures: Pirates!":        "Extraordinary Adventures: Pirates",
@@ -211,6 +213,11 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 	if strings.Contains(event.Title, "The Boys: This Is Going to Hurt") && event.GameSystem == "Tabletop" {
 		event.GameSystem = "The Boys: This Is Going to Hurt"
 	}
+
+	if event.GameSystem == "Sword & Sorcery" && event.RulesEdition == "Ancient Chronicles" {
+		event.GameSystem = "Sword & Sorcery: Ancient Chronicles"
+	}
+
 	return event
 }
 

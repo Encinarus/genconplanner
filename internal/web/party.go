@@ -2,6 +2,7 @@ package web
 
 import (
 	"database/sql"
+	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -29,6 +30,13 @@ func NewParty(db *sql.DB) func(c *gin.Context) {
 		}
 		log.Printf("Creating a new party: %v, %v, with %v as a member\n", partyName, year, appContext.Email)
 
+		party, err := postgres.NewParty(db, partyName, year, appContext.Email)
+		if err != nil {
+			log.Printf("Couldn't build party: %v", err)
+			year = int64(time.Now().Year())
+		}
+
+		log.Printf("Party created: %+v", party)
 		c.JSON(http.StatusOK, map[string]string{
 			"name":    partyName,
 			"year":    strconv.FormatInt(year, 10),

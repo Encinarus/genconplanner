@@ -26,9 +26,12 @@
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
     <h2>My Parties</h2>
-    <ul>
-        <li>link here later</li>
-    </ul>
+    <dl>
+        {{ range $p := .parties }}
+            <dt>{{ $p.Name }} - {{ $p.Year }}</dt>
+            <dd>{{ len $p.Members }} members</dd>
+        {{ end }}
+    </dl>
 </div>
 </body>
 

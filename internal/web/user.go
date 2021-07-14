@@ -2,7 +2,9 @@ package web
 
 import (
 	"database/sql"
+	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -25,9 +27,17 @@ func User(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		parties, err := postgres.LoadParties(db, appContext.User)
+		if err != nil {
+			log.Printf("Unable to load parties: %v", err)
+		} else {
+			log.Printf("Num parties: %v", len(parties))
+		}
+
 		c.HTML(http.StatusOK, "user.html", gin.H{
 			"context": appContext,
 			"user":    appContext.User,
+			"parties": parties,
 		})
 	}
 }

@@ -1,5 +1,7 @@
 module github.com/Encinarus/genconplanner
 
+go 1.16
+
 require (
 	firebase.google.com/go v3.7.0+incompatible
 	github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802 // indirect

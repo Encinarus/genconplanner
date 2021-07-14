@@ -13,8 +13,8 @@ import (
 type User struct {
 	Email       string
 	DisplayName string
-	CalendarId  string
 }
+
 
 type UserStarredEvents struct {
 	Email         string
@@ -30,17 +30,7 @@ func (u *User) UpdateInfo(db *sql.DB, displayName string) error {
 	}
 
 	// Cleanup transaction!
-	defer func() {
-		var txErr error
-		if err != nil {
-			txErr = tx.Rollback()
-		} else {
-			txErr = tx.Commit()
-		}
-		if txErr != nil {
-			log.Printf("Error while resolving transaction: %v", txErr)
-		}
-	}()
+	defer func() { CleanupTransaction(err, tx) }()
 
 	return nil
 }
@@ -238,8 +228,11 @@ WHERE email = $1);
 func LoadOrCreateUser(db *sql.DB, email string) (*User, error) {
 	rows, err := db.Query(`
 SELECT 
-       email, 
-       display_name
+		email, 
+		CASE WHEN length(display_name) > 0
+            THEN display_name
+            ELSE split_part(email, '@', 1)
+            END
 FROM users
 WHERE email=$1
 `, email)
@@ -258,9 +251,6 @@ WHERE email=$1
 			log.Fatalf("Error loading user %v", err)
 		} else {
 			user = &loadedUser
-			if user.DisplayName == "" {
-				user.DisplayName = strings.Split(email, "@")[0]
-			}
 		}
 
 		break
