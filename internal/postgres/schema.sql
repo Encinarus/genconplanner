@@ -1,3 +1,39 @@
+-- Table: public.parties
+
+-- DROP TABLE public.parties;
+
+CREATE TABLE public.parties
+(
+    party_id SERIAL PRIMARY KEY,
+    name     text COLLATE pg_catalog."default" NOT NULL,
+    year     integer                           NOT NULL
+)
+    WITH (
+        OIDS = FALSE
+    )
+    TABLESPACE pg_default;
+
+ALTER TABLE public.parties
+    OWNER to postgres;
+
+-- Table: public.party_members
+
+-- DROP TABLE public.party_members;
+
+CREATE TABLE public.party_members
+(
+    party_id integer NOT NULL,
+    email text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT party_members_pkey PRIMARY KEY (party_id, email)
+)
+    WITH (
+        OIDS = FALSE
+    )
+    TABLESPACE pg_default;
+
+ALTER TABLE public.party_members
+    OWNER to postgres;
+
 -- Table: public.boardgame
 
 -- DROP TABLE public.boardgame;

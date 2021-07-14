@@ -19,5 +19,6 @@ func About(db *sql.DB) gin.HandlerFunc {
 		c.HTML(http.StatusOK, "about.html", gin.H{
 			"context": appContext,
 		})
+
 	}
 }
