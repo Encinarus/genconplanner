@@ -72,7 +72,7 @@ func NewBggApi() *BggApi {
 }
 
 func (bgg *BggApi) get(ctx context.Context, url string, v interface{}) error {
-	log.Println(url)
+	// log.Println(url)
 
 	err := bgg.limiter.Wait(ctx)
 	if err != nil {

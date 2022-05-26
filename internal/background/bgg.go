@@ -48,10 +48,11 @@ func UpdateGamesFromBGG(db *sql.DB) {
 		addIdsToBacklog(familyBacklog, g.FamilyIds)
 	}
 
-	// If we haven't updated in 4 days, update now
+	// If we haven't updated in 4 days, update now. This should get us faster discovery of new games.
 	familyUpdateLimit := time.Now().Add(-time.Hour * 24 * 4)
-	// If we haven't updated in 2 weeks, update now
-	gameUpdateLimit := time.Now().Add(-time.Hour * 24 * 14)
+	// If we haven't updated in 4 weeks, update now. Once we know about a game, it's probably fairly stable.
+	// With a rate limit of one call per 5 seconds, we can process ~438k games.
+	gameUpdateLimit := time.Now().Add(-time.Hour * 24 * 28)
 
 	for len(familyBacklog) > 0 || len(gameBacklog) > 0 {
 		log.Printf("Family backlog: %v", len(familyBacklog))
