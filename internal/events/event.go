@@ -239,7 +239,7 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 }
 
 func (e *GenconEvent) PlannerLink() string {
-	return fmt.Sprintf("http://www.genconplanner.com/event/%v", e.EventId)
+	return fmt.Sprintf("/event/%v", e.EventId)
 }
 
 func (e *GenconEvent) GenconLink() string {

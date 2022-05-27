@@ -15,9 +15,14 @@ type User struct {
 	DisplayName string
 }
 
+type StarredEvent struct {
+	EventId string
+	Level string	// "group" or "event"
+}
+
 type UserStarredEvents struct {
 	Email         string
-	StarredEvents []string
+	StarredEvents []StarredEvent
 }
 
 func (u *User) UpdateInfo(db *sql.DB, displayName string) error {
@@ -111,11 +116,21 @@ func LoadStarredEvents(db *sql.DB, userEmail string, year int) ([]*events.Gencon
 	fields := "e1." + strings.Join(eventFields(), ", e1.")
 	rows, err := db.Query(fmt.Sprintf(`
 SELECT %s, true
-FROM events e1 
-     JOIN starred_events se ON se.event_id = e1.event_id
-WHERE se.email = $1
-  AND e1.year = $2
+FROM events e1
+WHERE
+  e1.year = $2
   AND e1.active
+  AND ( 
+    e1.event_id IN (SELECT event_id FROM starred_events WHERE email = $1)
+    OR
+    e1.cluster_key IN (
+      SELECT e.cluster_key
+      FROM 
+        events e
+        JOIN (SELECT event_id FROM starred_events WHERE email = $1 AND level = 'group') s
+        ON e.event_id = s.event_id
+    )
+  )
 ORDER BY e1.start_time`, fields), userEmail, year)
 
 	if err != nil {
@@ -134,13 +149,13 @@ ORDER BY e1.start_time`, fields), userEmail, year)
 	return loadedEvents, nil
 }
 
-func UpdateStarredEvent(db *sql.DB, email string, eventId string, related bool, add bool) (*UserStarredEvents, error) {
+func UpdateStarredEvent(db *sql.DB, email string, eventId string, starGroup bool, add bool) (*UserStarredEvents, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	if related {
+	if starGroup {
 		// Delete all similar events first, regardless
 		_, err = tx.Exec(`
 DELETE FROM starred_events s
@@ -158,8 +173,8 @@ WHERE s.email = $1
 		if err == nil && add {
 			// insert via select related ids
 			_, err = tx.Exec(`
-INSERT INTO starred_events(email, event_id)
-SELECT $1, e2.event_id
+INSERT INTO starred_events(email, event_id, level)
+SELECT $1, e2.event_id, 'group'
 FROM events e1 join events e2 on e1.year = e2.year
     AND e1.short_category = e2.short_category
     AND e1.title = e2.title   
@@ -171,8 +186,8 @@ ON CONFLICT DO NOTHING
 	} else if add {
 		// insert one record
 		_, err = tx.Exec(`
-INSERT INTO starred_events(email, event_id)
-VALUES ($1, $2)
+INSERT INTO starred_events(email, event_id, level)
+VALUES ($1, $2, 'event')
 ON CONFLICT DO NOTHING
 `, email, eventId)
 	} else {
@@ -192,11 +207,29 @@ WHERE s.email = $1
 			Email: email,
 		}
 
-		err = tx.QueryRow(`
-SELECT ARRAY(SELECT event_id
+		rows, err := tx.Query(`
+SELECT event_id, level
 FROM starred_events
-WHERE email = $1);
-`, email).Scan(pq.Array(&starredEvents.StarredEvents))
+WHERE email = $1;
+`, email)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		defer rows.Close()
+
+		// Load all the events
+		for rows.Next() {
+			var starred StarredEvent
+			err := rows.Scan(&starred.EventId, &starred.Level)
+			if err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+
+			starredEvents.StarredEvents = append(starredEvents.StarredEvents, starred)
+		}
+
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -212,16 +245,27 @@ func GetStarredIds(db *sql.DB, email string) (*UserStarredEvents, error) {
 		Email: email,
 	}
 
-	err := db.QueryRow(`
-SELECT ARRAY(SELECT event_id
+	rows, err := db.Query(`
+SELECT event_id, level
 FROM starred_events
-WHERE email = $1);
-`, email).Scan(pq.Array(&starredEvents.StarredEvents))
+WHERE email = $1;
+`, email)
 	if err != nil {
 		return nil, err
-	} else {
-		return &starredEvents, nil
 	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var starred StarredEvent
+		err = rows.Scan(&starred.EventId, &starred.Level)
+
+		if err != nil {
+			return nil, err
+		}
+		starredEvents.StarredEvents = append(starredEvents.StarredEvents, starred)
+	}
+
+	return &starredEvents, nil
 }
 
 func LoadOrCreateUser(db *sql.DB, email string) (*User, error) {

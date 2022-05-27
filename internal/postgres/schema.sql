@@ -103,6 +103,7 @@ CREATE TABLE public.starred_events
 (
   email text COLLATE pg_catalog."default" NOT NULL,
   event_id character varying(12) COLLATE pg_catalog."default" NOT NULL,
+  level character varying(10) COLLATE pg_catalog."default",
   CONSTRAINT starred_events_pkey PRIMARY KEY (event_id, email)
 )
   WITH (
