@@ -2,6 +2,35 @@
 {{$majorHeadings := .majorHeadings}}
 {{$minorHeadings := .minorHeadings}}
 
+{{ define "hoursOptions" }}
+    {{ $selectedHour := . }}
+    <option value="0" {{if eq $selectedHour 0}}selected='selected'{{ end }}>12:00 am</option>
+    <option value="1" {{if eq $selectedHour 1}}selected='selected'{{ end }}> 1:00 am</option>
+    <option value="2" {{if eq $selectedHour 2}}selected='selected'{{ end }}> 2:00 am</option>
+    <option value="3" {{if eq $selectedHour 3}}selected='selected'{{ end }}> 3:00 am</option>
+    <option value="4" {{if eq $selectedHour 4}}selected='selected'{{ end }}> 4:00 am</option>
+    <option value="5" {{if eq $selectedHour 5}}selected='selected'{{ end }}> 5:00 am</option>
+    <option value="6" {{if eq $selectedHour 6}}selected='selected'{{ end }}> 6:00 am</option>
+    <option value="7" {{if eq $selectedHour 7}}selected='selected'{{ end }}> 7:00 am</option>
+    <option value="8" {{if eq $selectedHour 8}}selected='selected'{{ end }}> 8:00 am</option>
+    <option value="9" {{if eq $selectedHour 9}}selected='selected'{{ end }}> 9:00 am</option>
+    <option value="10" {{if eq $selectedHour 10}}selected='selected'{{ end }}>10:00 am</option>
+    <option value="11" {{if eq $selectedHour 11}}selected='selected'{{ end }}>11:00 am</option>
+    <option value="12" {{if eq $selectedHour 12}}selected='selected'{{ end }}>12:00 pm</option>
+    <option value="13" {{if eq $selectedHour 13}}selected='selected'{{ end }}> 1:00 pm</option>
+    <option value="14" {{if eq $selectedHour 14}}selected='selected'{{ end }}> 2:00 pm</option>
+    <option value="15" {{if eq $selectedHour 15}}selected='selected'{{ end }}> 3:00 pm</option>
+    <option value="16" {{if eq $selectedHour 16}}selected='selected'{{ end }}> 4:00 pm</option>
+    <option value="17" {{if eq $selectedHour 17}}selected='selected'{{ end }}> 5:00 pm</option>
+    <option value="18" {{if eq $selectedHour 18}}selected='selected'{{ end }}> 6:00 pm</option>
+    <option value="19" {{if eq $selectedHour 19}}selected='selected'{{ end }}> 7:00 pm</option>
+    <option value="20" {{if eq $selectedHour 20}}selected='selected'{{ end }}> 8:00 pm</option>
+    <option value="21" {{if eq $selectedHour 21}}selected='selected'{{ end }}> 9:00 pm</option>
+    <option value="22" {{if eq $selectedHour 22}}selected='selected'{{ end }}>10:00 pm</option>
+    <option value="23" {{if eq $selectedHour 23}}selected='selected'{{ end }}>11:00 pm</option>
+    <option value="24" {{if eq $selectedHour 24}}selected='selected'{{ end }}>11:59 pm</option>
+{{ end }}
+
 <html>
 <head>
     {{ template "header" (print .pageHeader " - " $.subHeader) }}
@@ -10,168 +39,63 @@
 <body>
 {{ template "navbar" .context }}
 <div class="container">
-    <div class="col-md-12">
-        <h1 class="page-header" id="top">{{ .pageHeader }} <small>{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups (<a onclick="$('#advSearch').toggle('slow');" href="#">advanced search</a>)</small></h1>
-        {{ if .query }}
-        <div id="advSearch" style="display: none;"> {{/*   */}}
-            <form action="/search" method="get">
-                <div class="form-group">
-                    <label for="query">Query</label>
-                    <input type="text" class="form-control" name="q" value="{{ .query.RawQuery }}">
-                </div>
-                <ul class="list-unstyled list-inline">
-                    <li class="form-check">
-                        <input class="form-check-input" name="wed" type="checkbox" value="t"
-                                {{if .query.DaysOfWeek.wed }}checked{{end}}>
-                        <label class="form-check-label" for="wed">Wednesday</label>
-                    </li>
-                    <li class="form-check">
-                        <input class="form-check-input" name="thu" type="checkbox" value="t"
-                               {{if .query.DaysOfWeek.thu }}checked{{end}}>
-                        <label class="form-check-label" for="thu">Thursday</label>
-                    </li>
-                    <li class="form-check">
-                        <input class="form-check-input" name="fri" type="checkbox" value="t"
-                               {{if .query.DaysOfWeek.fri }}checked{{end}}>
-                        <label class="form-check-label" for="fri">Friday</label>
-                    </li>
-                    <li class="form-check">
-                        <input class="form-check-input" name="sat" type="checkbox" value="t"
-                               {{if .query.DaysOfWeek.sat }}checked{{end}}>
-                        <label class="form-check-label" for="sat">Saturday</label>
-                    </li>
-                    <li class="form-check">
-                        <input class="form-check-input" name="sun" type="checkbox" value="t"
-                               {{if .query.DaysOfWeek.sun }}checked{{end}}>
-                        <label class="form-check-label" for="sun">Sunday</label>
-                    </li>
-                </ul>
-                <ul class="list-unstyled">
-                    <li>
-                        <label class="">Starts between</label>
-                        <select class="" name="start_after">
-                            <option value="0" {{if eq .query.StartAfterHour 0}}selected='selected'{{ end }}>12:00 am</option>
-                            <option value="1" {{if eq .query.StartAfterHour 1}}selected='selected'{{ end }}> 1:00 am</option>
-                            <option value="2" {{if eq .query.StartAfterHour 2}}selected='selected'{{ end }}> 2:00 am</option>
-                            <option value="3" {{if eq .query.StartAfterHour 3}}selected='selected'{{ end }}> 3:00 am</option>
-                            <option value="4" {{if eq .query.StartAfterHour 4}}selected='selected'{{ end }}> 4:00 am</option>
-                            <option value="5" {{if eq .query.StartAfterHour 5}}selected='selected'{{ end }}> 5:00 am</option>
-                            <option value="6" {{if eq .query.StartAfterHour 6}}selected='selected'{{ end }}> 6:00 am</option>
-                            <option value="7" {{if eq .query.StartAfterHour 7}}selected='selected'{{ end }}> 7:00 am</option>
-                            <option value="8" {{if eq .query.StartAfterHour 8}}selected='selected'{{ end }}> 8:00 am</option>
-                            <option value="9" {{if eq .query.StartAfterHour 9}}selected='selected'{{ end }}> 9:00 am</option>
-                            <option value="10" {{if eq .query.StartAfterHour 10}}selected='selected'{{ end }}>10:00 am</option>
-                            <option value="11" {{if eq .query.StartAfterHour 11}}selected='selected'{{ end }}>11:00 am</option>
-                            <option value="12" {{if eq .query.StartAfterHour 12}}selected='selected'{{ end }}>12:00 pm</option>
-                            <option value="13" {{if eq .query.StartAfterHour 13}}selected='selected'{{ end }}> 1:00 pm</option>
-                            <option value="14" {{if eq .query.StartAfterHour 14}}selected='selected'{{ end }}> 2:00 pm</option>
-                            <option value="15" {{if eq .query.StartAfterHour 15}}selected='selected'{{ end }}> 3:00 pm</option>
-                            <option value="16" {{if eq .query.StartAfterHour 16}}selected='selected'{{ end }}> 4:00 pm</option>
-                            <option value="17" {{if eq .query.StartAfterHour 17}}selected='selected'{{ end }}> 5:00 pm</option>
-                            <option value="18" {{if eq .query.StartAfterHour 18}}selected='selected'{{ end }}> 6:00 pm</option>
-                            <option value="19" {{if eq .query.StartAfterHour 19}}selected='selected'{{ end }}> 7:00 pm</option>
-                            <option value="20" {{if eq .query.StartAfterHour 20}}selected='selected'{{ end }}> 8:00 pm</option>
-                            <option value="21" {{if eq .query.StartAfterHour 21}}selected='selected'{{ end }}> 9:00 pm</option>
-                            <option value="22" {{if eq .query.StartAfterHour 22}}selected='selected'{{ end }}>10:00 pm</option>
-                            <option value="23" {{if eq .query.StartAfterHour 23}}selected='selected'{{ end }}>11:00 pm</option>
-                            <option value="24" {{if eq .query.StartAfterHour 24}}selected='selected'{{ end }}>11:59 pm</option>
-                        </select>
-                        <strong> — </strong>
-                        <select class="" name="start_before">
-                            <option value="0" {{if eq .query.StartBeforeHour 0}}selected='selected'{{ end }}>12:00 am</option>
-                            <option value="1" {{if eq .query.StartBeforeHour 1}}selected='selected'{{ end }}> 1:00 am</option>
-                            <option value="2" {{if eq .query.StartBeforeHour 2}}selected='selected'{{ end }}> 2:00 am</option>
-                            <option value="3" {{if eq .query.StartBeforeHour 3}}selected='selected'{{ end }}> 3:00 am</option>
-                            <option value="4" {{if eq .query.StartBeforeHour 4}}selected='selected'{{ end }}> 4:00 am</option>
-                            <option value="5" {{if eq .query.StartBeforeHour 5}}selected='selected'{{ end }}> 5:00 am</option>
-                            <option value="6" {{if eq .query.StartBeforeHour 6}}selected='selected'{{ end }}> 6:00 am</option>
-                            <option value="7" {{if eq .query.StartBeforeHour 7}}selected='selected'{{ end }}> 7:00 am</option>
-                            <option value="8" {{if eq .query.StartBeforeHour 8}}selected='selected'{{ end }}> 8:00 am</option>
-                            <option value="9" {{if eq .query.StartBeforeHour 9}}selected='selected'{{ end }}> 9:00 am</option>
-                            <option value="10" {{if eq .query.StartBeforeHour 10}}selected='selected'{{ end }}>10:00 am</option>
-                            <option value="11" {{if eq .query.StartBeforeHour 11}}selected='selected'{{ end }}>11:00 am</option>
-                            <option value="12" {{if eq .query.StartBeforeHour 12}}selected='selected'{{ end }}>12:00 pm</option>
-                            <option value="13" {{if eq .query.StartBeforeHour 13}}selected='selected'{{ end }}> 1:00 pm</option>
-                            <option value="14" {{if eq .query.StartBeforeHour 14}}selected='selected'{{ end }}> 2:00 pm</option>
-                            <option value="15" {{if eq .query.StartBeforeHour 15}}selected='selected'{{ end }}> 3:00 pm</option>
-                            <option value="16" {{if eq .query.StartBeforeHour 16}}selected='selected'{{ end }}> 4:00 pm</option>
-                            <option value="17" {{if eq .query.StartBeforeHour 17}}selected='selected'{{ end }}> 5:00 pm</option>
-                            <option value="18" {{if eq .query.StartBeforeHour 18}}selected='selected'{{ end }}> 6:00 pm</option>
-                            <option value="19" {{if eq .query.StartBeforeHour 19}}selected='selected'{{ end }}> 7:00 pm</option>
-                            <option value="20" {{if eq .query.StartBeforeHour 20}}selected='selected'{{ end }}> 8:00 pm</option>
-                            <option value="21" {{if eq .query.StartBeforeHour 21}}selected='selected'{{ end }}> 9:00 pm</option>
-                            <option value="22" {{if eq .query.StartBeforeHour 22}}selected='selected'{{ end }}>10:00 pm</option>
-                            <option value="23" {{if eq .query.StartBeforeHour 23}}selected='selected'{{ end }}>11:00 pm</option>
-                            <option value="24" {{if eq .query.StartBeforeHour 24}}selected='selected'{{ end }}>11:59 pm</option>
-                        </select>
-                    </li>
-                    <li>
-                        <label class="">Ends between</label>
-                        <select class="" name="end_after">
-                            <option value="0" {{if eq .query.EndAfterHour 0}}selected='selected'{{ end }}>12:00 am</option>
-                            <option value="1" {{if eq .query.EndAfterHour 1}}selected='selected'{{ end }}> 1:00 am</option>
-                            <option value="2" {{if eq .query.EndAfterHour 2}}selected='selected'{{ end }}> 2:00 am</option>
-                            <option value="3" {{if eq .query.EndAfterHour 3}}selected='selected'{{ end }}> 3:00 am</option>
-                            <option value="4" {{if eq .query.EndAfterHour 4}}selected='selected'{{ end }}> 4:00 am</option>
-                            <option value="5" {{if eq .query.EndAfterHour 5}}selected='selected'{{ end }}> 5:00 am</option>
-                            <option value="6" {{if eq .query.EndAfterHour 6}}selected='selected'{{ end }}> 6:00 am</option>
-                            <option value="7" {{if eq .query.EndAfterHour 7}}selected='selected'{{ end }}> 7:00 am</option>
-                            <option value="8" {{if eq .query.EndAfterHour 8}}selected='selected'{{ end }}> 8:00 am</option>
-                            <option value="9" {{if eq .query.EndAfterHour 9}}selected='selected'{{ end }}> 9:00 am</option>
-                            <option value="10" {{if eq .query.EndAfterHour 10}}selected='selected'{{ end }}>10:00 am</option>
-                            <option value="11" {{if eq .query.EndAfterHour 11}}selected='selected'{{ end }}>11:00 am</option>
-                            <option value="12" {{if eq .query.EndAfterHour 12}}selected='selected'{{ end }}>12:00 pm</option>
-                            <option value="13" {{if eq .query.EndAfterHour 13}}selected='selected'{{ end }}> 1:00 pm</option>
-                            <option value="14" {{if eq .query.EndAfterHour 14}}selected='selected'{{ end }}> 2:00 pm</option>
-                            <option value="15" {{if eq .query.EndAfterHour 15}}selected='selected'{{ end }}> 3:00 pm</option>
-                            <option value="16" {{if eq .query.EndAfterHour 16}}selected='selected'{{ end }}> 4:00 pm</option>
-                            <option value="17" {{if eq .query.EndAfterHour 17}}selected='selected'{{ end }}> 5:00 pm</option>
-                            <option value="18" {{if eq .query.EndAfterHour 18}}selected='selected'{{ end }}> 6:00 pm</option>
-                            <option value="19" {{if eq .query.EndAfterHour 19}}selected='selected'{{ end }}> 7:00 pm</option>
-                            <option value="20" {{if eq .query.EndAfterHour 20}}selected='selected'{{ end }}> 8:00 pm</option>
-                            <option value="21" {{if eq .query.EndAfterHour 21}}selected='selected'{{ end }}> 9:00 pm</option>
-                            <option value="22" {{if eq .query.EndAfterHour 22}}selected='selected'{{ end }}>10:00 pm</option>
-                            <option value="23" {{if eq .query.EndAfterHour 23}}selected='selected'{{ end }}>11:00 pm</option>
-                            <option value="24" {{if eq .query.EndAfterHour 24}}selected='selected'{{ end }}>11:59 pm</option>
-                        </select>
-                        <strong> — </strong>
-                        <select class="" name="end_before">
-                            <option value="0" {{if eq .query.EndBeforeHour 0}}selected='selected'{{ end }}>12:00 am</option>
-                            <option value="1" {{if eq .query.EndBeforeHour 1}}selected='selected'{{ end }}> 1:00 am</option>
-                            <option value="2" {{if eq .query.EndBeforeHour 2}}selected='selected'{{ end }}> 2:00 am</option>
-                            <option value="3" {{if eq .query.EndBeforeHour 3}}selected='selected'{{ end }}> 3:00 am</option>
-                            <option value="4" {{if eq .query.EndBeforeHour 4}}selected='selected'{{ end }}> 4:00 am</option>
-                            <option value="5" {{if eq .query.EndBeforeHour 5}}selected='selected'{{ end }}> 5:00 am</option>
-                            <option value="6" {{if eq .query.EndBeforeHour 6}}selected='selected'{{ end }}> 6:00 am</option>
-                            <option value="7" {{if eq .query.EndBeforeHour 7}}selected='selected'{{ end }}> 7:00 am</option>
-                            <option value="8" {{if eq .query.EndBeforeHour 8}}selected='selected'{{ end }}> 8:00 am</option>
-                            <option value="9" {{if eq .query.EndBeforeHour 9}}selected='selected'{{ end }}> 9:00 am</option>
-                            <option value="10" {{if eq .query.EndBeforeHour 10}}selected='selected'{{ end }}>10:00 am</option>
-                            <option value="11" {{if eq .query.EndBeforeHour 11}}selected='selected'{{ end }}>11:00 am</option>
-                            <option value="12" {{if eq .query.EndBeforeHour 12}}selected='selected'{{ end }}>12:00 pm</option>
-                            <option value="13" {{if eq .query.EndBeforeHour 13}}selected='selected'{{ end }}> 1:00 pm</option>
-                            <option value="14" {{if eq .query.EndBeforeHour 14}}selected='selected'{{ end }}> 2:00 pm</option>
-                            <option value="15" {{if eq .query.EndBeforeHour 15}}selected='selected'{{ end }}> 3:00 pm</option>
-                            <option value="16" {{if eq .query.EndBeforeHour 16}}selected='selected'{{ end }}> 4:00 pm</option>
-                            <option value="17" {{if eq .query.EndBeforeHour 17}}selected='selected'{{ end }}> 5:00 pm</option>
-                            <option value="18" {{if eq .query.EndBeforeHour 18}}selected='selected'{{ end }}> 6:00 pm</option>
-                            <option value="19" {{if eq .query.EndBeforeHour 19}}selected='selected'{{ end }}> 7:00 pm</option>
-                            <option value="20" {{if eq .query.EndBeforeHour 20}}selected='selected'{{ end }}> 8:00 pm</option>
-                            <option value="21" {{if eq .query.EndBeforeHour 21}}selected='selected'{{ end }}> 9:00 pm</option>
-                            <option value="22" {{if eq .query.EndBeforeHour 22}}selected='selected'{{ end }}>10:00 pm</option>
-                            <option value="23" {{if eq .query.EndBeforeHour 23}}selected='selected'{{ end }}>11:00 pm</option>
-                            <option value="24" {{if eq .query.EndBeforeHour 24}}selected='selected'{{ end }}>11:59 pm</option>
-                        </select>
-                    </li>
-                </ul>
+<div class="col-md-12">
+    <h1 class="page-header" id="top">{{ .pageHeader }} <small>{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups (<a onclick="$('#advSearch').toggle('slow');" href="#">advanced search</a>)</small></h1>
 
-                <input type="hidden" id="y" value="{{ .context.Year }}">
-                <button type="submit" class="btn btn-primary">Search</button>
-            </form>
-            <hr/>
-        </div>
-        {{ end }}
+    <div id="advSearch" style="display: none;"> {{/*   */}}
+        <form action="/search" method="get">
+            <div class="form-group">
+                <label for="query">Query</label>
+                <input type="text" class="form-control" name="q" value="{{ .query.RawQuery }}">
+            </div>
+            <ul class="list-unstyled list-inline">
+                <li class="form-check">
+                    <input class="form-check-input" name="wed" type="checkbox" value="t"
+                            {{if .query.DaysOfWeek.wed }}checked{{end}}>
+                    <label class="form-check-label" for="wed">Wednesday</label>
+                </li>
+                <li class="form-check">
+                    <input class="form-check-input" name="thu" type="checkbox" value="t"
+                           {{if .query.DaysOfWeek.thu }}checked{{end}}>
+                    <label class="form-check-label" for="thu">Thursday</label>
+                </li>
+                <li class="form-check">
+                    <input class="form-check-input" name="fri" type="checkbox" value="t"
+                           {{if .query.DaysOfWeek.fri }}checked{{end}}>
+                    <label class="form-check-label" for="fri">Friday</label>
+                </li>
+                <li class="form-check">
+                    <input class="form-check-input" name="sat" type="checkbox" value="t"
+                           {{if .query.DaysOfWeek.sat }}checked{{end}}>
+                    <label class="form-check-label" for="sat">Saturday</label>
+                </li>
+                <li class="form-check">
+                    <input class="form-check-input" name="sun" type="checkbox" value="t"
+                           {{if .query.DaysOfWeek.sun }}checked{{end}}>
+                    <label class="form-check-label" for="sun">Sunday</label>
+                </li>
+            </ul>
+            <ul class="list-unstyled">
+                <li>
+                    <label class="">Starts between</label>
+                    <select class="" name="start_after">{{ template "hoursOptions" .query.StartAfterHour }}</select>
+                    <strong> — </strong>
+                    <select class="" name="start_before">{{ template "hoursOptions" .query.StartBeforeHour }}</select>
+                </li>
+                <li>
+                    <label class="">Ends between</label>
+                    <select class="" name="end_after">{{ template "hoursOptions" .query.EndAfterHour }}</select>
+                    <strong> — </strong>
+                    <select class="" name="end_before">{{ template "hoursOptions" .query.EndBeforeHour }}</select>
+                </li>
+            </ul>
+
+            <input type="hidden" id="y" value="{{ .context.Year }}">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+        <hr/>
     </div>
+</div>
 <div class="row">
 <div class="main">
     <div class="flex-column col-md-2">
@@ -192,13 +116,13 @@
         {{ end }}
     </div>
     <div class="list-group col-md-10">
-        {{ range $major := $majorHeadings }}
+        {{- range $major := $majorHeadings -}}
             <h4>{{ $major }}</h4>
-            {{ range $minor := (index $minorHeadings $major) }}
+            {{- range $minor := (index $minorHeadings $major) -}}
                 {{ $heading := (print $major "_" $minor| toId)}}
                 <h5 id="{{ $heading }}">{{ template "bggLink" $minor }} (<a href="#top">top</a>)</h5>
 
-                {{ range $row := (index $partitions $major $minor) }}
+                {{- range $row := (index $partitions $major $minor) -}}
                     <a href="/event/{{ $row.EventId }}"
                        class="list-group-item eventGroup {{ if eq $row.TotalTickets 0 }}noTickets{{end}}" style="font-size: small">
                         <h5>{{ $row.Name }} <small>{{ $row.GameSystem }}</small></h5>
@@ -211,9 +135,9 @@
                             <li {{ if eq $row.SunTickets 0 }}class="noTickets"{{end}}><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
                         </ul>
                     </a>
-                {{ end }}
-            {{ end }}
-        {{ end }}
+                {{- end -}}
+            {{- end -}}
+        {{- end -}}
     </div>
 </div>
 </div>
