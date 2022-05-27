@@ -166,6 +166,18 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		"Strat-O-matic":             "Strat-O-Matic Baseball",
 		"Swords and Sorcery":        "Sword & Sorcery",
 		"Dungeon Fun":               "Dungeon Party",
+		"A Sonf of Ice and Fire - Miniatures Game": "A Song of Ice and Fire - Miniatures Game",
+		"AEGIS Combining Robots": "A.E.G.I.S. Combining Robots: Season 2",
+		"Anna's Roundtable": "Anna's Roundtable: The Fire Emblem Board Game",
+		"Ascension: Tactics": "Ascension Tactics: Miniatures Deckbuilding Game",
+		"Ascension; Tactics": "Ascension Tactics: Miniatures Deckbuilding Game",
+		"Boss Monster": "Boss Monster: The Dungeon Building Card Game",
+		"Captain is Dead": "The Captain Is Dead",
+		"Carcassone": "Carcassonne",
+		"cartagena" : "Cartagena",
+		"Clank!": "Clank!: A Deck-Building Adventure",
+		"Codenames Duet": "Codenames: Duet",
+
 
 		"Manhattan Project: Energy Empire":          "The Manhattan Project: Energy Empire",
 		"Extraordinary Adventures: Pirates!":        "Extraordinary Adventures: Pirates",
@@ -216,6 +228,10 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 
 	if event.GameSystem == "Sword & Sorcery" && event.RulesEdition == "Ancient Chronicles" {
 		event.GameSystem = "Sword & Sorcery: Ancient Chronicles"
+	}
+
+	if event.GameSystem == "Atlantis Rising" && event.RulesEdition == "2nd" {
+		event.GameSystem = "Atlantis Rising (Second Edition)"
 	}
 
 	return event
