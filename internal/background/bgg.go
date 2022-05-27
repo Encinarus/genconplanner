@@ -25,7 +25,11 @@ func UpdateGamesFromBGG(db *sql.DB) {
 	familyBacklog := map[int64]bool{
 		8374: true,
 	}
-	gameBacklog := make(map[int64]bool)
+	gameBacklog := map[int64]bool{
+		358026: true,
+		287673: true,
+		334782: true,
+	}
 
 	families := make(map[int64]*postgres.GameFamily)
 	games := make(map[int64]*postgres.Game)
@@ -53,7 +57,6 @@ func UpdateGamesFromBGG(db *sql.DB) {
 	// If we haven't updated in 4 weeks, update now. Once we know about a game, it's probably fairly stable.
 	// With a rate limit of one call per 5 seconds, we can process ~438k games.
 	gameUpdateLimit := time.Now().Add(-time.Hour * 24 * 28)
-
 
 	for len(familyBacklog) > 0 || len(gameBacklog) > 0 {
 		log.Printf("Processing backlog")
