@@ -38,7 +38,7 @@
       {{ $numRatings := (bggNumRatings $game) }}
       {{ $bggYear := (bggYear $game) }}
       {{ if $url }} -
-      <a href="{{ $url }}">BGG
+      <a href="{{ $url }}" target="_blank" rel="noopener noreferrer">BGG
           {{- if $rating }}
               {{ $rating }} ({{ $numRatings }} ratings
               {{- if $bggYear -}}, {{ $bggYear }}{{- end -}})
