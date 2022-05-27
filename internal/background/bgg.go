@@ -54,10 +54,15 @@ func UpdateGamesFromBGG(db *sql.DB) {
 	// With a rate limit of one call per 5 seconds, we can process ~438k games.
 	gameUpdateLimit := time.Now().Add(-time.Hour * 24 * 28)
 
+
 	for len(familyBacklog) > 0 || len(gameBacklog) > 0 {
-		log.Printf("Family backlog: %v", len(familyBacklog))
-		log.Printf("Game backlog: %v", len(gameBacklog))
-		log.Printf("Processed %v families, %v games", len(families), len(games))
+		log.Printf("Processing backlog")
+		log.Printf("  Family backlog: %v", len(familyBacklog))
+		log.Printf("  Game backlog: %v", len(gameBacklog))
+		log.Printf("  Processed %v families, %v games", len(families), len(games))
+
+		processedGames := 0
+		processedFamilies := 0
 
 		for id := range familyBacklog {
 			dbFamily, found := families[id]
@@ -65,6 +70,7 @@ func UpdateGamesFromBGG(db *sql.DB) {
 				addIdsToBacklog(gameBacklog, dbFamily.GameIds)
 				continue
 			}
+			processedFamilies++
 
 			bggFamily, err := api.GetFamily(ctx, id)
 			if err != nil {
@@ -98,6 +104,7 @@ func UpdateGamesFromBGG(db *sql.DB) {
 				addIdsToBacklog(familyBacklog, dbGame.FamilyIds)
 				continue
 			}
+			processedGames++
 
 			apiGame, err := api.GetGame(ctx, id)
 			if err != nil {
@@ -147,6 +154,12 @@ func UpdateGamesFromBGG(db *sql.DB) {
 				continue
 			}
 			games[id] = g
+		}
+
+		// We're done! We don't know about anything else to dig into
+		if processedFamilies == 0 && processedGames == 0 {
+			log.Printf("No updates needed, sleeping for four hours")
+			time.Sleep(4 * time.Hour)
 		}
 	}
 }
