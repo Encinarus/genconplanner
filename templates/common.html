@@ -31,13 +31,18 @@
 {{ end }}
 
 {{ define "bggLink" }}
-    {{ $sys := . }}
-    {{ if  $sys }}{{ $sys }}
-      {{ $url := (bggPage $sys) }}
-      {{ $rating := (bggRating  $sys) }}
-        {{ $numRatings := (bggNumRatings $sys) }}
+    {{ $game := . }}
+    {{ if  $game }}{{ $game }}
+      {{ $url := (bggPage $game) }}
+      {{ $rating := (bggRating  $game) }}
+      {{ $numRatings := (bggNumRatings $game) }}
+      {{ $bggYear := (bggYear $game) }}
       {{ if $url }} -
-      <a href="{{ $url }}">BGG{{ if $rating }} {{ $rating }} ({{ $numRatings }} ratings){{end}}</a>
+      <a href="{{ $url }}">BGG
+          {{- if $rating }}
+              {{ $rating }} ({{ $numRatings }} ratings
+              {{- if $bggYear -}}, {{ $bggYear }}{{- end -}})
+          {{- end -}}</a>
       {{end}}
     {{ else }}N/A{{ end }}
 {{ end }}

@@ -15,7 +15,6 @@ type User struct {
 	DisplayName string
 }
 
-
 type UserStarredEvents struct {
 	Email         string
 	StarredEvents []string

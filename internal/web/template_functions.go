@@ -21,6 +21,7 @@ func GetTemplateFunctions(cache *background.GameCache) template.FuncMap {
 		"bggPage":       func(gameName string) string { return bggPage(gameName, cache) },
 		"bggRating":     func(gameName string) string { return bggRating(gameName, cache) },
 		"bggNumRatings": func(gameName string) string { return bggNumRatings(gameName, cache) },
+		"bggYear":       func(gameName string) string { return bggYear(gameName, cache) },
 	}
 }
 
@@ -63,4 +64,13 @@ func bggNumRatings(gameName string, cache *background.GameCache) string {
 	}
 
 	return fmt.Sprintf("%d", bggGame.NumRatings)
+}
+
+func bggYear(gameName string, cache *background.GameCache) string {
+	bggGame := cache.FindGame(gameName)
+	if bggGame == nil || bggGame.YearPublished == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("%d", bggGame.YearPublished)
 }
