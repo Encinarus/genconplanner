@@ -4,7 +4,8 @@
 {{ $sat := .eventsByDay.Saturday}}
 {{ $sun := .eventsByDay.Sunday}}
 {{ $start := .startDate }}
-
+{{ $end := .endDate }}
+{{ $start }}
 {{ define "eventBlurb" }}
 
     {{ if .events }}
@@ -52,34 +53,30 @@
 <html>
 <head>
     {{ template "header" "Starred Events"}}
-    <link type="text/css" rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.css"/>
-    <link type="text/css" rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print"/>
-    <style>
-        .calevent {
-            color: #FFFFFF;
-        }
-        a.calANI, tr.calANI {background-color: #A9177E;}
-        a.calBGM, tr.calBGM {background-color: #0073AA;}
-        a.calCGM, tr.calCGM {background-color: #6B2355;}
-        a.calEGM, tr.calEGM {background-color: #858E95;}
-        a.calENT, tr.calENT {background-color: #C94088;}
-        a.calFLM, tr.calFLM {background-color: #4B4761;}
-        a.calHMN, tr.calHMN {background-color: #2A3181;}
-        a.calKID, tr.calKID {background-color: #9470AA;}
-        a.calLRP, tr.calLRP {background-color: #AE8B1C;}
-        a.calMHE, tr.calMHE {background-color: #E8B51C;}
-        a.calNMN, tr.calNMN {background-color: #686F1F;}
-        a.calRPG, tr.calRPG {background-color: #448A80;}
-        a.calRPGA, tr.calRPGA {background-color: #D67917;}
-        a.calSEM, tr.calSEM {background-color: #009CDF;}
-        a.calSPA, tr.calSPA {background-color: #A6C749;}
-        a.calTCG, tr.calTCG {background-color: #1C944A;}
-        a.calTDA, tr.calTDA {background-color: #771F17;}
-        a.calTRD, tr.calTRD {background-color: #878F68;}
-        a.calWKS, tr.calWKS {background-color: #5E3C03;}
-        a.calZED, tr.calZED {background-color: #75B9B8;}
-        #eventContent { display: none; }
-    </style>
+    <script>
+        const colors = new Map([
+            ['ANI', '#A9177E'],
+            ['BGM', '#0073AA'],
+            ['CGM', '#6B2355'],
+            ['EGM', '#858E95'],
+            ['ENT', '#C94088'],
+            ['FLM', '#4B4761'],
+            ['HMN', '#2A3181'],
+            ['KID', '#9470AA'],
+            ['LRP', '#AE8B1C'],
+            ['MHE', '#E8B51C'],
+            ['NMN', '#686F1F'],
+            ['RPG', '#448A80'],
+            ['RPGA', '#D67917'],
+            ['SEM', '#009CDF'],
+            ['SPA', '#A6C749'],
+            ['TCG', '#1C944A'],
+            ['TDA', '#771F17'],
+            ['TRD', '#878F68'],
+            ['WKS', '#5E3C03'],
+            ['ZED', '#75B9B8'],
+        ]);
+    </script>
 </head>
 
 <body>
@@ -136,15 +133,10 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.1/moment.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.16/moment-timezone-with-data-2012-2022.min.js"></script>
 
-{{/*<script src="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>*/}}
+<link href='//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.13.1/css/all.css' rel='stylesheet'>
 
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/4.2.0/daygrid/main.min.css" integrity="sha512-CN6oL2X5VC0thwTbojxZ02e8CVs7rii0yhTLsgsdId8JDlcLENaqISvkSLFUuZk6NcPeB+FbaTfZorhbSqcRYg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/4.2.0/core/main.min.css" integrity="sha512-IBfPhioJ2AoH2nST7c0jwU0A3RJ7hwIb3t+nYR4EJ5n9P6Nb/wclzcQNbTd4QFX1lgRAtTT+axLyK7VUCDtjWA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/4.2.0/timegrid/main.min.css" integrity="sha512-/Jnt6fX98n8zZyuCt4K81+1eQJhWQn/vyMph1UvHywyziYDbu9DFGcJoW8U73m/rkaQBIEAJeoEj+2Rrx4tFyw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-<script src="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/4.2.0/core/main.min.js" integrity="sha512-bg9ZLPorHGcaLHI2lZEusTDKo0vHdaPOjVOONi4XLJ2N/c1Jn2RVI9qli4sNAziZImX42ecwywzIZiZEzZhokQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/4.2.0/daygrid/main.min.js" integrity="sha512-kebSy5Iu+ouq4/swjgEKwa217P2jf/hNYtFEHw7dT+8iLhOKB5PG5xaAMaVyxRK7OT/ddoGCFrg8tslo8SIMmg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/4.2.0/timegrid/main.min.js" integrity="sha512-APuj9Rm7J37dj8cRB1qwznH+zrWD7/vkaodDwJVxpdk72m5c9u8mbbdLHn6JnSw5M4AhV8Zb1HnLrNMGoOfR/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
 
 <script inline="javascript">
     /*<![CDATA[*/
@@ -167,23 +159,21 @@
             start: new Date({{ $e.StartTime.Unix }} * 1000),
             end: new Date({{ $e.EndTime.Unix }} * 1000),
             url: {{ $e.PlannerUrl }},
-            className: ['cal{{ $e.ShortCategory }}', 'calevent'],
+            backgroundColor: colors.get('{{ $e.ShortCategory}}'),
             description: {{ $e.ShortDescription }},
             similarCount: {{ $e.SimilarCount }},
-            eventTitle: {{ $e.Title }}
         },
         {{ end }}
-    ];
-    console.log(events);
+    ]
     let calendarEl = document.getElementById('calendar');
     let calendar = new FullCalendar.Calendar(calendarEl, {
-        plugins: [ 'dayGrid', 'timeGrid' ],
-        defaultView: 'genconWeek',
+        navLinks: false,
+        initialView: 'genconWeek',
         editable: false,
-        defaultDate: '{{ $start }}',
-        timezone: 'America/Indiana/Indianapolis',
+        initialDate: '{{ $start }}',
+        timeZone: 'America/Indiana/Indianapolis',
         nowIndicator: true,
-        header: {
+        headerToolbar: {
             left: 'prev,next',
             center: 'title',
             right: 'timeGridDay,genconWeek' // buttons for switching between views
@@ -193,17 +183,12 @@
             genconWeek: {
                 type: 'timeGrid',
                 duration: { days: 5 },
-                buttonText: 'week'
+                buttonText: 'week',
             }
         },
-        eventRender: function(info, eventObj, $el) {
-            let popupTitle = info.event.extendedProps.eventTitle
-            if (info.event.similarCount > 1) {
-                popupTitle += " (and " + info.event.extendedProps.similarCount + " similar)"
-            }
-
+        eventDidMount: function(info) {
             $(info.el).popover({
-                title: popupTitle,
+                title: info.event.title,
                 content: info.event.extendedProps.description,
                 trigger: 'hover',
                 placement: 'left',
@@ -211,10 +196,9 @@
             });
         },
         eventClick: function(event) {
-            info.jsEvent.preventDefault(); // don't let the browser navigate
-
-            if (event.url) {
-                window.open(event.url, "_blank");
+            if (event.event.url) {
+                event.jsEvent.preventDefault();
+                window.open(event.event.url, "_blank");
             }
         },
 
@@ -223,8 +207,6 @@
     calendar.render();
 
     function updateCalendar(eventGroups) {
-        console.log("Updating events");
-
         calendar.batchRendering(function() {
             var listEvent = calendar.getEvents();
             listEvent.forEach(event => {
@@ -232,20 +214,14 @@
             });
             for (let i in eventGroups) {
                 let group = eventGroups[i]
-                let title = group.Title
-                if (group.SimilarCount > 1) {
-                    title += "\n\n (" + group.SimilarCount + " similar)"
-                }
-                console.log(group.StartTime);
                 calendar.addEvent({
                     title: group.Title,
                     start: group.StartTime,
                     end: group.EndTime,
                     url: group.PlannerUrl,
-                    className: ['cal' + group.ShortCategory, 'calevent'],
+                    backgroundColor: colors.get(group.ShortCategory),
                     description: group.ShortDescription,
                     similarCount: group.SimilarCount,
-                    eventTitle: group.Title
                 });
             }
         });

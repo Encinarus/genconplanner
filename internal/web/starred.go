@@ -133,6 +133,7 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 		}
 
 		startDate := GenconStartDate(appContext.Year)
+		endDate := GenconEndDate(appContext.Year)
 
 		c.Header("Cache-Control", "no-cache")
 		c.HTML(http.StatusOK, "starred.html", gin.H{
@@ -142,6 +143,7 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 			"allCategories":    events.AllCategories(),
 			"calendarGroups":   groupedEvents,
 			"startDate":        startDate,
+			"endDate":          endDate,
 		})
 	}
 }

@@ -106,21 +106,30 @@ func PartitionGroups(
 	return majorKeys, minorKeys, majorPartitions
 }
 
-var genconDates = map[int]string{
-	2018: "2018-08-01",
-	2019: "2019-07-31",
-	2020: "2020-07-29",
-	2021: "2021-09-15",
-	2022: "2022-08-03",
-	2023: "2023-08-02",
-	2024: "2024-07-31",
+var genconDates = map[int][]string{
+	2018: {"2018-08-01", "2018-08-05"},
+	2019: {"2019-07-31", "2019-08-04"},
+	2020: {"2020-07-29", "2020-08-02"},
+	2021: {"2021-09-15", "2021-09-19"},
+	2022: {"2022-08-03", "2022-08-07"},
+	2023: {"2023-08-02", "2023-08-06"},
+	2024: {"2024-07-31", "2024-08-04"},
+	2025: {"2025-07-30", "2025-08-03"},
 }
 
 func GenconStartDate(year int) string {
-	startDate, found := genconDates[year]
+	dates, found := genconDates[year]
 	if !found {
-		startDate = "2019-07-31"
+		return "2019-07-31"
 	}
 
-	return startDate
+	return dates[0]
+}
+
+func GenconEndDate(year int) string {
+	dates, found := genconDates[year]
+	if !found {
+		return "2019-08-04"
+	}
+	return dates[1]
 }
