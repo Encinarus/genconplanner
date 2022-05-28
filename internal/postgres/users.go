@@ -17,7 +17,7 @@ type User struct {
 
 type StarredEvent struct {
 	EventId string
-	Level string	// "group" or "event"
+	Level   string // "group" or "event"
 }
 
 type UserStarredEvents struct {
@@ -105,6 +105,9 @@ GROUP BY e.cluster_key, day_of_week
 			}
 		}
 
+		if cluster.SimilarCount > 1 {
+			cluster.Title = fmt.Sprintf("%s\n\n(%d similar)", cluster.Title, cluster.SimilarCount)
+		}
 		groupedEvents = append(groupedEvents, cluster)
 	}
 

@@ -183,6 +183,7 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		"Manhattan Project: Energy Empire":          "The Manhattan Project: Energy Empire",
 		"Extraordinary Adventures: Pirates!":        "Extraordinary Adventures: Pirates",
 		"Fangs: Werewolves vs. Vampires vs. Humans": "Fangs: Werewolves vs Vampires vs Humans",
+		"Ascension": "Ascension: Deckbuilding Game",
 
 		// The difference on this one is the emdash!
 		"Disney: The Haunted Mansion - Call of the Spirits Game": "Disney: The Haunted Mansion – Call of the Spirits Game",
