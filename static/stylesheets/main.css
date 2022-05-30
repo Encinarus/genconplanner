@@ -1,4 +1,8 @@
 /* Main content */
+html {
+    font-size: 14px;
+}
+
 .main {
     padding: 20px;
     font-size: small;
@@ -79,17 +83,14 @@ button.sm-star {
 }
 
 ul.eventTickets li.noTickets {
-    text-decoration: line-through;
     color: lightgray;
 }
 
 ul.otherSessions li.noTickets {
-    text-decoration: line-through;
     color: darkgrey;
 }
 
 ul.otherSessions li.cancelled {
-    text-decoration: line-through;
     background-color: darkgrey;
 }
 

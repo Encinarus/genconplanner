@@ -11,11 +11,11 @@
             {{ if not $active }}cancelled{{ else if $hasTickets }}hasTickets{{ else }}noTickets{{ end }}">
                 <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.8em">
                     {{if $active}}
-                        <button type="button"
-                            class="event-btn btn btn-light btn-sm sm-star event-btn border {{ if $session.IsStarred }}active{{ end }}"
-                            id="star-{{ $session.EventId }}"
-                            onclick="javascript:starEvent('{{$session.EventId}}')">
-                            <span class="material-icons" style="font-size: 1.1rem">favorite{{ if not $session.IsStarred }}_border{{ end }}</span>
+                    <button type="button"
+                        class="event-btn btn btn-light btn-sm sm-star event-btn border {{ if $session.IsStarred }}active{{ end }}"
+                        id="star-{{ $session.EventId }}"
+                        onclick="javascript:starEvent('{{$session.EventId}}')">
+                        <span class="material-icons" style="font-size: 1.1rem">favorite{{ if not $session.IsStarred }}_border{{ end }}</span>
                     </button>
                     {{end}}
                 </div>
@@ -61,14 +61,13 @@
                     class="btn btn-light btn-md sm-star border {{ if .allStarred }}active{{ end }}"
                     id="star-all"
                     onclick="javascript:starEvent('{{ $e.EventId }}', true)"
-            >
-                <span class="material-icons" style="font-size: 1.2rem">favorite{{ if not .allStarred }}_border{{ end }}</span>
+            ><span class="material-icons" style="font-size: 1.2rem">favorite{{ if not .allStarred }}_border{{ end }}</span>
             </button>
         </div>
 
         {{ $e.Title }}
         {{ if $e.Active }}
-        <small class="text-muted"  style="font-size: 1.4rem">{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each - (<a href="{{ $e.GenconLink }}">Official Listing</a>)</small>
+        <small class="text-muted"  style="font-size: 1.4rem">{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each (<a href="{{ $e.GenconLink }}">Official Listing</a>)</small>
         {{ else }}
         <small class="text-muted" style="font-size: 1.4rem">This event has been cancelled.</small>
         {{ end }}

@@ -6,9 +6,8 @@
 {{ $start := .startDate }}
 {{ $end := .endDate }}
 
-{{ define "eventBlurb" }}
-
-    {{ if .events }}
+{{- define "eventBlurb" -}}
+    {{- if .events -}}
         <div>
             <h3>{{ .day }}</h3>
             {{ range $e := .events }}
@@ -24,15 +23,11 @@
                 </div>
             {{ end }}
         </div>
-    {{ end }}
+    {{- end -}}
+{{- end -}}
 
-{{ end }}
-
-{{ define "categoryEvent" }}
-    {{ if .events }}
-
+{{- define "categoryEvent" -}}{{- if .events -}}
     <h3>{{ .fullCat }}</h3>
-
     {{ range $e := .events }}
     <div style="padding-left: 3em;">
         <ul class="list-unstyled">
@@ -47,8 +42,7 @@
         </ul>
     </div>
     {{ end }}
-    {{ end }}
-{{ end }}
+{{- end -}}{{- end -}}
 
 <html>
 <head>
@@ -86,21 +80,31 @@
 <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">Starred Events</h1>
 <div class="row">
     <div class="main col-md-12">
-        <ul class="nav nav-tabs nav-justified" id="starredgroup">
-            <li class="active"><a href="#calendar-tab" data-toggle="tab" shape="rect">Calendar</a></li>
-            <li><a href="#day-tab" data-toggle="tab" shape="rect">By day</a></li>
-            <li><a href="#type-tab" data-toggle="tab" shape="rect">By type</a></li>
+        <ul class="nav nav-tabs nav-fill" id="starredgroup">
+            <li class="nav-item">
+                <a href="#calendar-tab" class="nav-link active" role="tab" data-toggle="tab" aria-controls="calendar-tab" aria-selected="true">Calendar</a>
+            </li>
+            <li class="nav-item">
+                <a href="#day-tab" class="nav-link" role="tab" data-toggle="tab" aria-controls="day-tab" aria-selected="false">By day</a>
+            </li>
+            <li class="nav-item">
+                <a href="#type-tab" class="nav-link" role="tab" data-toggle="tab" aria-controls="type-tab" aria-selected="false">By type</a>
+            </li>
         </ul>
         <!-- Tab panes -->
-        <div class="tab-content">
-            <div class="tab-pane" id="day-tab">
+        <div class="tab-content" id="starredgroupContent">
+            <div class="tab-pane active mt-4" id="calendar-tab">
+                <!-- This doesn't look as good as it should... -->
+                <div id='calendar' class="tab-content"></div>
+            </div>
+            <div class="tab-pane mt-4" id="day-tab">
                 {{ template "eventBlurb" (dict "events" $wed "day" "Wednesday") }}
                 {{ template "eventBlurb" (dict "events" $thurs "day" "Thursday") }}
                 {{ template "eventBlurb" (dict "events" $fri "day" "Friday") }}
                 {{ template "eventBlurb" (dict "events" $sat "day" "Saturday") }}
                 {{ template "eventBlurb" (dict "events" $sun "day" "Sunday") }}
             </div>
-            <div class="tab-pane" id="type-tab">
+            <div class="tab-pane mt-4" id="type-tab">
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.ANI "fullCat" "ANI - Anime Activities") }}
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.BGM "fullCat" "BGM - Board Games") }}
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.CGM "fullCat" "CGM - Non-Collectable/Tradable Card Games") }}
@@ -122,10 +126,7 @@
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.WKS "fullCat" "WKS - Workshop") }}
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.ZED "fullCat" "ZED - Isle of Misfit Events") }}
             </div>
-            <div class="tab-pane active" id="calendar-tab">
-                <!-- This doesn't look as good as it should... -->
-                <div id='calendar' class="tab-content" style="padding-top: 10px;"></div>            </div>
-            </div>
+        </div>
     </div>
 </div>
 </div>
