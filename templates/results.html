@@ -40,7 +40,8 @@
 {{ template "navbar" .context }}
 <div class="container">
 <div class="col-md-12">
-    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom" id="top">{{ .pageHeader }} <small>{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups (<a onclick="$('#advSearch').toggle('slow');" href="#">advanced search</a>)</small></h1>
+    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom" id="top">{{ .pageHeader }}
+        <small class="text-muted"  style="font-size: 1.4rem">{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups (<a onclick="$('#advSearch').toggle('slow');" href="#">advanced search</a>)</small></h1>
 
     <div id="advSearch" style="display: none;"> {{/*   */}}
         <form action="/search" method="get">
@@ -96,13 +97,13 @@
         <hr/>
     </div>
 </div>
-<div class="row">
 <div class="main">
-    <div class="flex-column col-md-2">
-    <h3 style="margin-top: 0">{{ .breakdown }}</h3>
+    <div class="row">
+    <div class="col-md-2">
+        <h3 style="margin-top: 0">{{ .breakdown }}</h3>
         {{ range $major := $majorHeadings }}
         {{ $subHeadings := (index $minorHeadings $major )}}
-        <h5>{{ $major }}</h5>
+        <h5 class="minorHeading pt-2">{{ $major }}</h5>
         <ul class="nav">
             {{ range $minor := $subHeadings }}
             {{ $heading := (print $major "_" $minor| toId)}}
@@ -115,29 +116,31 @@
         </ul>
         {{ end }}
     </div>
-    <div class="list-group col-md-10">
-        {{- range $major := $majorHeadings -}}
-            <h4>{{ $major }}</h4>
-            {{- range $minor := (index $minorHeadings $major) -}}
-                {{ $heading := (print $major "_" $minor| toId)}}
-                <h5 id="{{ $heading }}">{{ template "bggLink" $minor }} (<a href="#top">top</a>)</h5>
+    <div class="col-md-10">
+    {{- range $major := $majorHeadings -}}
+        <h4 class="pb-1 pt-2">{{ $major }}</h4>
+        {{- range $minor := (index $minorHeadings $major) -}}
+            {{ $heading := (print $major "_" $minor| toId)}}
+            <h5 id="{{ $heading }}">{{ template "bggLink" $minor }} (<a href="#top">top</a>)</h5>
+            <div class="list-group list-group-flush pb-4">
 
-                {{- range $row := (index $partitions $major $minor) -}}
-                    <a href="/event/{{ $row.EventId }}"
-                       class="list-group-item eventGroup {{ if eq $row.TotalTickets 0 }}noTickets{{end}}" style="font-size: small">
-                        <h5>{{ $row.Name }} <small>{{ $row.GameSystem }}</small></h5>
-                        <p>{{ $row.Description }}</p>
-                        <ul class="list-inline eventTickets">
-                            <li {{ if eq $row.WedTickets 0 }}class="noTickets"{{end}}><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>
-                            <li {{ if eq $row.ThursTickets 0 }}class="noTickets"{{end}}><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>
-                            <li {{ if eq $row.FriTickets 0 }}class="noTickets"{{end}}><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>
-                            <li {{ if eq $row.SatTickets 0 }}class="noTickets"{{end}}><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>
-                            <li {{ if eq $row.SunTickets 0 }}class="noTickets"{{end}}><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
-                        </ul>
-                    </a>
-                {{- end -}}
+            {{- range $row := (index $partitions $major $minor) -}}
+            <a href="/event/{{ $row.EventId }}" style="font-size: small; margin-bottom: -1px;"
+               class="list-group-item-action eventGroup pt-3 px-3 border">
+                <h5>{{ $row.Name }} <small class="text-muted"  style="font-size: 0.8rem">{{ $row.GameSystem }}</small></h5>
+                <p>{{ $row.Description }}</p>
+                <ul class="list-inline eventTickets">
+                    <li class="list-inline-item {{ if eq $row.WedTickets 0 }}noTickets{{end}}"><strong>Wed</strong> {{ $row.WedTickets }} tickets</li>
+                    <li class="list-inline-item {{ if eq $row.ThursTickets 0 }}noTickets{{end}}"><strong>Thurs</strong> {{ $row.ThursTickets}} tickets</li>
+                    <li class="list-inline-item {{ if eq $row.FriTickets 0 }}noTickets{{end}}"><strong>Fri</strong> {{ $row.FriTickets}} tickets</li>
+                    <li class="list-inline-item {{ if eq $row.SatTickets 0 }}noTickets{{end}}"><strong>Sat</strong> {{ $row.SatTickets}} tickets</li>
+                    <li class="list-inline-item {{ if eq $row.SunTickets 0 }}noTickets{{end}}"><strong>Sun</strong> {{ $row.SunTickets}} tickets</li>
+                </ul>
+            </a>
             {{- end -}}
+            </div>
         {{- end -}}
+    {{- end -}}
     </div>
 </div>
 </div>
