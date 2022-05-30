@@ -4,9 +4,9 @@
 </head>
 
 <body>
-{{ template "navbar" .context }}
 <div class="container">
-    <h1 class="page-header">User info for {{ .context.User.DisplayName }}</h1>
+    {{ template "navbar" .context }}
+    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">User info for {{ .context.User.DisplayName }}</h1>
     <hr/>
     <h2>Start a party</h2>
     <form action="/party/new" method="post">

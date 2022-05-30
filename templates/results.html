@@ -40,7 +40,7 @@
 {{ template "navbar" .context }}
 <div class="container">
 <div class="col-md-12">
-    <h1 class="page-header" id="top">{{ .pageHeader }} <small>{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups (<a onclick="$('#advSearch').toggle('slow');" href="#">advanced search</a>)</small></h1>
+    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom" id="top">{{ .pageHeader }} <small>{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups (<a onclick="$('#advSearch').toggle('slow');" href="#">advanced search</a>)</small></h1>
 
     <div id="advSearch" style="display: none;"> {{/*   */}}
         <form action="/search" method="get">

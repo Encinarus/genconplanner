@@ -6,19 +6,19 @@
 </head>
 
 <body>
-{{ template "navbar" .context }}
-
 <div class="container">
-  <h1 class="page-header">{{ $year }} Events by category</h1>
+  {{ template "navbar" .context }}
+
+  <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">{{ $year }} Events by category</h1>
   {{ range $row := .categories }}
         <div class="row">
             {{ range $cat := $row }}
-                <div class="col-md-6 col-sm-12" style="padding-bottom: 5px">
-                <a class="btn btn-default text-left"
+                <div class="col-md-6 col-sm-12 pb-1">
+                <a class="border btn btn-light text-center"
                    href="/cat/{{ $year }}/{{ $cat.Code }}"
                    role="button"
                    style="width:100%; white-space:normal">{{ $cat.Name }}
-                   <span class="badge">{{ $cat.Count }}</span></a>
+                   <span class="badge badge-pill badge-secondary">{{ $cat.Count }}</span></a>
                 </div>
             {{ end }}
         </div>
