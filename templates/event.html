@@ -11,11 +11,11 @@
             {{ if not $active }}cancelled{{ else if $hasTickets }}hasTickets{{ else }}noTickets{{ end }}">
                 <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.8em">
                     {{if $active}}
-                    <button type="button"
-                            class="event-btn btn btn-secondary btn-sm sm-star {{ if $session.IsStarred }}active{{ end }}"
+                        <button type="button"
+                            class="event-btn btn btn-light btn-sm sm-star event-btn border {{ if $session.IsStarred }}active{{ end }}"
                             id="star-{{ $session.EventId }}"
                             onclick="javascript:starEvent('{{$session.EventId}}')">
-                        <span class="glyphicon glyphicon-star{{ if not $session.IsStarred }}-empty{{ end }}"></span>
+                            <span class="material-icons" style="font-size: 1.1rem">favorite{{ if not $session.IsStarred }}_border{{ end }}</span>
                     </button>
                     {{end}}
                 </div>
@@ -58,145 +58,146 @@
     <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">
         <div style="display:inline-block;">
             <button type="button"
-                    class="btn btn-secondary btn-md sm-star {{ if .allStarred }}active{{ end }}"
+                    class="btn btn-light btn-md sm-star border {{ if .allStarred }}active{{ end }}"
                     id="star-all"
                     onclick="javascript:starEvent('{{ $e.EventId }}', true)"
             >
-                <span class="glyphicon glyphicon-star{{ if not .allStarred }}-empty{{ end }}"></span>
+                <span class="material-icons" style="font-size: 1.2rem">favorite{{ if not .allStarred }}_border{{ end }}</span>
             </button>
         </div>
 
         {{ $e.Title }}
         {{ if $e.Active }}
-        <small>{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each - (<a href="{{ $e.GenconLink }}">Official Listing</a>)</small>
+        <small class="text-muted"  style="font-size: 1.4rem">{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each - (<a href="{{ $e.GenconLink }}">Official Listing</a>)</small>
         {{ else }}
-        <small>This event has been cancelled.</small>
+        <small class="text-muted" style="font-size: 1.4rem">This event has been cancelled.</small>
         {{ end }}
 
     </h1>
-    <ol class="breadcrumb">
+    <ol class="breadcrumb bg-light">
         <li class="breadcrumb-item"><a href="/cat/{{ $e.Year}}/{{ $e.ShortCategory}}" shape="rect">{{ $e.ShortCategory}}</a></li>
         <li class="breadcrumb-item">{{ $e.EventId }}</li>
     </ol>
 
-    <div class="row">
-        <div class="main">
-            <div class="col-md-12">
-                <em>{{ $e.ShortDescription}}</em>
-                <h3>Details</h3>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Timing:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ $e.StartTime.Format "Mon 3:04 PM"}} - {{ $e.EndTime.Format "Mon 3:04 PM"}}
-                        </div>
+    <div class="main">
+        <div class="col-md-12">
+            <em>{{ $e.ShortDescription}}</em>
+            <h3 class="pt-3">Details</h3>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Timing:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ $e.StartTime.Format "Mon 3:04 PM"}} - {{ $e.EndTime.Format "Mon 3:04 PM"}}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Location:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ $e.Location }}
-                            {{ if $e.RoomName }} / Room {{ $e.RoomName }} {{ end }}
-                            {{ if $e.TableNumber }} / Table {{ $e.TableNumber }} {{ end }}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Location:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ $e.Location }}
+                        {{ if $e.RoomName }} / Room {{ $e.RoomName }} {{ end }}
+                        {{ if $e.TableNumber }} / Table {{ $e.TableNumber }} {{ end }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Long Description:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ $e.LongDescription}}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Long Description:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ $e.LongDescription}}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Event Website:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ if $e.Website }}<a href="http://{{ $e.Website }}">{{ $e.Website }}</a>
-                            {{ else }}N/A
-                            {{ end }}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Event Website:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ if $e.Website }}<a href="http://{{ $e.Website }}">{{ $e.Website }}</a>
+                        {{ else }}N/A
+                        {{ end }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Organizing Group:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ if $e.Group }}{{ $e.Group }}{{ else }}N/A{{ end }}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Organizing Group:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ if $e.Group }}{{ $e.Group }}{{ else }}N/A{{ end }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>GM Names:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ $e.GMNames }}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>GM Names:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ $e.GMNames }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Event Type:</strong></div>
-                        <div class="col-xs-12 col-md-7"><a href="/cat/{{ $e.Year }}/{{ $e.ShortCategory }}">{{ $e.EventType }}</a></div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Event Type:</strong></div>
+                    <div class="col-xs-12 col-md-7"><a href="/cat/{{ $e.Year }}/{{ $e.ShortCategory }}">{{ $e.EventType }}</a></div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Game System:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ template "bggLink" $e.GameSystem }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Game System:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ template "bggLink" $e.GameSystem }}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Rules Edition:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ if $e.RulesEdition }}{{ $e.RulesEdition }}{{ else }}N/A{{ end }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Rules Edition:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ if $e.RulesEdition }}{{ $e.RulesEdition }}{{ else }}N/A{{ end }}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong># Players:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ $e.MinPlayers }} - {{ $e.MaxPlayers }} players
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong># Players:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ $e.MinPlayers }} - {{ $e.MaxPlayers }} players
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Age Required:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ $e.AgeRequired }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Age Required:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ $e.AgeRequired }}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Experience Required:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ $e.ExperienceRequired }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Experience Required:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ $e.ExperienceRequired }}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Materials Provided?:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ if $e.MaterialsProvided }}Yes{{ else }}No{{ end }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Materials Provided?:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ if $e.MaterialsProvided }}Yes{{ else }}No{{ end }}
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-md-2"><strong>Tournament?:</strong></div>
+                    <div class="col-xs-12 col-md-7">
+                        {{ if $e.Tournament }}Round {{ $e.RoundNumber }} of {{ $e.TotalRounds }}{{ else }}No{{ end }}
                     </div>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-2"><strong>Tournament?:</strong></div>
-                        <div class="col-xs-12 col-md-7">
-                            {{ if $e.Tournament }}Round {{ $e.RoundNumber }} of {{ $e.TotalRounds }}{{ else }}No{{ end }}
-                        </div>
-                    </div>
+                </div>
+        </div>
+        <div class="col-md-12">
+            <h3 class="py-3">Sessions <small class="text-muted" style="font-size: 1.2rem"><a onclick="toggleAvailable()" class="toggleLink">Hide unavailable sessions</a></small></h3>
+            <div class="row">
+            {{ if $wed }}
+            <div class="col-md-3">
+                <h4>Wednesday</h4>
+                {{ template "similar" (dict "eventId" $e.EventId "sessions" $wed "context" .context) }}
             </div>
-            <div class="col-md-12"><h3>Sessions <small><a onclick="toggleAvailable()" class="toggleLink">Hide unavailable sessions</a></small></h3>
-                {{ if $wed }}
-                <div class="col-md-3">
-                    <h4>Wednesday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $wed "context" .context) }}
-                </div>
-                {{ end }}
+            {{ end }}
 
-                {{ if or $thurs $fri $sat $sun }}
-                <div class="col-md-3">
-                    <h4>Thursday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $thurs "context" .context) }}
-                </div>
-                <div class="col-md-3">
-                    <h4>Friday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $fri "context" .context) }}
-                </div>
-                <div class="col-md-3">
-                    <h4>Saturday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $sat "context" .context) }}
-                </div>
-                <div class="col-md-3">
-                    <h4>Sunday</h4>
-                    {{ template "similar" (dict "eventId" $e.EventId "sessions" $sun "context" .context) }}
-                </div>
-                {{ end }}
+            {{ if or $thurs $fri $sat $sun }}
+            <div class="col-md-3">
+                <h4>Thursday</h4>
+                {{ template "similar" (dict "eventId" $e.EventId "sessions" $thurs "context" .context) }}
+            </div>
+            <div class="col-md-3">
+                <h4>Friday</h4>
+                {{ template "similar" (dict "eventId" $e.EventId "sessions" $fri "context" .context) }}
+            </div>
+            <div class="col-md-3">
+                <h4>Saturday</h4>
+                {{ template "similar" (dict "eventId" $e.EventId "sessions" $sat "context" .context) }}
+            </div>
+            <div class="col-md-3">
+                <h4>Sunday</h4>
+                {{ template "similar" (dict "eventId" $e.EventId "sessions" $sun "context" .context) }}
+            </div>
+            {{ end }}
             </div>
         </div>
     </div>
@@ -260,14 +261,14 @@
 
     function fixButtonStar(buttonId, isStarred) {
         buttonId = "#" + buttonId
-        let starId = buttonId + " span.glyphicon";
+        let starId = buttonId + " span";
 
         if (isStarred) {
             $(buttonId).addClass('active');
-            $(starId).removeClass('glyphicon-star-empty').addClass('glyphicon-star');
+            $(starId)[0].innerText = 'favorite';
         } else {
             $(buttonId).removeClass('active');
-            $(starId).removeClass('glyphicon-star').addClass('glyphicon-star-empty');
+            $(starId)[0].innerText = 'favorite_border';
         }
     }
 
