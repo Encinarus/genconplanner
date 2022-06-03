@@ -15,7 +15,7 @@
                         class="event-btn btn btn-light btn-sm sm-star event-btn border {{ if $session.IsStarred }}active{{ end }}"
                         id="star-{{ $session.EventId }}"
                         onclick="javascript:starEvent('{{$session.EventId}}')">
-                        <span class="material-icons" style="font-size: 1.1rem">favorite{{ if not $session.IsStarred }}_border{{ end }}</span>
+                        <span class="material-icons" style="font-size: 1.1rem">{{ if $session.IsStarred }}star{{ else }}star_outline{{ end }}</span>
                     </button>
                     {{end}}
                 </div>
@@ -61,7 +61,7 @@
                     class="btn btn-light btn-md sm-star border {{ if .allStarred }}active{{ end }}"
                     id="star-all"
                     onclick="javascript:starEvent('{{ $e.EventId }}', true)"
-            ><span class="material-icons" style="font-size: 1.2rem">favorite{{ if not .allStarred }}_border{{ end }}</span>
+            ><span class="material-icons" style="font-size: 1.2rem">{{ if .allStarred }}star{{else}}star_outline{{ end }}</span>
             </button>
         </div>
 
@@ -255,7 +255,7 @@
             fixButtonStar(buttonId, needStar);
         }
 
-        fixButtonStar("star-all", starredCount == starButtons.length);
+        fixButtonStar("star-all", starredCount === starButtons.length);
     }
 
     function fixButtonStar(buttonId, isStarred) {
@@ -264,10 +264,10 @@
 
         if (isStarred) {
             $(buttonId).addClass('active');
-            $(starId)[0].innerText = 'favorite';
+            $(starId)[0].innerText = 'star';
         } else {
             $(buttonId).removeClass('active');
-            $(starId)[0].innerText = 'favorite_border';
+            $(starId)[0].innerText = 'star_outline';
         }
     }
 
