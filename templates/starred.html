@@ -1,3 +1,4 @@
+<!doctype html>
 {{ $wed := .eventsByDay.Wednesday}}
 {{ $thurs := .eventsByDay.Thursday}}
 {{ $fri := .eventsByDay.Friday}}
@@ -82,7 +83,7 @@
     <div class="main col-md-12">
         <ul class="nav nav-tabs nav-fill" id="starredgroup">
             <li class="nav-item">
-                <a href="#calendar-tab" class="nav-link active" role="tab" data-toggle="tab" aria-controls="calendar-tab" aria-selected="true">Calendar</a>
+                <a href="#calendar-tab" class="nav-link active" role="tab" data-toggle="tab" aria-current="page" aria-controls="calendar-tab" aria-selected="true">Calendar</a>
             </li>
             <li class="nav-item">
                 <a href="#day-tab" class="nav-link" role="tab" data-toggle="tab" aria-controls="day-tab" aria-selected="false">By day</a>
@@ -188,13 +189,18 @@
             }
         },
         eventDidMount: function(info) {
-            $(info.el).popover({
-                title: info.event.title,
-                content: info.event.extendedProps.description,
-                trigger: 'hover',
-                placement: 'left',
-                container: 'body'
-            });
+            $(info.el).attr("data-bs-toggle", "popover");
+            $(info.el).attr("data-bs-trigger", "hover focus");
+            $(info.el).attr("title", info.event.title);
+            $(info.el).attr("data-bs-content", info.event.extendedProps.description);
+            new bootstrap.Popover(info.el);
+            // $(info.el).popover({
+            //     title: info.event.title,
+            //     content: info.event.extendedProps.description,
+            //     trigger: 'hover',
+            //     placement: 'left',
+            //     container: 'body'
+            // });
         },
         eventClick: function(event) {
             if (event.event.url) {

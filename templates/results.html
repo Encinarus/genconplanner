@@ -1,3 +1,4 @@
+<!doctype html>
 {{$partitions := .partitions }}
 {{$majorHeadings := .majorHeadings}}
 {{$minorHeadings := .minorHeadings}}
@@ -37,11 +38,11 @@
 </head>
 
 <body>
-{{ template "navbar" .context }}
 <div class="container">
+{{ template "navbar" .context }}
 <div class="col-md-12">
     <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom" id="top">{{ .pageHeader }}
-        <small class="text-muted"  style="font-size: 1.4rem">{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups (<a onclick="$('#advSearch').toggle('slow');" href="#">advanced search</a>)</small></h1>
+        <small class="text-muted"  style="font-size: 1.4rem; font-weight: normal">{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups (<a class="text-decoration-none" onclick="$('#advSearch').toggle('slow');" href="#">advanced search</a>)</small></h1>
 
     <div id="advSearch" style="display: none;"> {{/*   */}}
         <form action="/search" method="get">
@@ -104,16 +105,15 @@
         {{ range $major := $majorHeadings }}
         {{ $subHeadings := (index $minorHeadings $major )}}
         <h5 class="minorHeading pt-2">{{ $major }}</h5>
-        <ul class="nav">
+        <div class="nav vstack">
             {{ range $minor := $subHeadings }}
             {{ $heading := (print $major "_" $minor| toId)}}
-            <li class="nav-item">
-                <a class="nav-link groupLink" href="#{{ $heading }}">{{ $minor }}
+            <div class="nav-item">
+                <a class="nav-link groupLink text-decoration-none" href="#{{ $heading }}">{{ $minor }}
                     ({{ len (index $partitions $major $minor) }})</a>
-            </li>
+            </div>
             {{ end }}
-            <li></li>
-        </ul>
+        </div>
         {{ end }}
     </div>
     <div class="col-md-10">
@@ -121,12 +121,12 @@
         <h4 class="pb-1 pt-2">{{ $major }}</h4>
         {{- range $minor := (index $minorHeadings $major) -}}
             {{ $heading := (print $major "_" $minor| toId)}}
-            <h5 id="{{ $heading }}">{{ template "bggLink" $minor }} (<a href="#top">top</a>)</h5>
+            <h5 id="{{ $heading }}">{{ template "bggLink" $minor }} (<a href="#top" class="text-decoration-none">top</a>)</h5>
             <div class="list-group list-group-flush pb-4">
 
             {{- range $row := (index $partitions $major $minor) -}}
             <a href="/event/{{ $row.EventId }}" style="font-size: small; margin-bottom: -1px;"
-               class="list-group-item-action eventGroup pt-3 px-3 border">
+               class="list-group-item-action eventGroup pt-3 px-3 border text-decoration-none">
                 <h5>{{ $row.Name }} <small class="text-muted"  style="font-size: 0.8rem">{{ $row.GameSystem }}</small></h5>
                 <p>{{ $row.Description }}</p>
                 <ul class="list-inline eventTickets">

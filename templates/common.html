@@ -3,24 +3,27 @@
 {{ $year := $context.Year }}
 {{ $display_name := $context.DisplayName }}
 
-<nav class="navbar navbar-expand-lg bg-light navbar-light fixed-top border-bottom mb-4  " id="navbar">
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navToggler"
-            aria-controls="navToggler" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-    <a class="navbar-brand" href="/cat/{{ $year }}">Gen Con Planner</a>
+<nav class="navbar navbar-expand-sm bg-light navbar-light fixed-top border-bottom mb-4" id="navbar">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/cat/{{ $year }}">Gen Con Planner</a>
 
-    <div class="collapse navbar-collapse" id="navToggler">
-        <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
-            <li id="signinWidget" {{ if $display_name }}style="display: none;"{{end}}  class="loggedout nav-link"><a href="#" onclick="popupSignIn();">Signin</a></li>
-            <li {{ if not $display_name }}style="display: none;"{{end}} class="loggedin"><a href="/starred/{{ $year }}"  class="nav-link">My Starred Events</a></li>
-            <li {{ if not $display_name }}style="display: none;"{{end}} class="loggedin"><a href="#" onclick="signOut()"  class="nav-link">Sign out</a></li>
-            <li><a href="/about" class="nav-link">About</a></li>
-        </ul>
-        <form class="form-inline my-2 my-lg-0" action="/search">
-            <input type="text" class="form-control" placeholder="Search..." name="q"/>
-            <input type="hidden" name="y" value="{{ $year }}"/>
-        </form>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navToggler"
+                aria-controls="navToggler" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navToggler">
+            <ul class="navbar-nav">
+                <li id="signinWidget" {{ if $display_name }}style="display: none;"{{end}}  class="loggedout nav-link"><a href="#" onclick="popupSignIn();">Signin</a></li>
+                <li {{ if not $display_name }}style="display: none;"{{end}} class="loggedin"><a href="/starred/{{ $year }}"  class="nav-link">My Starred Events</a></li>
+                <li {{ if not $display_name }}style="display: none;"{{end}} class="loggedin"><a href="#" onclick="signOut()"  class="nav-link">Sign out</a></li>
+                <li><a href="/about" class="nav-link">About</a></li>
+            </ul>
+            <form class="form-inline ms-auto" action="/search">
+                <input type="text" class="form-control" placeholder="Search..." name="q"/>
+                <input type="hidden" name="y" value="{{ $year }}"/>
+            </form>
+        </div>
     </div>
 </nav>
 {{ end }}
@@ -33,7 +36,7 @@
       {{ $numRatings := (bggNumRatings $game) }}
       {{ $bggYear := (bggYear $game) }}
       {{ if $url }} -
-      <a href="{{ $url }}" class="bggLink" target="_blank" rel="noopener noreferrer">BGG
+      <a href="{{ $url }}" class="bggLink text-decoration-none" target="_blank" rel="noopener noreferrer">BGG
           {{- if $rating }}
               {{ $rating }} ({{ $numRatings }} ratings
               {{- if $bggYear -}}, {{ $bggYear }}{{- end -}})
@@ -47,12 +50,10 @@
         src="https://code.jquery.com/jquery-3.6.0.min.js"
         integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
         crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
-        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-        crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
-        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"
+        integrity="sha384-7+zCNj/IqJ95wo16oMtfsKbZ9ccEh31eOz1HGyDuCQ6wgnyJNSYdrPa03rtR1zdB" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"
+        integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/5.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/5.10.0/firebase-auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
@@ -146,9 +147,12 @@
           crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
-          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
           crossorigin="anonymous">
+    <link href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css' rel='stylesheet'>
+
     <link type="text/css" rel="stylesheet" href="/static/stylesheets/main.css"/>
     <title>{{ . }}</title>
     <meta charset="utf-8">

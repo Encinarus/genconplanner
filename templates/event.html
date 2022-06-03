@@ -1,3 +1,4 @@
+<!doctype html>
 {{ $e := .result.MainEvent }}
 
 {{ define "similar"}}
@@ -67,13 +68,13 @@
 
         {{ $e.Title }}
         {{ if $e.Active }}
-        <small class="text-muted"  style="font-size: 1.4rem">{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each (<a href="{{ $e.GenconLink }}">Official Listing</a>)</small>
+        <small class="text-muted"  style="font-size: 1.4rem; font-weight: normal">{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each (<a href="{{ $e.GenconLink }}">Official Listing</a>)</small>
         {{ else }}
-        <small class="text-muted" style="font-size: 1.4rem">This event has been cancelled.</small>
+        <small class="text-muted" style="font-size: 1.4rem; font-weight: normal">This event has been cancelled.</small>
         {{ end }}
 
     </h1>
-    <ol class="breadcrumb bg-light">
+    <ol class="breadcrumb bg-light py-2 px-3">
         <li class="breadcrumb-item"><a href="/cat/{{ $e.Year}}/{{ $e.ShortCategory}}" shape="rect">{{ $e.ShortCategory}}</a></li>
         <li class="breadcrumb-item">{{ $e.EventId }}</li>
     </ol>
@@ -170,7 +171,7 @@
                 </div>
         </div>
         <div class="col-md-12">
-            <h3 class="py-3">Sessions <small class="text-muted" style="font-size: 1.2rem"><a onclick="toggleAvailable()" class="toggleLink">Hide unavailable sessions</a></small></h3>
+            <h3 class="py-3">Sessions <small class="text-muted" style="font-size: 1.2rem; font-weight: normal"><a onclick="toggleAvailable()" class="toggleLink text-decoration-none">Hide unavailable sessions</a></small></h3>
             <div class="row">
             {{ if $wed }}
             <div class="col-md-3">

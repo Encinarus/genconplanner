@@ -1,3 +1,4 @@
+<!doctype html>
 {{$year := .context.Year}}
 
 <html>
@@ -18,7 +19,7 @@
                    href="/cat/{{ $year }}/{{ $cat.Code }}"
                    role="button"
                    style="width:100%; white-space:normal">{{ $cat.Name }}
-                   <span class="badge badge-pill badge-secondary">{{ $cat.Count }}</span></a>
+                   <span class="badge rounded-pill bg-secondary">{{ $cat.Count }}</span></a>
                 </div>
             {{ end }}
         </div>

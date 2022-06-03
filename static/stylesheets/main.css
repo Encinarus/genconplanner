@@ -41,17 +41,26 @@ html {
     margin-left: 1em;
 }
 
-li a.groupLink {
+a:link, a:visited {
+    text-decoration: none !important;
+}
+
+a.groupLink {
     padding: .2em .5em;
     color: #337ab7;
 }
 
-h1 a, h5 a {
+h1 a, h5 a, bggLink {
     color: #337ab7;
 }
 
 body {
     padding-top: 50px;
+}
+
+a.fc-col-header-cell-cushion {
+    text-decoration: none;
+    color: black;
 }
 
 h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before {
