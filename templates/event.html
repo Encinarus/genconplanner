@@ -65,10 +65,9 @@
             ><span class="material-icons" style="font-size: 1.2rem">{{ if .allStarred }}star{{else}}star_outline{{ end }}</span>
             </button>
         </div>
-
         {{ $e.Title }}
         {{ if $e.Active }}
-        <small class="text-muted"  style="font-size: 1.4rem; font-weight: normal">{{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each (<a href="{{ $e.GenconLink }}">Official Listing</a>)</small>
+        <small class="text-muted"  style="font-size: 1.4rem; font-weight: normal"><br>{{ $e.StartTime.Format "Mon 3:04 PM"}} - {{ $e.EndTime.Format "Mon 3:04 PM"}}: {{ $e.TicketsAvailable }} tickets, ${{ $e.Cost }} each (<a href="{{ $e.GenconLink }}">Official Listing</a>)</small>
         {{ else }}
         <small class="text-muted" style="font-size: 1.4rem; font-weight: normal">This event has been cancelled.</small>
         {{ end }}
