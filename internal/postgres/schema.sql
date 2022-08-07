@@ -196,6 +196,13 @@ CREATE INDEX dow_index
 
 -- Index: cat_hash_index
 
+-- DROP INDEX public.org_group;
+
+CREATE INDEX org_group
+    ON public.events USING btree
+        (org_group COLLATE pg_catalog."default")
+    TABLESPACE pg_default;
+
 -- DROP INDEX public.cat_hash_index;
 
 CREATE INDEX cat_hash_index

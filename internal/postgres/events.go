@@ -66,6 +66,7 @@ type ParsedQuery struct {
 	StartAfterHour  int
 	EndBeforeHour   int
 	EndAfterHour    int
+	Org 			string
 }
 
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
@@ -215,14 +216,24 @@ ORDER BY e1.start_time`, fields), eventId, year, userEmail)
 func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 	innerFrom := "events"
 	innerWhere := fmt.Sprintf("active AND year = %v", query.Year)
-	innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') <= %v", innerWhere, query.StartBeforeHour)
-	innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') >= %v", innerWhere, query.StartAfterHour)
-	innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') <= %v", innerWhere, query.EndBeforeHour)
-	innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') >= %v", innerWhere, query.EndAfterHour)
+	if query.StartBeforeHour >= 0 {
+		innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') <= %v", innerWhere, query.StartBeforeHour)
+	}
+	if query.StartAfterHour >= 0 {
+		innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') >= %v", innerWhere, query.StartAfterHour)
+	}
+	if query.EndBeforeHour >= 0 {
+		innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') <= %v", innerWhere, query.EndBeforeHour)
+	}
+	if query.EndAfterHour >= 0 {
+		innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') >= %v", innerWhere, query.EndAfterHour)
+	}
+
 	titleRank := "1"
 	searchRank := "1"
 
 	tsquery := strings.Join(query.TextQueries, " & ")
+	tsquery = strings.ReplaceAll(tsquery, "'", "")
 	if len(tsquery) > 0 {
 		innerFrom = fmt.Sprintf("%v, to_tsquery('%v') q", innerFrom, tsquery)
 		innerWhere = fmt.Sprintf("%v AND search_key @@ q", innerWhere)
@@ -264,6 +275,11 @@ GROUP BY cluster_key, short_category, title
 	}
 	fullWhere := fmt.Sprintf("e.year = %v AND (%v)", query.Year, dayPart)
 
+	if len(query.Org) > 0 {
+		org := strings.ReplaceAll(query.Org, "'", "\\'")
+		fullWhere = fmt.Sprintf("(%v) AND strpos(e.org_group, '%v') > 0", fullWhere, org)
+	}
+
 	fullQuery := fmt.Sprintf(`
 SELECT 
        e.event_id,
@@ -286,6 +302,8 @@ FROM events e JOIN (%v) AS c
 WHERE %v
 ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 `, innerQuery, fullWhere)
+
+	log.Printf(fullQuery)
 
 	loadedEvents := make([]*EventGroup, 0)
 	rows, err := db.Query(fullQuery)

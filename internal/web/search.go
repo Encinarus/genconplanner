@@ -7,6 +7,7 @@ import (
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,6 +25,8 @@ func parseQuery(searchQuery string, year int, days map[string]bool) *postgres.Pa
 	if year > maxYear || year < 2016 {
 		query.Year = maxYear
 	}
+
+	log.Printf("Search query: %s", searchQuery)
 
 	// Preprocess, removing symbols which are used in tsquery
 	searchQuery = strings.Replace(searchQuery, "!", "", -1)
@@ -117,10 +120,22 @@ func Search(db *sql.DB) func(c *gin.Context) {
 		}
 		parsedQuery := parseQuery(query, year, days)
 
-		parsedQuery.StartBeforeHour = parseHour(c, "start_before", 24)
-		parsedQuery.StartAfterHour = parseHour(c, "start_after", 0)
-		parsedQuery.EndBeforeHour = parseHour(c, "end_before", 24)
-		parsedQuery.EndAfterHour = parseHour(c, "end_after", 0)
+		parsedQuery.StartBeforeHour = parseHour(c, "start_before", -1)
+		parsedQuery.StartAfterHour = parseHour(c, "start_after", -1)
+		parsedQuery.EndBeforeHour = parseHour(c, "end_before", -1)
+		parsedQuery.EndAfterHour = parseHour(c, "end_after", -1)
+		parsedQuery.Org = c.Query("org")
+
+		// Filter out nonsensical start times -- if you set both to the same, you
+		// probably don't want any filter applied on the field.
+		if parsedQuery.StartBeforeHour == parsedQuery.StartAfterHour {
+			parsedQuery.StartBeforeHour = -1
+			parsedQuery.StartAfterHour = -1
+		}
+		if parsedQuery.EndAfterHour == parsedQuery.EndBeforeHour {
+			parsedQuery.EndAfterHour = -1
+			parsedQuery.EndBeforeHour = -1
+		}
 
 		eventGroups, err := postgres.FindEvents(db, parsedQuery)
 		totalEvents := 0

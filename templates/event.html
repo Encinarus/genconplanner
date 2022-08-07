@@ -113,7 +113,7 @@
                 <div class="row">
                     <div class="col-xs-12 col-md-2"><strong>Organizing Group:</strong></div>
                     <div class="col-xs-12 col-md-7">
-                        {{ if $e.Group }}{{ $e.Group }}{{ else }}N/A{{ end }}
+                        {{ if $e.Group }}<a href="/search?year={{ $e.Year }}&org={{ $e.Group }}">{{ $e.Group }}</a>{{ else }}N/A{{ end }}
                     </div>
                 </div>
                 <div class="row">
