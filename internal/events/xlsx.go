@@ -23,13 +23,33 @@ type excelRow struct {
 func parseTime(dateString string) time.Time {
 	// source format:			07/30/2015 03:00 PM
 	// canonical go time: 		Mon Jan 2 15:04:05 -0700 MST 2006
-	// reformated canonical: 	01/02/2006 03:04 PM
+	// reformatted canonical: 	01/02/2006 03:04 PM
 	location, _ := time.LoadLocation("America/Indianapolis")
 	parsed, _ := time.ParseInLocation(
 		"01/02/2006 03:04 PM",
 		dateString,
 		location)
 	return parsed
+}
+
+func parseCellToString(cell excelCell) string {
+	value := cell.String
+	if value == "" {
+		if cell.Number != 0 {
+			value = strconv.FormatInt((int64)(cell.Number), 10)
+		}
+	}
+	return value
+}
+
+func parseRoom(cell excelCell) string {
+	value := cell.String
+	if value == "" {
+		if cell.Number != 0 {
+			value = "Room " + strconv.FormatInt((int64)(cell.Number), 10)
+		}
+	}
+	return value
 }
 
 func rowToEvent(row *excelRow) *GenconEvent {
@@ -50,16 +70,12 @@ func rowToEvent(row *excelRow) *GenconEvent {
 	lastModifiedDuration := (time.Duration)(cells[30].Number * (float64)(time.Hour) * 24)
 	lastModified := excelReferenceDate.Add(lastModifiedDuration)
 
-	title := cells[2].String
-	if title == "" && cells[2].Number != 0 {
-		title = strconv.FormatInt((int64)(cells[2].Number), 10)
-	}
 	return NormalizeEvent(&GenconEvent{
 		EventId:              eventId,
 		Year:                 year,
 		Active:               true,
 		Group:                cells[1].String,
-		Title:                title,
+		Title:                parseCellToString(cells[2]),
 		ShortDescription:     cells[3].String,
 		LongDescription:      cells[4].String,
 		EventType:            cells[5].String,
@@ -83,8 +99,8 @@ func rowToEvent(row *excelRow) *GenconEvent {
 		AttendeeRegistration: cells[23].String,
 		Cost:                 (int)(cells[24].Number),
 		Location:             cells[25].String,
-		RoomName:             cells[26].String,
-		TableNumber:          cells[27].String,
+		RoomName:             parseRoom(cells[26]),
+		TableNumber:          parseCellToString(cells[27]),
 		SpecialCategory:      cells[28].String,
 		TicketsAvailable:     (int)(cells[29].Number),
 		LastModified:         lastModified,
