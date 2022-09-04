@@ -352,7 +352,7 @@ CREATE INDEX alias_idx
 
 -- DROP FUNCTION public.update_org();
 
-CREATE FUNCTION public.update_org()
+CREATE OR REPLACE FUNCTION public.update_org()
     RETURNS trigger
     LANGUAGE 'plpgsql'
     COST 100
@@ -366,8 +366,14 @@ BEGIN
     INSERT INTO orgs(alias)
     SELECT new.org_group
     WHERE NOT EXISTS (
-        SELECT alias FROM orgs WHERE lower(new.org_group) = lower(alias)
+        SELECT alias FROM orgs WHERE new.org_group = alias
     );
+
+    UPDATE orgs o
+    SET id = (SELECT MIN(o2.id) FROM orgs o2
+              WHERE TRANSLATE(LOWER(o2.alias), '''.", ', '')
+                        = TRANSLATE(LOWER(o.alias), '''.", ', ''))
+    WHERE o.alias = new.org_group;
 END
 $BODY$;
 
