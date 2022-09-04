@@ -124,7 +124,10 @@ func Search(db *sql.DB) func(c *gin.Context) {
 		parsedQuery.StartAfterHour = parseHour(c, "start_after", -1)
 		parsedQuery.EndBeforeHour = parseHour(c, "end_before", -1)
 		parsedQuery.EndAfterHour = parseHour(c, "end_after", -1)
-		parsedQuery.Org = c.Query("org")
+		orgId, err := strconv.Atoi(c.Query("org_id"))
+		if err == nil {
+			parsedQuery.OrgId = orgId
+		}
 
 		// Filter out nonsensical start times -- if you set both to the same, you
 		// probably don't want any filter applied on the field.

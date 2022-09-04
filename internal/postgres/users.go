@@ -118,8 +118,8 @@ GROUP BY e.cluster_key, day_of_week
 func LoadStarredEvents(db *sql.DB, userEmail string, year int) ([]*events.GenconEvent, error) {
 	fields := "e1." + strings.Join(eventFields(), ", e1.")
 	rows, err := db.Query(fmt.Sprintf(`
-SELECT %s, true
-FROM events e1
+SELECT %s, true, o.id
+FROM events e1 LEFT JOIN orgs o ON (lower(o.alias) = lower(e1.org_group))
 WHERE
   e1.year = $2
   AND e1.active

@@ -66,7 +66,7 @@ type ParsedQuery struct {
 	StartAfterHour  int
 	EndBeforeHour   int
 	EndAfterHour    int
-	Org 			string
+	OrgId 			int
 }
 
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
@@ -186,13 +186,14 @@ func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.
 
 	fields := "e1." + strings.Join(eventFields(), ", e1.")
 	rows, err := db.Query(fmt.Sprintf(`
-SELECT %s, se.event_id is not null
+SELECT %s, se.event_id is not null, o.id
 FROM events e1 
      JOIN events e2 on e1.year = e2.year
           AND e1.short_category = e2.short_category
           AND e1.title = e2.title
           AND e1.cluster_key = e2.cluster_key
      LEFT JOIN starred_events se ON se.event_id = e1.event_id AND se.email = $3
+     LEFT JOIN orgs o ON lower(o.alias) = lower(e1.org_group)
 WHERE e2.event_id = $1
   AND e1.year = $2
 ORDER BY e1.start_time`, fields), eventId, year, userEmail)
@@ -275,9 +276,8 @@ GROUP BY cluster_key, short_category, title
 	}
 	fullWhere := fmt.Sprintf("e.year = %v AND (%v)", query.Year, dayPart)
 
-	if len(query.Org) > 0 {
-		org := strings.ReplaceAll(query.Org, "'", "\\'")
-		fullWhere = fmt.Sprintf("(%v) AND strpos(e.org_group, '%v') > 0", fullWhere, org)
+	if query.OrgId > 0 {
+		fullWhere = fmt.Sprintf("(%v) AND o.id = %v", fullWhere, query.OrgId)
 	}
 
 	fullQuery := fmt.Sprintf(`
@@ -296,9 +296,10 @@ SELECT
 	   c.sun_tickets
 FROM events e JOIN (%v) AS c 
 	ON e.title = c.title
-    AND e.short_category = c.short_category
-    AND e.cluster_key = c.cluster_key
-    AND e.start_time = c.start_time
+        AND e.short_category = c.short_category
+        AND e.cluster_key = c.cluster_key
+        AND e.start_time = c.start_time
+    JOIN orgs o ON lower(o.alias) = lower(e.org_group)
 WHERE %v
 ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 `, innerQuery, fullWhere)
@@ -566,7 +567,8 @@ func scanEvent(row *sql.Rows) (*events.GenconEvent, error) {
 		&event.TicketsAvailable,
 		&event.LastModified,
 		&event.ShortCategory,
-		&event.IsStarred)
+		&event.IsStarred,
+		&event.OrgId)
 
 	event.StartTime = event.StartTime.In(INDIANAPOLIS)
 	event.EndTime = event.EndTime.In(INDIANAPOLIS)

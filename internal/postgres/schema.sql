@@ -138,44 +138,46 @@ ALTER TABLE public.users
 
 CREATE TABLE public.events
 (
-  event_id character varying(12) COLLATE pg_catalog."default" NOT NULL,
-  active boolean,
-  org_group text COLLATE pg_catalog."default",
-  title text COLLATE pg_catalog."default",
-  short_description text COLLATE pg_catalog."default",
-  long_description text COLLATE pg_catalog."default",
-  event_type character varying(50) COLLATE pg_catalog."default",
-  game_system text COLLATE pg_catalog."default",
-  rules_edition text COLLATE pg_catalog."default",
-  min_players integer,
-  max_players integer,
-  age_required character varying(50) COLLATE pg_catalog."default",
-  experience_required text COLLATE pg_catalog."default",
-  materials_provided boolean,
-  start_time timestamp with time zone,
-  duration integer,
-  end_time timestamp with time zone,
-  gm_names text COLLATE pg_catalog."default",
-  website text COLLATE pg_catalog."default",
-  email text COLLATE pg_catalog."default",
-  tournament boolean,
-  round_number integer,
-  total_rounds integer,
-  min_play_time integer,
-  attendee_registration text COLLATE pg_catalog."default",
-  cost integer,
-  location text COLLATE pg_catalog."default",
-  room_name text COLLATE pg_catalog."default",
-  table_number text COLLATE pg_catalog."default",
-  special_category text COLLATE pg_catalog."default",
-  tickets_available integer,
-  year integer,
-  cluster_key tsvector,
-  last_modified timestamp with time zone,
-  short_category character varying(4) COLLATE pg_catalog."default",
-  title_tsv tsvector,
-  desc_tsv tsvector,
-  CONSTRAINT event_pkey PRIMARY KEY (event_id)
+    event_id character varying(12) COLLATE pg_catalog."default" NOT NULL,
+    active boolean,
+    org_group text COLLATE pg_catalog."default",
+    title text COLLATE pg_catalog."default",
+    short_description text COLLATE pg_catalog."default",
+    long_description text COLLATE pg_catalog."default",
+    event_type character varying(50) COLLATE pg_catalog."default",
+    game_system text COLLATE pg_catalog."default",
+    rules_edition text COLLATE pg_catalog."default",
+    min_players integer,
+    max_players integer,
+    age_required character varying(50) COLLATE pg_catalog."default",
+    experience_required text COLLATE pg_catalog."default",
+    materials_provided boolean,
+    start_time timestamp with time zone,
+    duration integer,
+    end_time timestamp with time zone,
+    gm_names text COLLATE pg_catalog."default",
+    website text COLLATE pg_catalog."default",
+    email text COLLATE pg_catalog."default",
+    tournament boolean,
+    round_number integer,
+    total_rounds integer,
+    min_play_time integer,
+    attendee_registration text COLLATE pg_catalog."default",
+    cost integer,
+    location text COLLATE pg_catalog."default",
+    room_name text COLLATE pg_catalog."default",
+    table_number text COLLATE pg_catalog."default",
+    special_category text COLLATE pg_catalog."default",
+    tickets_available integer,
+    year integer,
+    cluster_key tsvector,
+    last_modified timestamp with time zone,
+    short_category character varying(4) COLLATE pg_catalog."default",
+    title_tsv tsvector,
+    desc_tsv tsvector,
+    day_of_week integer,
+    search_key tsvector,
+    CONSTRAINT event_pkey PRIMARY KEY (event_id)
 )
   WITH (
     OIDS = FALSE
@@ -309,3 +311,86 @@ CREATE TRIGGER search_vectorupdate
   ON public.events
   FOR EACH ROW
 EXECUTE PROCEDURE tsvector_update_trigger('search_key', 'pg_catalog.english', 'title', 'short_description', 'long_description', 'org_group', 'event_type', 'event_id', 'game_system');
+
+-- SEQUENCE: public.orgs_id_seq
+
+-- DROP SEQUENCE public.orgs_id_seq;
+
+CREATE SEQUENCE public.orgs_id_seq;
+
+ALTER SEQUENCE public.orgs_id_seq
+    OWNER TO postgres;
+
+-- Table: public.orgs
+
+-- DROP TABLE public.orgs;
+
+CREATE TABLE public.orgs
+(
+    id integer NOT NULL DEFAULT nextval('orgs_id_seq'::regclass),
+    alias text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT orgs_pkey PRIMARY KEY (id, alias)
+)
+    WITH (
+        OIDS = FALSE
+    )
+    TABLESPACE pg_default;
+
+ALTER TABLE public.orgs
+    OWNER to postgres;
+
+-- Index: alias_idx
+
+-- DROP INDEX public.alias_idx;
+
+CREATE INDEX alias_idx
+    ON public.orgs USING btree
+        (alias COLLATE pg_catalog."default" text_pattern_ops)
+    TABLESPACE pg_default;
+
+-- FUNCTION: public.update_org()
+
+-- DROP FUNCTION public.update_org();
+
+CREATE FUNCTION public.update_org()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE NOT LEAKPROOF
+AS $BODY$
+BEGIN
+    IF new.org_group = '' OR new.org_group is null THEN
+        RETURN NULL;
+    END IF;
+
+    INSERT INTO orgs(alias)
+    SELECT new.org_group
+    WHERE NOT EXISTS (
+        SELECT alias FROM orgs WHERE lower(new.org_group) = lower(alias)
+    );
+END
+$BODY$;
+
+ALTER FUNCTION public.update_org()
+    OWNER TO postgres;
+
+-- Trigger: update_org
+
+-- DROP TRIGGER update_org ON public.events;
+
+CREATE TRIGGER update_org
+    BEFORE INSERT OR UPDATE OF org_group
+    ON public.events
+    FOR EACH ROW
+EXECUTE PROCEDURE public.update_org();
+
+-- insert into orgs(alias)
+-- (
+-- 	select
+-- 	  distinct e.org_group
+-- 	from events as e
+-- )
+
+-- update orgs o
+-- set id = (select min(o2.id) from orgs o2
+-- 		  where translate(lower(o2.alias), '''.", ', '') = translate(lower(o.alias), '''.", ', '') )

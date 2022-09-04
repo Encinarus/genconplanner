@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+    {{ template "header" "Gencon Events"}}
+    <style>
+        .org:hover, .org:hover * {
+            background-color: lightgrey;
+            color: black;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    {{ template "navbar" .context }}
+    <h2>This page is for merging {{len .orgs }} orgs</h2>
+    <form action="/admin/orgs/" method="post">
+        <div class="row">
+        <input type="submit" id="merge_orgs" name="merge_orgs" value="Merge">
+        </div>
+        <div class="row">
+            {{ range $org := .orgs }}
+                {{ $aliasLength := len $org.Aliases }}
+                {{ if ne $aliasLength 0 }}
+                <label for="id_{{$org.Id}}" class="org col-xl-4 col-lg-6 col-md-6 rounded border mb-1 p-1">
+                    <input type="checkbox" id="id_{{$org.Id}}" name="id" value="{{ $org.Id }}" class="col-md-1"/>
+                    {{ $org.NumEvents }} events
+                    <ul class="list-group list-group-flush">
+                        {{ range $alias := $org.Aliases }}<li class="list-group-item">{{ if eq "" $alias }}No org provided{{else}}{{$alias}}{{end}}</li>{{ end }}
+                    </ul>
+                </label>
+                {{ end }}
+            {{ end }}
+        </div>
+    </form>
+</div>
+</body>
+
+{{ template "scriptFooter" }}
+</body>
+</html>

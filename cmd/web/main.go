@@ -54,11 +54,11 @@ func SetupBackground(db *sql.DB) {
 
 	go func() {
 		for {
-			background.UpdateGamesFromBGG(db)
 			// Delay until the next tick
 			select {
 			case <-bggTicker.C:
 			}
+			background.UpdateGamesFromBGG(db)
 		}
 	}()
 
@@ -110,7 +110,10 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.GET("/listStarredGroups/:year", web.GetStarredEventGroups(db))
 	r.GET("/about", web.About(db))
 	r.GET("/user", web.User(db))
+	r.GET("/admin/orgs/", web.ViewOrgs(db))
+	r.POST("/admin/orgs/", web.MergeOrgs(db))
 
 	r.POST("/party/new", web.NewParty(db))
+	r.GET("/party/:party_id", web.Party(db))
 	r.Run(fmt.Sprintf(":%d", *port))
 }

@@ -7,8 +7,47 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
+
+func Party(db *sql.DB) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		appContext := c.MustGet("context").(*Context)
+
+		if appContext.Email == "" {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		var partyId int64
+		var err error
+		if len(strings.TrimSpace(c.Param("party_id"))) > 0 {
+			partyId, err = strconv.ParseInt(c.Param("party_id"), 10, 64)
+			if err != nil {
+				log.Printf("Error parsing party_id")
+				c.AbortWithError(http.StatusBadRequest, err)
+				return
+			}
+		} else {
+			log.Printf("No party id provided")
+		}
+
+		var party *postgres.Party
+		parties, err := postgres.LoadParties(db, appContext.User)
+		for _, p := range parties {
+			if p.Id == partyId {
+				party = p
+				break
+			}
+		}
+
+		c.HTML(http.StatusOK, "party.html", gin.H{
+			"party":       party,
+			"context":      appContext,
+		})
+	}
+}
 
 func NewParty(db *sql.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {

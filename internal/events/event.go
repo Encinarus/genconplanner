@@ -141,6 +141,7 @@ type GenconEvent struct {
 	LastModified         time.Time
 	ShortCategory        string
 	IsStarred            bool
+	OrgId            	 int64
 }
 
 func NormalizeEvent(event *GenconEvent) *GenconEvent {
