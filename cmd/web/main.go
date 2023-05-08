@@ -98,7 +98,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.GET("/search", web.Search(db))
 	r.GET("/cat/:year/:cat", web.ViewCategory(db))
 	index := func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently,
+		c.Redirect(http.StatusTemporaryRedirect,
 			fmt.Sprintf("/cat/%d", time.Now().Year()))
 	}
 	r.GET("/", index)
