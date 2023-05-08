@@ -371,8 +371,8 @@ BEGIN
 
     UPDATE orgs o
     SET id = (SELECT MIN(o2.id) FROM orgs o2
-              WHERE TRANSLATE(LOWER(o2.alias), '''.", ', '')
-                        = TRANSLATE(LOWER(o.alias), '''.", ', ''))
+              WHERE TRANSLATE(LOWER(o2.alias), '''.",!:; ', '')
+                        = TRANSLATE(LOWER(o.alias), '''.",!:; ', ''))
     WHERE o.alias = new.org_group;
 END
 $BODY$;
@@ -399,4 +399,4 @@ EXECUTE PROCEDURE public.update_org();
 
 -- update orgs o
 -- set id = (select min(o2.id) from orgs o2
--- 		  where translate(lower(o2.alias), '''.", ', '') = translate(lower(o.alias), '''.", ', '') )
+-- 		  where translate(lower(o2.alias), '''.",!:; ', '') = translate(lower(o.alias), '''.",!:; ', '') )
