@@ -54,8 +54,8 @@ func parseRoom(cell excelCell) string {
 
 func rowToEvent(row *excelRow) *GenconEvent {
 	cells := row.Cells
-	startTime := parseTime(cells[13].String)
-	duration := (int)(60 * cells[14].Number)
+	startTime := parseTime(cells[14].String)
+	duration := (int)(60 * cells[15].Number)
 	// We don't trust the end time supplied in the sheet, it's disagreed
 	// with what gencon.com listed, so calculate based on duration
 	// time.Duration is in nano seconds, convert minutes to seconds
@@ -67,7 +67,7 @@ func rowToEvent(row *excelRow) *GenconEvent {
 	indy, _ := time.LoadLocation("America/Indianapolis")
 	excelReferenceDate := time.Date(1900, time.January, 01, 0, 0, 0, 0, indy)
 	// This doesn't quite get us the last update time, but it's close enough
-	lastModifiedDuration := (time.Duration)(cells[30].Number * (float64)(time.Hour) * 24)
+	lastModifiedDuration := (time.Duration)(cells[31].Number * (float64)(time.Hour) * 24)
 	lastModified := excelReferenceDate.Add(lastModifiedDuration)
 
 	return NormalizeEvent(&GenconEvent{
@@ -89,20 +89,20 @@ func rowToEvent(row *excelRow) *GenconEvent {
 		StartTime:            startTime,
 		Duration:             duration,
 		EndTime:              endTime,
-		GMNames:              cells[16].String,
-		Website:              cells[17].String,
-		Email:                cells[18].String,
-		Tournament:           cells[19].String == "Yes",
-		RoundNumber:          (int)(cells[20].Number),
-		TotalRounds:          (int)(cells[21].Number),
-		MinPlayTime:          (int)(60 * cells[22].Number),
-		AttendeeRegistration: cells[23].String,
-		Cost:                 (int)(cells[24].Number),
-		Location:             cells[25].String,
-		RoomName:             parseRoom(cells[26]),
-		TableNumber:          parseCellToString(cells[27]),
-		SpecialCategory:      cells[28].String,
-		TicketsAvailable:     (int)(cells[29].Number),
+		GMNames:              cells[17].String,
+		Website:              cells[18].String,
+		Email:                cells[19].String,
+		Tournament:           cells[20].String == "Yes",
+		RoundNumber:          (int)(cells[21].Number),
+		TotalRounds:          (int)(cells[22].Number),
+		MinPlayTime:          (int)(60 * cells[23].Number),
+		AttendeeRegistration: cells[24].String,
+		Cost:                 (int)(cells[25].Number),
+		Location:             cells[26].String,
+		RoomName:             parseRoom(cells[27]),
+		TableNumber:          parseCellToString(cells[28]),
+		SpecialCategory:      cells[29].String,
+		TicketsAvailable:     (int)(cells[30].Number),
 		LastModified:         lastModified,
 		ShortCategory:        shortCategory,
 	})
