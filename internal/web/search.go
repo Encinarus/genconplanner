@@ -26,7 +26,7 @@ func parseQuery(searchQuery string, year int, days map[string]bool) *postgres.Pa
 		query.Year = maxYear
 	}
 
-	log.Printf("Search query: %s", searchQuery)
+	log.Printf("Search query: %v", query)
 
 	// Preprocess, removing symbols which are used in tsquery
 	searchQuery = strings.Replace(searchQuery, "!", "", -1)
@@ -103,7 +103,7 @@ func Search(db *sql.DB) func(c *gin.Context) {
 
 	return func(c *gin.Context) {
 		query := c.Query("q")
-		year, err := strconv.Atoi(c.Query("y"))
+		year, err := strconv.Atoi(c.Query("year"))
 		if err != nil {
 			year = time.Now().Year()
 		}
