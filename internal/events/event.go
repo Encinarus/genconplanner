@@ -70,32 +70,38 @@ func LongCategory(shortCategory string) string {
 }
 
 func CategoryFromEvent(rawEventId string) string {
-	category, _ := splitId(rawEventId)
+	category, _, _, _ := splitId(rawEventId)
 	return category
 }
 
 func YearFromEvent(rawEventId string) int {
-	_, year := splitId(rawEventId)
+	_, year, _, _ := splitId(rawEventId)
 	return year
 }
 
-func splitId(rawEventId string) (string, int) {
+func splitId(rawEventId string) (string, int, string, string) {
 	category := ""
-	yearId := ""
+	rawYear := ""
+	locale := ""
+	rawId := ""
 	if eventCategoryRegex.MatchString(rawEventId) {
 		// In 2023, gencon changed up the format of their ids. Boo.
 		parsedFields := eventCategoryRegex.FindAllStringSubmatch(rawEventId, -1)
 		category = parsedFields[0][1]
-		yearId = parsedFields[0][2]
+		rawYear = parsedFields[0][2]
+		locale = parsedFields[0][3] // I assume it's locale at least
+		rawId = parsedFields[0][4]
 	} else {
 		// This was the event id format before 2023
 		// Remove the letters on the left leaves us with <2 # year><id>
-		yearId = strings.TrimLeftFunc(rawEventId, unicode.IsLetter)
+		yearId := strings.TrimLeftFunc(rawEventId, unicode.IsLetter)
+		rawYear = yearId[:2]
+		rawId = yearId[2:]
 		// Remove the numbers on the right leaves us with the event category
 		category = strings.TrimRightFunc(rawEventId, unicode.IsDigit)
 	}
 
-	twoDigitYear, err := strconv.Atoi(yearId[:2])
+	twoDigitYear, err := strconv.Atoi(rawYear)
 	if err != nil {
 		log.Fatalf("Unable to parse year out of %s, %v", rawEventId, err)
 	}
@@ -103,7 +109,7 @@ func splitId(rawEventId string) (string, int) {
 		log.Fatalf("Unsupported year being parsed! rawEventId %s", rawEventId)
 	}
 
-	return category, 2000 + twoDigitYear
+	return category, 2000 + twoDigitYear, locale, rawId
 }
 
 type SlimEvent struct {
@@ -258,7 +264,7 @@ func (e *GenconEvent) PlannerLink() string {
 }
 
 func (e *GenconEvent) GenconLink() string {
-	id := strings.TrimLeftFunc(e.EventId, unicode.IsLetter)[2:]
+	_, _, _, id := splitId(e.EventId)
 	return fmt.Sprintf("http://gencon.com/events/%v", id)
 }
 

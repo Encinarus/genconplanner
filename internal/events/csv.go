@@ -40,7 +40,7 @@ func linetoEvent(row []string) *GenconEvent {
 	endTime := startTime.Add((time.Duration)(1e9 * 60 * duration))
 
 	eventId := row[0]
-	shortCategory, year := splitId(eventId)
+	shortCategory, year, _, _ := splitId(eventId)
 
 	indy, _ := time.LoadLocation("America/Indianapolis")
 	lastModified, _ := time.ParseInLocation("01-02-06", row[30], indy)

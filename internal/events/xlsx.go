@@ -62,7 +62,7 @@ func rowToEvent(row *excelRow) *GenconEvent {
 	endTime := startTime.Add((time.Duration)(1e9 * 60 * duration))
 
 	eventId := cells[0].String
-	shortCategory, year := splitId(eventId)
+	shortCategory, year, _, _ := splitId(eventId)
 
 	indy, _ := time.LoadLocation("America/Indianapolis")
 	excelReferenceDate := time.Date(1900, time.January, 01, 0, 0, 0, 0, indy)
