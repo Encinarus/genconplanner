@@ -80,9 +80,20 @@ func YearFromEvent(rawEventId string) int {
 }
 
 func splitId(rawEventId string) (string, int) {
-	parsedFields := eventCategoryRegex.FindAllStringSubmatch(rawEventId, -1)
-	category := parsedFields[0][1]
-	yearId := parsedFields[0][2]
+	category := ""
+	yearId := ""
+	if eventCategoryRegex.MatchString(rawEventId) {
+		// In 2023, gencon changed up the format of their ids. Boo.
+		parsedFields := eventCategoryRegex.FindAllStringSubmatch(rawEventId, -1)
+		category = parsedFields[0][1]
+		yearId = parsedFields[0][2]
+	} else {
+		// This was the event id format before 2023
+		// Remove the letters on the left leaves us with <2 # year><id>
+		yearId = strings.TrimLeftFunc(rawEventId, unicode.IsLetter)
+		// Remove the numbers on the right leaves us with the event category
+		category = strings.TrimRightFunc(rawEventId, unicode.IsDigit)
+	}
 
 	twoDigitYear, err := strconv.Atoi(yearId[:2])
 	if err != nil {
