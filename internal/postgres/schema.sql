@@ -102,7 +102,7 @@ CREATE INDEX bgf_name_idx
 CREATE TABLE public.starred_events
 (
   email text COLLATE pg_catalog."default" NOT NULL,
-  event_id character varying(12) COLLATE pg_catalog."default" NOT NULL,
+  event_id character varying(13) COLLATE pg_catalog."default" NOT NULL,
   level character varying(10) COLLATE pg_catalog."default",
   CONSTRAINT starred_events_pkey PRIMARY KEY (event_id, email)
 )
@@ -138,7 +138,7 @@ ALTER TABLE public.users
 
 CREATE TABLE public.events
 (
-    event_id character varying(12) COLLATE pg_catalog."default" NOT NULL,
+    event_id character varying(13) COLLATE pg_catalog."default" NOT NULL,
     active boolean,
     org_group text COLLATE pg_catalog."default",
     title text COLLATE pg_catalog."default",
@@ -374,6 +374,7 @@ BEGIN
               WHERE TRANSLATE(LOWER(o2.alias), '''.",!:; ', '')
                         = TRANSLATE(LOWER(o.alias), '''.",!:; ', ''))
     WHERE o.alias = new.org_group;
+    RETURN NEW;
 END
 $BODY$;
 

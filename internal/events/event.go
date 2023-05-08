@@ -3,11 +3,14 @@ package events
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 )
+
+var eventCategoryRegex = regexp.MustCompile(`([A-Z]*)(\d\d)([A-Z][A-Z])(\d+)`)
 
 func PartitionEventsByDay(loadedEvents []*GenconEvent) map[string][]*GenconEvent {
 	eventsPerDay := make(map[string][]*GenconEvent)
@@ -77,10 +80,9 @@ func YearFromEvent(rawEventId string) int {
 }
 
 func splitId(rawEventId string) (string, int) {
-	// Remove the letters on the left leaves us with <2 # year><id>
-	yearId := strings.TrimLeftFunc(rawEventId, unicode.IsLetter)
-	// Remove the numbers on the right leaves us with the event category
-	category := strings.TrimRightFunc(rawEventId, unicode.IsDigit)
+	parsedFields := eventCategoryRegex.FindAllStringSubmatch(rawEventId, -1)
+	category := parsedFields[0][1]
+	yearId := parsedFields[0][2]
 
 	twoDigitYear, err := strconv.Atoi(yearId[:2])
 	if err != nil {
