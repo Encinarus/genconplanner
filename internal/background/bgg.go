@@ -80,6 +80,8 @@ func UpdateGamesFromBGG(db *sql.DB) {
 		8374: true,
 	}
 	gamesToAddToBacklog := []int64{
+		// Seeded from bgg hotlist: advanced search, sort by rank,
+		// filter to new year.
 		368966, 338067, 350184, 366013, 295770, 322289, 281526, 321608,
 		332772, 374173, 316624, 242705, 324090, 258779, 281549, 295895,
 		368058, 371972, 311988, 267609, 336986, 363252, 358026, 287673,
