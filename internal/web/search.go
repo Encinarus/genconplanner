@@ -90,7 +90,7 @@ func parseHour(c *gin.Context, param string, defaultValue int) int {
 }
 
 func Search(db *sql.DB) func(c *gin.Context) {
-	keyFunc := func(g *postgres.EventGroup) (string, string) {
+	defaultKeyFunc := func(g *postgres.EventGroup) (string, string) {
 		majorGroup := events.LongCategory(g.ShortCategory)
 		minorGroup := "Unspecified"
 
@@ -152,7 +152,7 @@ func Search(db *sql.DB) func(c *gin.Context) {
 			appContext := c.MustGet("context").(*Context)
 			appContext.Year = year
 
-			majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, keyFunc)
+			majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, defaultKeyFunc)
 			c.HTML(http.StatusOK, "results.html", gin.H{
 				"context":       appContext,
 				"majorHeadings": majorHeadings,
