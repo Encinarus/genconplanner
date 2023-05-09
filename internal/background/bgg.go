@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"github.com/Encinarus/genconplanner/internal/bgg"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"log"
@@ -15,6 +16,59 @@ func addIdsToBacklog(backlog map[int64]bool, newIds []int64) {
 			backlog[id] = true
 		}
 	}
+}
+
+func RefreshGame(ctx context.Context, bggId int64,
+	familyBacklog map[int64]bool, db *sql.DB, api *bgg.BggApi) (*postgres.Game, error) {
+
+	apiGame, err := api.GetGame(ctx, bggId)
+	if err != nil {
+		log.Printf("Issue getting apiGame %v", err)
+		return nil, err
+	}
+	var familyIds []int64
+
+	for _, related := range apiGame.Item.Link {
+		// Other types exist (below), unfortunately we can't query for them. If BGG adds
+		// support for pulling these down, we can expand how we branch out and discover
+		// games.
+		//		boardgamecategory
+		//		boardgamemechanic
+		//		boardgamedesigner
+		//		boardgameartist
+		//		boardgamepublisher
+		if related.Type != "boardgamefamily" {
+			return nil, errors.New("Not a board game")
+		}
+		familyIds = append(familyIds, related.ID)
+	}
+
+	addIdsToBacklog(familyBacklog, familyIds)
+
+	// Default to 0 just in case none of them are primary
+	name := apiGame.Item.Name[0].Value
+	for _, n := range apiGame.Item.Name {
+		if n.Type == "primary" {
+			name = n.Value
+			break
+		}
+	}
+
+	g := &postgres.Game{
+		Name:          name,
+		BggId:         apiGame.Item.ID,
+		FamilyIds:     familyIds,
+		LastUpdate:    time.Now(),
+		NumRatings:    apiGame.Item.Statistics.Ratings.NumRatings.Value,
+		AvgRatings:    apiGame.Item.Statistics.Ratings.Average.Value,
+		YearPublished: apiGame.Item.YearPublished.Value,
+		Type:          apiGame.Item.Type,
+	}
+	if err = g.Upsert(db); err != nil {
+		log.Printf("Issue storing apiGame %v", err)
+		return nil, err
+	}
+	return g, nil
 }
 
 func UpdateGamesFromBGG(db *sql.DB) {
@@ -114,63 +168,38 @@ func UpdateGamesFromBGG(db *sql.DB) {
 		}
 
 		familyBacklog = make(map[int64]bool)
+		// Prioritize unknown games.
+		for id := range gameBacklog {
+			_, found := games[id]
+			if found {
+				// Will be picked up next loop
+				continue
+			}
+			processedGames++
+
+			_, err := RefreshGame(ctx, id, familyBacklog, db, api)
+			if err != nil {
+				log.Printf("Issue getting apiGame %v", err)
+				continue
+			}
+		}
 		for id := range gameBacklog {
 			dbGame, found := games[id]
-			if found && dbGame.LastUpdate.After(gameUpdateLimit) {
+			if !found {
+				// Handled in first loop
+				continue
+			} else if dbGame.LastUpdate.After(gameUpdateLimit) {
 				// We still want this for identifying families to load
 				addIdsToBacklog(familyBacklog, dbGame.FamilyIds)
 				continue
 			}
 			processedGames++
 
-			apiGame, err := api.GetGame(ctx, id)
+			_, err := RefreshGame(ctx, id, familyBacklog, db, api)
 			if err != nil {
 				log.Printf("Issue getting apiGame %v", err)
 				continue
 			}
-			var familyIds []int64
-
-			for _, related := range apiGame.Item.Link {
-				// Other types exist (below), unfortunately we can't query for them. If BGG adds
-				// support for pulling these down, we can expand how we branch out and discover
-				// games.
-				//		boardgamecategory
-				//		boardgamemechanic
-				//		boardgamedesigner
-				//		boardgameartist
-				//		boardgamepublisher
-				if related.Type != "boardgamefamily" {
-					continue
-				}
-				familyIds = append(familyIds, related.ID)
-			}
-
-			addIdsToBacklog(familyBacklog, familyIds)
-
-			// Default to 0 just in case none of them are primary
-			name := apiGame.Item.Name[0].Value
-			for _, n := range apiGame.Item.Name {
-				if n.Type == "primary" {
-					name = n.Value
-					break
-				}
-			}
-
-			g := &postgres.Game{
-				Name:          name,
-				BggId:         apiGame.Item.ID,
-				FamilyIds:     familyIds,
-				LastUpdate:    time.Now(),
-				NumRatings:    apiGame.Item.Statistics.Ratings.NumRatings.Value,
-				AvgRatings:    apiGame.Item.Statistics.Ratings.Average.Value,
-				YearPublished: apiGame.Item.YearPublished.Value,
-				Type:          apiGame.Item.Type,
-			}
-			if err = g.Upsert(db); err != nil {
-				log.Printf("Issue storing apiGame %v", err)
-				continue
-			}
-			games[id] = g
 		}
 
 		// We're done! We don't know about anything else to dig into
