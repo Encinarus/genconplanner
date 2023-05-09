@@ -135,39 +135,6 @@ func UpdateGamesFromBGG(db *sql.DB) {
 		processedGames := 0
 		processedFamilies := 0
 
-		for id := range familyBacklog {
-			dbFamily, found := families[id]
-			if found && dbFamily.LastUpdate.After(familyUpdateLimit) {
-				addIdsToBacklog(gameBacklog, dbFamily.GameIds)
-				continue
-			}
-			processedFamilies++
-
-			bggFamily, err := api.GetFamily(ctx, id)
-			if err != nil {
-				log.Printf("Issue getting family: %v", err)
-				continue
-			}
-			gameIds := make([]int64, 0, 0)
-			for _, related := range bggFamily.Item.Link {
-				gameIds = append(gameIds, related.ID)
-			}
-
-			dbFamily = &postgres.GameFamily{
-				Name:       bggFamily.Item.Name.Value,
-				BggId:      bggFamily.Item.ID,
-				GameIds:    gameIds,
-				LastUpdate: time.Now(),
-			}
-			families[id] = dbFamily
-			err = families[id].Upsert(db)
-			if err != nil {
-				log.Printf("Issue saving family: %v", err)
-				continue
-			}
-		}
-
-		familyBacklog = make(map[int64]bool)
 		// Prioritize unknown games.
 		for id := range gameBacklog {
 			_, found := games[id]
@@ -198,6 +165,39 @@ func UpdateGamesFromBGG(db *sql.DB) {
 			_, err := RefreshGame(ctx, id, familyBacklog, db, api)
 			if err != nil {
 				log.Printf("Issue getting apiGame %v", err)
+				continue
+			}
+		}
+
+		gameBacklog = make(map[int64]bool)
+		for id := range familyBacklog {
+			dbFamily, found := families[id]
+			if found && dbFamily.LastUpdate.After(familyUpdateLimit) {
+				addIdsToBacklog(gameBacklog, dbFamily.GameIds)
+				continue
+			}
+			processedFamilies++
+
+			bggFamily, err := api.GetFamily(ctx, id)
+			if err != nil {
+				log.Printf("Issue getting family: %v", err)
+				continue
+			}
+			gameIds := make([]int64, 0, 0)
+			for _, related := range bggFamily.Item.Link {
+				gameIds = append(gameIds, related.ID)
+			}
+
+			dbFamily = &postgres.GameFamily{
+				Name:       bggFamily.Item.Name.Value,
+				BggId:      bggFamily.Item.ID,
+				GameIds:    gameIds,
+				LastUpdate: time.Now(),
+			}
+			families[id] = dbFamily
+			err = families[id].Upsert(db)
+			if err != nil {
+				log.Printf("Issue saving family: %v", err)
 				continue
 			}
 		}
