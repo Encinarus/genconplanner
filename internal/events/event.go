@@ -279,7 +279,7 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
  		"World of Ulos": "Dawn of Ulos",
  		"Wrath of Ashardalon": "Dungeons & Dragons: Wrath of Ashardalon Board Game",
 		"Zombie Survival": "Zombie Survival: The Board Game",
-		
+
 		// The difference on this one is the emdash!
 		"Disney: The Haunted Mansion - Call of the Spirits Game": "Disney: The Haunted Mansion – Call of the Spirits Game",
 	}

@@ -55,10 +55,10 @@ func SetupBackground(db *sql.DB) {
 	go func() {
 		for {
 			// Delay until the next tick
+			background.UpdateGamesFromBGG(db)
 			select {
 			case <-bggTicker.C:
 			}
-			background.UpdateGamesFromBGG(db)
 		}
 	}()
 
