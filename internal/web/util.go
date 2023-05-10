@@ -148,7 +148,7 @@ func GenconEndDate(year int) string {
 }
 
 func getEnvWithDefault(key, dflt string) string {
-	if val, set := os.LookupEnv(key); set {
+	if val, set := os.LookupEnv(key); set && len(val) > 0 {
 		return val
 	}
 	return dflt
