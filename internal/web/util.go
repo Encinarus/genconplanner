@@ -7,9 +7,19 @@ import (
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 	"log"
+	"os"
 	"sort"
 	"strings"
 )
+
+type FirebaseConfig struct {
+	ApiKey            string
+	AuthDomain        string
+	DatabaseURL       string
+	MessagingSenderId string
+	ProjectId         string
+	StorageBucket     string
+}
 
 type Context struct {
 	Year        int
@@ -17,6 +27,7 @@ type Context struct {
 	Email       string
 	Starred     *postgres.UserStarredEvents
 	User        *postgres.User
+	Firebase    FirebaseConfig
 }
 
 func BootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
@@ -56,6 +67,8 @@ func BootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 				}
 			}
 		}
+
+		appContext.Firebase = getFirebaseConfig()
 
 		c.Set("context", &appContext)
 		c.Next()
@@ -132,4 +145,22 @@ func GenconEndDate(year int) string {
 		return "2019-08-04"
 	}
 	return dates[1]
+}
+
+func getEnvWithDefault(key, dflt string) string {
+	if val, set := os.LookupEnv(key); set {
+		return val
+	}
+	return dflt
+}
+
+func getFirebaseConfig() FirebaseConfig {
+	return FirebaseConfig{
+		ApiKey:            getEnvWithDefault("FIREBASE_API_KEY", "AIzaSyAGtjwGiHYFnXE1UbzLTPeIz8Ix06WIdBs"),
+		AuthDomain:        getEnvWithDefault("FIREBASE_AUTH_DOMAIN", "genconplanner-v2.firebaseapp.com"),
+		DatabaseURL:       getEnvWithDefault("FIREBASE_DATABASE_URL", "https://genconplanner-v2.firebaseio.com"),
+		ProjectId:         getEnvWithDefault("FIREBASE_PROJECT_ID", "genconplanner-v2"),
+		StorageBucket:     getEnvWithDefault("FIREBASE_STORAGE_BUCKET", "genconplanner-v2.appspot.com"),
+		MessagingSenderId: getEnvWithDefault("FIREBASE_MESSAGING_SENDER_ID", "630743534199"),
+	}
 }

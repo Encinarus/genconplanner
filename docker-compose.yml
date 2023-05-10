@@ -1,0 +1,54 @@
+# vim:ts=2:
+version: '3'
+services:
+
+  update:
+    build:
+      dockerfile: ./Dockerfile
+      target: update
+    restart: on-failure
+    links:
+    - db
+    environment:
+    - POSTGRES_DB=genconplanner
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=g3nc0n
+
+  web:
+    build:
+      dockerfile: ./Dockerfile
+      target: web
+    restart: on-failure
+    ports:
+    - "8080:8080"
+    links:
+    - db
+    depends_on:
+    - update
+    environment:
+    - POSTGRES_DB=genconplanner
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=g3nc0n
+    - FIREBASE_CONFIG=${FIREBASE_CONFIG}
+    - FIREBASE_API_KEY=${FIREBASE_API_KEY}
+    - FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN}
+    - FIREBASE_DATABASE_URL=${FIREBASE_DATABASE_URL}
+    - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+    - FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET}
+    - FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID}
+
+  db:
+    image: "postgres:15-alpine"
+    restart: on-failure
+    volumes:
+    - db_data:/var/lib/postgresql/data
+    - ./internal/postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    environment:
+    - POSTGRES_DB=genconplanner
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=g3nc0n
+    ports:
+    - "5432:5432"
+
+volumes:
+  db_data:
