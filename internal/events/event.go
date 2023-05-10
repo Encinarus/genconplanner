@@ -279,10 +279,34 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		"Way Too Many Cats":                                  "Way Too Many Cats!",
 		"World of Ulos":                                      "Dawn of Ulos",
 		"Wrath of Ashardalon":                                "Dungeons & Dragons: Wrath of Ashardalon Board Game",
+
+		"5 Minute Dungeon": "5-Minute Dungeon",
+		"5 Minute Mystery": "5-Minute Mystery",
+		"7th Sea City of Five Sails": "7th Sea: City of Five Sails",
+		"Angry Town": "Angry Town: The Fighting Card Game",
+		"Ashes Reborn": "Ashes Reborn: Rise of the Phoenixborn",
+		"Channel A: The Anime Pitch Game": "Channel A",
+		"Darwin Awards": "Darwin Awards Party Card Game",
+		"Epic Spell Wars Annihilageddon": "Epic Spell Wars of the Battle Wizards: Annihilageddon Deck-Building Game",
+		"Fates of Madness: An Adventure Card Game": "Fates of Madness",
+		"Inca Empire TCG": "Inca Empire: The Card Game",
+		"Marvel Champions": "Marvel Champions: The Card Game",
+		"Pasaraya": "Pasaraya: Supermarket Manager",
+		"Pick-a-Pepper (Sauscharf)": "Pick-a-Pepper",
+		"Star Trek 5 Year Mission": "Star Trek: Five-Year Mission",
+		"Supershow": "The Supershow",
+		"The Lord of the Rings LCG": "The Lord of the Rings: The Card Game",
+		"Town of Salem": "Town of Salem: The Card Game",
+		"Vampire: The Masquerade Rivals": "Vampire: The Masquerade – Rivals Expandable Card Game",
+		"Battletech Alpha Strike": "BattleTech: Alpha Strike",
 	}
 
 	if canonicalSystem, found := systemRemappings[event.GameSystem]; found {
 		event.GameSystem = canonicalSystem
+	}
+
+	if event.GameSystem == "The Crew" && event.Title == "The Crew: Mission Deep Sea" {
+		event.GameSystem = "The Crew: Mission Deep Sea"
 	}
 
 	if event.GameSystem == "1st" && event.Title == "Spring and Autumn: Story of China" {
