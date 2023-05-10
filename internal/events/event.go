@@ -284,6 +284,10 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		event.GameSystem = canonicalSystem
 	}
 
+	if event.GameSystem == "1st" && event.Title == "Spring and Autumn: Story of China" {
+		event.GameSystem = "Spring and Autumn: Story of China"
+	}
+
 	if event.GameSystem == "Scythe: Invaders from Afar Expansion" {
 		event.GameSystem = "Scythe"
 		event.RulesEdition = "Invaders from Afar Expansion"
