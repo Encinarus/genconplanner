@@ -36,11 +36,11 @@
       {{ $numRatings := (bggNumRatings $game) }}
       {{ $bggYear := (bggYear $game) }}
       {{ if $url }} -
-      <a href="{{ $url }}" class="bggLink text-decoration-none" target="_blank" rel="noopener noreferrer">BGG
-          {{- if $rating }}
-              {{ $rating }} ({{ $numRatings }} ratings
-              {{- if $bggYear -}}, {{ $bggYear }}{{- end -}})
-          {{- end -}}</a>
+      <a href="{{ $url }}" class="bggLink text-decoration-none" target="_blank" rel="noopener noreferrer">
+          BGG
+          {{ if $rating }} - {{ $rating }}, {{ $numRatings }} ratings{{ end }}
+          {{ if $bggYear }} - {{ $bggYear }}{{ end }}
+      </a>
       {{end}}
     {{ else }}N/A{{ end }}
 {{ end }}
