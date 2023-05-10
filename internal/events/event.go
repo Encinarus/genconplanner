@@ -167,6 +167,7 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 	systemRemappings := map[string]string{
 		"5 Year Mission": "Star Trek: Five-Year Mission",
 		"7 wonders":      "7 Wonders",
+		"A Touch of Evil, The Supernatural Game":   "A Touch of Evil: The Supernatural Game",
 		"A Sonf of Ice and Fire - Miniatures Game": "A Song of Ice and Fire - Miniatures Game",
 		"AEGIS Combining Robots":                   "A.E.G.I.S. Combining Robots: Season 2",
 		"Affliction":                               "AFFLICTION: Salem 1692",
