@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	firebase "firebase.google.com/go"
+	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -28,6 +29,30 @@ type Context struct {
 	Starred     *postgres.UserStarredEvents
 	User        *postgres.User
 	Firebase    FirebaseConfig
+}
+
+type EventKeyFunc func(*postgres.EventGroup) (string, string)
+
+func KeyByCategorySystem(g *postgres.EventGroup) (majorGroup, minorGroup string) {
+	majorGroup = events.LongCategory(g.ShortCategory)
+	minorGroup = "Unspecified"
+
+	if len(strings.TrimSpace(g.GameSystem)) != 0 {
+		minorGroup = strings.TrimSpace(g.GameSystem)
+	}
+
+	return majorGroup, minorGroup
+}
+
+func KeyByCategoryOrg(g *postgres.EventGroup) (majorGroup, minorGroup string) {
+	majorGroup = events.LongCategory(g.ShortCategory)
+	minorGroup = "Unknown Organizer"
+
+	if len(strings.TrimSpace(g.OrgGroup)) != 0 {
+		minorGroup = g.OrgGroup
+	}
+
+	return majorGroup, minorGroup
 }
 
 func BootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
@@ -77,7 +102,7 @@ func BootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 
 func PartitionGroups(
 	groups []*postgres.EventGroup,
-	keyFunction func(*postgres.EventGroup) (string, string),
+	keyFunction EventKeyFunc,
 ) ([]string, map[string][]string, map[string]map[string][]*postgres.EventGroup) {
 
 	majorPartitions := make(map[string]map[string][]*postgres.EventGroup)

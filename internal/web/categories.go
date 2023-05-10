@@ -2,7 +2,6 @@ package web
 
 import (
 	"database/sql"
-	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -63,17 +62,6 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 }
 
 func ViewCategory(db *sql.DB) func(c *gin.Context) {
-	keyFunc := func(g *postgres.EventGroup) (string, string) {
-		majorGroup := events.LongCategory(g.ShortCategory)
-		minorGroup := "Unspecified"
-
-		if len(strings.TrimSpace(g.GameSystem)) != 0 {
-			minorGroup = strings.TrimSpace(g.GameSystem)
-		}
-
-		return majorGroup, minorGroup
-	}
-
 	return func(c *gin.Context) {
 		appContext := c.MustGet("context").(*Context)
 		var err error
@@ -91,6 +79,17 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 			return
 		}
 
+		var partitionFunction func(*postgres.EventGroup) (string, string)
+		groupMethod := c.Query("grouping")
+		switch groupMethod {
+		case "org":
+			partitionFunction = KeyByCategoryOrg
+		case "sys":
+			partitionFunction = KeyByCategorySystem
+		default:
+			partitionFunction = KeyByCategorySystem
+		}
+
 		eventGroups, err := postgres.LoadEventGroups(db, cat, appContext.Year, []int{})
 		if err != nil {
 			log.Printf("Error loading event groups")
@@ -102,7 +101,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 		for _, group := range eventGroups {
 			totalEvents += group.Count
 		}
-		majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, keyFunc)
+		majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, partitionFunction)
 		c.HTML(http.StatusOK, "results.html", gin.H{
 			"context":       appContext,
 			"majorHeadings": majorHeadings,

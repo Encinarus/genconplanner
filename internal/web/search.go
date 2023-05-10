@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/csv"
-	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -90,28 +89,6 @@ func parseHour(c *gin.Context, param string, defaultValue int) int {
 }
 
 func Search(db *sql.DB) func(c *gin.Context) {
-	categorySystem := func(g *postgres.EventGroup) (majorGroup, minorGroup string) {
-		majorGroup = events.LongCategory(g.ShortCategory)
-		minorGroup = "Unspecified"
-
-		if len(strings.TrimSpace(g.GameSystem)) != 0 {
-			minorGroup = strings.TrimSpace(g.GameSystem)
-		}
-
-		return majorGroup, minorGroup
-	}
-
-	categoryGroup := func(g *postgres.EventGroup) (majorGroup, minorGroup string) {
-		majorGroup = events.LongCategory(g.ShortCategory)
-		minorGroup = "Unknown Organizer"
-
-		if len(strings.TrimSpace(g.OrgGroup)) != 0 {
-			minorGroup = g.OrgGroup
-		}
-
-		return majorGroup, minorGroup
-	}
-
 	return func(c *gin.Context) {
 		query := c.Query("q")
 		year, err := strconv.Atoi(c.Query("year"))
@@ -123,11 +100,11 @@ func Search(db *sql.DB) func(c *gin.Context) {
 		groupMethod := c.Query("grouping")
 		switch groupMethod {
 		case "org":
-			partitionFunction = categoryGroup
+			partitionFunction = KeyByCategoryOrg
 		case "sys":
-			partitionFunction = categorySystem
+			partitionFunction = KeyByCategorySystem
 		default:
-			partitionFunction = categorySystem
+			partitionFunction = KeyByCategorySystem
 		}
 
 		days := make(map[string]bool)
