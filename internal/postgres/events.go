@@ -46,6 +46,7 @@ type EventGroup struct {
 	Description   string
 	ShortCategory string
 	GameSystem    string
+	OrgGroup      string
 	Count         int
 	WedTickets    int
 	ThursTickets  int
@@ -77,6 +78,7 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 		&group.Description,
 		&group.ShortCategory,
 		&group.GameSystem,
+		&group.OrgGroup,
 		// Aggregate fields
 		&group.Count,
 		&group.TotalTickets,
@@ -104,6 +106,7 @@ SELECT
 	   e.short_description,
 	   e.short_category,
        e.game_system,
+       e.org_group,
 	   c.num_events,
 	   c.tickets_available,
 	   c.wednesday_tickets,
@@ -286,7 +289,8 @@ SELECT
 	   e.title,
 	   e.short_description,
 	   e.short_category,
-       e.game_system,       
+       e.game_system,
+       e.org_group,
 	   c.num_events,
 	   c.tickets_available,
 	   c.wed_tickets,

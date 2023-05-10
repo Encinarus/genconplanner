@@ -90,12 +90,23 @@ func parseHour(c *gin.Context, param string, defaultValue int) int {
 }
 
 func Search(db *sql.DB) func(c *gin.Context) {
-	defaultKeyFunc := func(g *postgres.EventGroup) (string, string) {
-		majorGroup := events.LongCategory(g.ShortCategory)
-		minorGroup := "Unspecified"
+	categorySystem := func(g *postgres.EventGroup) (majorGroup, minorGroup string) {
+		majorGroup = events.LongCategory(g.ShortCategory)
+		minorGroup = "Unspecified"
 
 		if len(strings.TrimSpace(g.GameSystem)) != 0 {
 			minorGroup = strings.TrimSpace(g.GameSystem)
+		}
+
+		return majorGroup, minorGroup
+	}
+
+	categoryGroup := func(g *postgres.EventGroup) (majorGroup, minorGroup string) {
+		majorGroup = events.LongCategory(g.ShortCategory)
+		minorGroup = "Unknown Organizer"
+
+		if len(strings.TrimSpace(g.OrgGroup)) != 0 {
+			minorGroup = g.OrgGroup
 		}
 
 		return majorGroup, minorGroup
@@ -106,6 +117,17 @@ func Search(db *sql.DB) func(c *gin.Context) {
 		year, err := strconv.Atoi(c.Query("year"))
 		if err != nil {
 			year = time.Now().Year()
+		}
+
+		var partitionFunction func(*postgres.EventGroup) (string, string)
+		groupMethod := c.Query("grouping")
+		switch groupMethod {
+		case "org":
+			partitionFunction = categoryGroup
+		case "sys":
+			partitionFunction = categorySystem
+		default:
+			partitionFunction = categorySystem
 		}
 
 		days := make(map[string]bool)
@@ -152,7 +174,7 @@ func Search(db *sql.DB) func(c *gin.Context) {
 			appContext := c.MustGet("context").(*Context)
 			appContext.Year = year
 
-			majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, defaultKeyFunc)
+			majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, partitionFunction)
 			c.HTML(http.StatusOK, "results.html", gin.H{
 				"context":       appContext,
 				"majorHeadings": majorHeadings,
