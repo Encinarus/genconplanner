@@ -62,12 +62,12 @@
 <script>
     // Initialize Firebase
     var config = {
-        apiKey: "AIzaSyAGtjwGiHYFnXE1UbzLTPeIz8Ix06WIdBs",
-        authDomain: "genconplanner-v2.firebaseapp.com",
-        databaseURL: "https://genconplanner-v2.firebaseio.com",
-        projectId: "genconplanner-v2",
-        storageBucket: "genconplanner-v2.appspot.com",
-        messagingSenderId: "630743534199"
+        apiKey: "{{ $context.Firebase.ApiKey }}",
+        authDomain: "{{ $context.Firebase.AuthDomain }}",
+        databaseURL: "{{ $context.Firebase.DatabaseURL }}",
+        messagingSenderId: "{{ $context.Firebase.MessagingSenderId }}",
+        projectId: "{{ $context.Firebase.ProjectId }}",
+        storageBucket: "{{ $context.Firebase.StorageBucket }}",
     };
 
     function signOut() {
