@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/csv"
+	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -38,7 +39,7 @@ type Context struct {
 	BggCache    *background.GameCache
 }
 
-type EventKeyFunc func(*postgres.EventGroup) (string, string)
+type EventKeyFunc func(*postgres.EventGroup, *Context) (string, string)
 
 type QueryParams struct {
 	Year            int
@@ -138,6 +139,8 @@ func processQueryParams(c *gin.Context) QueryParams {
 		params.Grouping = KeyByCategoryOrg
 	case "sys":
 		params.Grouping = KeyByCategorySystem
+	case "bgg":
+		params.Grouping = KeyByBggYear
 	}
 
 	params.Days = make(map[string]bool)
@@ -172,7 +175,7 @@ func processQueryParams(c *gin.Context) QueryParams {
 	return params
 }
 
-func KeyByCategorySystem(g *postgres.EventGroup) (majorGroup, minorGroup string) {
+func KeyByCategorySystem(g *postgres.EventGroup, context *Context) (majorGroup, minorGroup string) {
 	majorGroup = events.LongCategory(g.ShortCategory)
 	minorGroup = "Unspecified"
 
@@ -183,13 +186,24 @@ func KeyByCategorySystem(g *postgres.EventGroup) (majorGroup, minorGroup string)
 	return majorGroup, minorGroup
 }
 
-func KeyByCategoryOrg(g *postgres.EventGroup) (majorGroup, minorGroup string) {
+func KeyByCategoryOrg(g *postgres.EventGroup, context *Context) (majorGroup, minorGroup string) {
 	majorGroup = events.LongCategory(g.ShortCategory)
 	minorGroup = "Unknown Organizer"
 
 	if len(strings.TrimSpace(g.OrgGroup)) != 0 {
 		minorGroup = g.OrgGroup
 	}
+
+	return majorGroup, minorGroup
+}
+
+func KeyByBggYear(g *postgres.EventGroup, context *Context) (majorGroup, minorGroup string) {
+	game := context.BggCache.FindGame(g.GameSystem)
+	majorGroup = "Unknown Year"
+	if game != nil && game.YearPublished > 0 {
+		majorGroup = fmt.Sprintf("Published %d", game.YearPublished)
+	}
+	minorGroup = g.GameSystem
 
 	return majorGroup, minorGroup
 }
@@ -242,6 +256,7 @@ func BootstrapContext(app *firebase.App, db *sql.DB, bggCache *background.GameCa
 
 func PartitionGroups(
 	groups []*postgres.EventGroup,
+	context *Context,
 	keyFunction EventKeyFunc,
 ) ([]string, map[string][]string, map[string]map[string][]*postgres.EventGroup) {
 
@@ -253,7 +268,7 @@ func PartitionGroups(
 	hasSoldOut := false
 
 	for _, group := range groups {
-		majorKey, minorKey := keyFunction(group)
+		majorKey, minorKey := keyFunction(group, context)
 		if group.TotalTickets == 0 {
 			minorKey = majorKey
 			majorKey = soldOut

@@ -2,13 +2,14 @@ package web
 
 import (
 	"database/sql"
-	"github.com/Encinarus/genconplanner/internal/postgres"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/gin-gonic/gin"
 )
 
 func CategoryList(db *sql.DB) func(c *gin.Context) {
@@ -79,7 +80,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 			return
 		}
 
-		var partitionFunction func(*postgres.EventGroup) (string, string)
+		var partitionFunction EventKeyFunc
 		groupMethod := c.Query("grouping")
 		switch groupMethod {
 		case "org":
@@ -101,7 +102,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 		for _, group := range eventGroups {
 			totalEvents += group.Count
 		}
-		majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, partitionFunction)
+		majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, appContext, partitionFunction)
 		c.HTML(http.StatusOK, "results.html", gin.H{
 			"context":       appContext,
 			"majorHeadings": majorHeadings,
