@@ -3,22 +3,24 @@ package main
 import (
 	"context"
 	"database/sql"
-	"firebase.google.com/go"
 	"flag"
 	"fmt"
+
+	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/background"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/Encinarus/genconplanner/internal/web"
 	"github.com/gin-gonic/gin"
 	"github.com/heroku/x/hmetrics"
 
-	_ "github.com/heroku/x/hmetrics/onload"
-	_ "github.com/lib/pq"
-	"google.golang.org/api/option"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	_ "github.com/heroku/x/hmetrics/onload"
+	_ "github.com/lib/pq"
+	"google.golang.org/api/option"
 )
 
 var port = flag.Int("port", 8080, "port to listen on")
@@ -85,7 +87,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	}
 
 	r := gin.Default()
-	r.Use(web.BootstrapContext(app, db))
+	r.Use(web.BootstrapContext(app, db, cache))
 
 	r.SetFuncMap(web.GetTemplateFunctions(cache))
 	r.LoadHTMLGlob("templates/*")

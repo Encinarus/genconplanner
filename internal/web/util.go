@@ -1,16 +1,22 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
-	firebase "firebase.google.com/go"
-	"github.com/Encinarus/genconplanner/internal/events"
-	"github.com/Encinarus/genconplanner/internal/postgres"
-	"github.com/gin-gonic/gin"
+	"encoding/csv"
 	"log"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
+
+	firebase "firebase.google.com/go"
+	"github.com/Encinarus/genconplanner/internal/background"
+	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/gin-gonic/gin"
 )
 
 type FirebaseConfig struct {
@@ -29,9 +35,142 @@ type Context struct {
 	Starred     *postgres.UserStarredEvents
 	User        *postgres.User
 	Firebase    FirebaseConfig
+	BggCache    *background.GameCache
 }
 
 type EventKeyFunc func(*postgres.EventGroup) (string, string)
+
+type QueryParams struct {
+	Year            int
+	Days            map[string]bool
+	StartBeforeHour int
+	StartAfterHour  int
+	EndBeforeHour   int
+	EndAfterHour    int
+	Grouping        EventKeyFunc
+	Query           string
+	OrgId           int
+}
+
+func parseQuery(params QueryParams) *postgres.ParsedQuery {
+	query := postgres.ParsedQuery{
+		Year:            params.Year,
+		DaysOfWeek:      params.Days,
+		RawQuery:        params.Query,
+		OrgId:           params.OrgId,
+		StartBeforeHour: params.StartBeforeHour,
+		StartAfterHour:  params.StartAfterHour,
+		EndBeforeHour:   params.EndBeforeHour,
+		EndAfterHour:    params.EndAfterHour,
+	}
+
+	maxYear := time.Now().Year()
+	// This version of genconplanner didn't exist before 2019
+	if query.Year > maxYear || query.Year < 2019 {
+		query.Year = maxYear
+	}
+
+	log.Printf("Search query: %v", query)
+
+	// Preprocess, removing symbols which are used in tsquery
+	params.Query = strings.Replace(params.Query, "!", "", -1)
+	params.Query = strings.Replace(params.Query, "&", "", -1)
+	params.Query = strings.Replace(params.Query, "(", "", -1)
+	params.Query = strings.Replace(params.Query, ")", "", -1)
+	params.Query = strings.Replace(params.Query, "|", "", -1)
+
+	queryReader := csv.NewReader(bytes.NewBufferString(params.Query))
+	queryReader.Comma = ' '
+
+	splitQuery, _ := queryReader.Read()
+
+	for _, term := range splitQuery {
+		invertTerm := false
+		if strings.HasPrefix(term, "-") {
+			term = strings.TrimLeft(term, "-")
+			invertTerm = true
+		}
+		if strings.ContainsAny(term, ":<>=-~") {
+			// TODO(alek) Handle key:value searches
+			// : and = work as equals
+			// < > compare for dates or num tickets
+			// ~ is for checking if the string is in a field
+			continue
+		}
+
+		// Now remove remaining symbols we want to allow in field-specific
+		// searches, but not in the general text search
+		term = strings.Replace(term, "<", "", -1)
+		term = strings.Replace(term, ">", "", -1)
+		term = strings.Replace(term, "=", "", -1)
+		term = strings.Replace(term, "-", "", -1)
+		term = strings.Replace(term, "~", "", -1)
+		term = strings.TrimSpace(term)
+		if len(term) == 0 {
+			continue
+		}
+		if invertTerm {
+			term = "!" + term
+		}
+		query.TextQueries = append(query.TextQueries, term)
+	}
+	return &query
+}
+
+func processQueryParams(c *gin.Context) QueryParams {
+	var params QueryParams
+	var err error
+
+	params.Query = c.Query("q")
+
+	// First query, then context, then now
+	params.Year, err = strconv.Atoi(c.Query("year"))
+	if err != nil {
+		params.Year, err = strconv.Atoi(c.Param("year"))
+		if err != nil {
+			params.Year = time.Now().Year()
+		}
+	}
+
+	groupMethod := c.Query("grouping")
+	switch groupMethod {
+	case "org":
+		params.Grouping = KeyByCategoryOrg
+	case "sys":
+		params.Grouping = KeyByCategorySystem
+	}
+
+	params.Days = make(map[string]bool)
+	for _, day := range []string{"wed", "thu", "fri", "sat", "sun"} {
+		param, found := c.GetQuery(day)
+
+		if found && len(param) > 0 {
+			if b, err := strconv.ParseBool(param); err == nil {
+				params.Days[day] = b
+			}
+		}
+	}
+
+	orgId, err := strconv.Atoi(c.Query("org_id"))
+	if err == nil {
+		params.OrgId = orgId
+	}
+
+	params.StartBeforeHour = parseHour(c, "start_before", -1)
+	params.StartAfterHour = parseHour(c, "start_after", -1)
+	params.EndBeforeHour = parseHour(c, "end_before", -1)
+	params.EndAfterHour = parseHour(c, "end_after", -1)
+	if params.StartBeforeHour == params.StartAfterHour {
+		params.StartBeforeHour = -1
+		params.StartAfterHour = -1
+	}
+	if params.EndAfterHour == params.EndBeforeHour {
+		params.EndAfterHour = -1
+		params.EndBeforeHour = -1
+	}
+
+	return params
+}
 
 func KeyByCategorySystem(g *postgres.EventGroup) (majorGroup, minorGroup string) {
 	majorGroup = events.LongCategory(g.ShortCategory)
@@ -55,7 +194,7 @@ func KeyByCategoryOrg(g *postgres.EventGroup) (majorGroup, minorGroup string) {
 	return majorGroup, minorGroup
 }
 
-func BootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
+func BootstrapContext(app *firebase.App, db *sql.DB, bggCache *background.GameCache) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var appContext Context
 		appContext.Starred = &postgres.UserStarredEvents{}
@@ -94,6 +233,7 @@ func BootstrapContext(app *firebase.App, db *sql.DB) gin.HandlerFunc {
 		}
 
 		appContext.Firebase = getFirebaseConfig()
+		appContext.BggCache = bggCache
 
 		c.Set("context", &appContext)
 		c.Next()
@@ -187,5 +327,20 @@ func getFirebaseConfig() FirebaseConfig {
 		ProjectId:         getEnvWithDefault("FIREBASE_PROJECT_ID", "genconplanner-v2"),
 		StorageBucket:     getEnvWithDefault("FIREBASE_STORAGE_BUCKET", "genconplanner-v2.appspot.com"),
 		MessagingSenderId: getEnvWithDefault("FIREBASE_MESSAGING_SENDER_ID", "630743534199"),
+	}
+}
+
+func parseHour(c *gin.Context, param string, defaultValue int) int {
+	raw, found := c.GetQuery(param)
+	if !found {
+		return defaultValue
+	}
+	parsed, err := strconv.Atoi(raw)
+	if err != nil {
+		return defaultValue
+	} else if parsed < 0 || parsed > 24 {
+		return defaultValue
+	} else {
+		return parsed
 	}
 }

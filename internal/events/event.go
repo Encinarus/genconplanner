@@ -160,13 +160,13 @@ type GenconEvent struct {
 	LastModified         time.Time
 	ShortCategory        string
 	IsStarred            bool
-	OrgId            	 int64
+	OrgId                int64
 }
 
 func NormalizeEvent(event *GenconEvent) *GenconEvent {
 	systemRemappings := map[string]string{
-		"5 Year Mission": "Star Trek: Five-Year Mission",
-		"7 wonders":      "7 Wonders",
+		"5 Year Mission":                           "Star Trek: Five-Year Mission",
+		"7 wonders":                                "7 Wonders",
 		"A Touch of Evil, The Supernatural Game":   "A Touch of Evil: The Supernatural Game",
 		"A Sonf of Ice and Fire - Miniatures Game": "A Song of Ice and Fire - Miniatures Game",
 		"AEGIS Combining Robots":                   "A.E.G.I.S. Combining Robots: Season 2",
@@ -203,7 +203,8 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		"Disney Sorcerer's Arena: Epic Alliances":  "Disney Sorcerer's Arena: Epic Alliances Core Set",
 		"Disney's Villainous":                      "Disney Villainous",
 		"Disney's Villianous":                      "Disney Villainous",
-		"Disney: The Haunted Mansion - Call of the Spirits Game": "Disney: The Haunted Mansion – Call of the Spirits Game", // The difference on this one is the emdash!
+		// The difference on this one is the emdash!
+		"Disney: The Haunted Mansion - Call of the Spirits Game": "Disney: The Haunted Mansion – Call of the Spirits Game",
 		"Downfall of Pompeii":          "The Downfall of Pompeii",
 		"Dr. Who: Blink":               "Blink!",
 		"Dragon Age":                   "Dragon AGE",
@@ -280,25 +281,25 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		"World of Ulos":                                      "Dawn of Ulos",
 		"Wrath of Ashardalon":                                "Dungeons & Dragons: Wrath of Ashardalon Board Game",
 
-		"5 Minute Dungeon": "5-Minute Dungeon",
-		"5 Minute Mystery": "5-Minute Mystery",
-		"7th Sea City of Five Sails": "7th Sea: City of Five Sails",
-		"Angry Town": "Angry Town: The Fighting Card Game",
-		"Ashes Reborn": "Ashes Reborn: Rise of the Phoenixborn",
-		"Channel A: The Anime Pitch Game": "Channel A",
-		"Darwin Awards": "Darwin Awards Party Card Game",
-		"Epic Spell Wars Annihilageddon": "Epic Spell Wars of the Battle Wizards: Annihilageddon Deck-Building Game",
+		"5 Minute Dungeon":                         "5-Minute Dungeon",
+		"5 Minute Mystery":                         "5-Minute Mystery",
+		"7th Sea City of Five Sails":               "7th Sea: City of Five Sails",
+		"Angry Town":                               "Angry Town: The Fighting Card Game",
+		"Ashes Reborn":                             "Ashes Reborn: Rise of the Phoenixborn",
+		"Channel A: The Anime Pitch Game":          "Channel A",
+		"Darwin Awards":                            "Darwin Awards Party Card Game",
+		"Epic Spell Wars Annihilageddon":           "Epic Spell Wars of the Battle Wizards: Annihilageddon Deck-Building Game",
 		"Fates of Madness: An Adventure Card Game": "Fates of Madness",
-		"Inca Empire TCG": "Inca Empire: The Card Game",
-		"Marvel Champions": "Marvel Champions: The Card Game",
-		"Pasaraya": "Pasaraya: Supermarket Manager",
-		"Pick-a-Pepper (Sauscharf)": "Pick-a-Pepper",
-		"Star Trek 5 Year Mission": "Star Trek: Five-Year Mission",
-		"Supershow": "The Supershow",
-		"The Lord of the Rings LCG": "The Lord of the Rings: The Card Game",
-		"Town of Salem": "Town of Salem: The Card Game",
-		"Vampire: The Masquerade Rivals": "Vampire: The Masquerade – Rivals Expandable Card Game",
-		"Battletech Alpha Strike": "BattleTech: Alpha Strike",
+		"Inca Empire TCG":                          "Inca Empire: The Card Game",
+		"Marvel Champions":                         "Marvel Champions: The Card Game",
+		"Pasaraya":                                 "Pasaraya: Supermarket Manager",
+		"Pick-a-Pepper (Sauscharf)":                "Pick-a-Pepper",
+		"Star Trek 5 Year Mission":                 "Star Trek: Five-Year Mission",
+		"Supershow":                                "The Supershow",
+		"The Lord of the Rings LCG":                "The Lord of the Rings: The Card Game",
+		"Town of Salem":                            "Town of Salem: The Card Game",
+		"Vampire: The Masquerade Rivals":           "Vampire: The Masquerade – Rivals Expandable Card Game",
+		"Battletech Alpha Strike":                  "BattleTech: Alpha Strike",
 	}
 
 	if canonicalSystem, found := systemRemappings[event.GameSystem]; found {
