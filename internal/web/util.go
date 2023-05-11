@@ -49,6 +49,7 @@ type QueryParams struct {
 	EndBeforeHour   int
 	EndAfterHour    int
 	Grouping        EventKeyFunc
+	SortAsc         bool
 	Query           string
 	OrgId           int
 }
@@ -142,6 +143,9 @@ func processQueryParams(c *gin.Context) QueryParams {
 	case "bgg":
 		params.Grouping = KeyByBggYear
 	}
+
+	_, found := c.GetQuery("sortDesc")
+	params.SortAsc = !found
 
 	params.Days = make(map[string]bool)
 	for _, day := range []string{"wed", "thu", "fri", "sat", "sun"} {
@@ -258,6 +262,7 @@ func PartitionGroups(
 	groups []*postgres.EventGroup,
 	context *Context,
 	keyFunction EventKeyFunc,
+	sortAsc bool,
 ) ([]string, map[string][]string, map[string]map[string][]*postgres.EventGroup) {
 
 	majorPartitions := make(map[string]map[string][]*postgres.EventGroup)
@@ -287,6 +292,18 @@ func PartitionGroups(
 		majorPartitions[majorKey][minorKey] = append(majorPartitions[majorKey][minorKey], group)
 	}
 	sort.Strings(majorKeys)
+	if !sortAsc {
+		// What I want is to be able to say, sort.String(sort.Reverse(majorKeys))
+		// Unfortunately, go is kind of dumb about this. Like really dumb. []string
+		// doesn't implement the functions needed for that to work. Wtf.
+		numKeys := len(majorKeys)
+		for i := 0; i < numKeys/2; i++ {
+			base := i
+			swap := numKeys - i - 1
+			majorKeys[base], majorKeys[swap] = majorKeys[swap], majorKeys[base]
+		}
+	}
+
 	for k := range minorKeys {
 		sort.Strings(minorKeys[k])
 	}

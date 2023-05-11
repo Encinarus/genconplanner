@@ -102,7 +102,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 		for _, group := range eventGroups {
 			totalEvents += group.Count
 		}
-		majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, appContext, partitionFunction)
+		majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, appContext, partitionFunction, true)
 		c.HTML(http.StatusOK, "results.html", gin.H{
 			"context":       appContext,
 			"majorHeadings": majorHeadings,
