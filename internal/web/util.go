@@ -52,6 +52,7 @@ type QueryParams struct {
 	SortAsc         bool
 	Query           string
 	OrgId           int
+	Category        string
 }
 
 func parseQuery(params QueryParams) *postgres.ParsedQuery {
@@ -134,6 +135,8 @@ func processQueryParams(c *gin.Context) QueryParams {
 		}
 	}
 
+	params.Category = strings.TrimSpace(c.Param("cat"))
+
 	groupMethod := c.Query("grouping")
 	switch groupMethod {
 	case "org":
@@ -142,6 +145,8 @@ func processQueryParams(c *gin.Context) QueryParams {
 		params.Grouping = KeyByCategorySystem
 	case "bgg":
 		params.Grouping = KeyByBggYear
+	default:
+		params.Grouping = KeyByCategorySystem
 	}
 
 	_, found := c.GetQuery("sortDesc")
@@ -261,8 +266,7 @@ func BootstrapContext(app *firebase.App, db *sql.DB, bggCache *background.GameCa
 func PartitionGroups(
 	groups []*postgres.EventGroup,
 	context *Context,
-	keyFunction EventKeyFunc,
-	sortAsc bool,
+	params QueryParams,
 ) ([]string, map[string][]string, map[string]map[string][]*postgres.EventGroup) {
 
 	majorPartitions := make(map[string]map[string][]*postgres.EventGroup)
@@ -273,7 +277,7 @@ func PartitionGroups(
 	hasSoldOut := false
 
 	for _, group := range groups {
-		majorKey, minorKey := keyFunction(group, context)
+		majorKey, minorKey := params.Grouping(group, context)
 		if group.TotalTickets == 0 {
 			minorKey = majorKey
 			majorKey = soldOut
@@ -292,7 +296,7 @@ func PartitionGroups(
 		majorPartitions[majorKey][minorKey] = append(majorPartitions[majorKey][minorKey], group)
 	}
 	sort.Strings(majorKeys)
-	if !sortAsc {
+	if !params.SortAsc {
 		// What I want is to be able to say, sort.String(sort.Reverse(majorKeys))
 		// Unfortunately, go is kind of dumb about this. Like really dumb. []string
 		// doesn't implement the functions needed for that to work. Wtf.

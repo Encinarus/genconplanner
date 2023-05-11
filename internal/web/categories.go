@@ -64,34 +64,18 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 
 func ViewCategory(db *sql.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		appContext := c.MustGet("context").(*Context)
-		var err error
+		params := processQueryParams(c)
 
-		appContext.Year, err = strconv.Atoi(c.Param("year"))
-		if err != nil {
-			log.Printf("Error parsing year")
-			c.AbortWithError(http.StatusBadRequest, err)
-			return
-		}
-		cat := c.Param("cat")
-		if len(strings.TrimSpace(cat)) == 0 {
+		appContext := c.MustGet("context").(*Context)
+		appContext.Year = params.Year
+
+		if len(params.Category) == 0 {
 			log.Printf("No category specified")
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
 
-		var partitionFunction EventKeyFunc
-		groupMethod := c.Query("grouping")
-		switch groupMethod {
-		case "org":
-			partitionFunction = KeyByCategoryOrg
-		case "sys":
-			partitionFunction = KeyByCategorySystem
-		default:
-			partitionFunction = KeyByCategorySystem
-		}
-
-		eventGroups, err := postgres.LoadEventGroups(db, cat, appContext.Year, []int{})
+		eventGroups, err := postgres.LoadEventGroups(db, params.Category, params.Year, []int{})
 		if err != nil {
 			log.Printf("Error loading event groups")
 			c.AbortWithError(http.StatusBadRequest, err)
@@ -102,7 +86,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 		for _, group := range eventGroups {
 			totalEvents += group.Count
 		}
-		majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, appContext, partitionFunction, true)
+		majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, appContext, params)
 		c.HTML(http.StatusOK, "results.html", gin.H{
 			"context":       appContext,
 			"majorHeadings": majorHeadings,
@@ -112,7 +96,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 			"groups":        len(eventGroups),
 			"breakdown":     "Category",
 			"pageHeader":    "Search",
-			"subHeader":     cat,
+			"subHeader":     params.Category,
 		})
 	}
 }

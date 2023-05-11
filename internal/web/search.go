@@ -30,7 +30,7 @@ func Search(db *sql.DB) func(c *gin.Context) {
 			appContext := c.MustGet("context").(*Context)
 			appContext.Year = params.Year
 
-			majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, appContext, params.Grouping, params.SortAsc)
+			majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, appContext, params)
 			c.HTML(http.StatusOK, "results.html", gin.H{
 				"context":       appContext,
 				"majorHeadings": majorHeadings,
