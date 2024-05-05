@@ -158,10 +158,10 @@
     let events = [
         {{ range $e := .calendarGroups }}{
             title: {{ $e.Title }},
-            // start: new Date({{ $e.StartTime.Unix }} * 1000),
-            // end: new Date({{ $e.EndTime.Unix }} * 1000),
-            start: "{{ $e.StartTime }}",
-            end: "{{ $e.EndTime }}",
+            start: new Date(({{ $e.StartTime.Unix }} - 60 * 60 * 4) * 1000),
+            end: new Date(({{ $e.EndTime.Unix }}- 60 * 60 * 4) * 1000),
+            // start: "{{ $e.StartTime }}",
+            // end: "{{ $e.EndTime }}",
             url: {{ $e.PlannerUrl }},
             backgroundColor: colors.get('{{ $e.ShortCategory}}'),
             description: {{ $e.ShortDescription }},
@@ -251,7 +251,8 @@
             url: '/listStarredGroups/{{.context.Year}}',
             type: 'GET',
             dataType: 'json',
-        }).done(function(data){
+        }).done(function(
+            data){
             updateCalendar(data);
         });
     });
