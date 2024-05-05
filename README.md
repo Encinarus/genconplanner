@@ -52,6 +52,13 @@ parse the events spreadsheet from gencon.com in the background.
 To reset all state, use `docker compose down -v` to clear the DB data
 volume, then follow the above steps again
 
+## Bootstrap local db from genconplanner.com
+
+Instructions adapted from https://devcenter.heroku.com/articles/heroku-postgres-import-export
+
+* `heroku pg:backups:capture --app genconplanner`
+* `heroku pg:backups:download --app genconplanner`
+* `docker exec -i genconplanner-db-1 pg_restore --verbose --clean --no-acl --no-owner -U postgres -d genconplanner < latest.dump`
 
 ## Alternate Dev Env
 
