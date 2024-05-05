@@ -47,10 +47,14 @@
     <meta property="og:description" content="{{ $e.ShortDescription }}" />
     <meta property="og:type" content="article" />
     {{ if $e.GameSystem }}
-        {{ $rating := (bggRating $e.GameSystem) }}
         {{ $gameLabel := (print $e.GameSystem) }}
+
+        {{ $rating := (bggRating $e.GameSystem) }}
+        {{ $numRatings := (bggNumRatings $e.GameSystem) }}
+        {{ $bggYear := (bggYear $e.GameSystem) }}
         {{ if $rating }}
-            {{ $gameLabel = (print $gameLabel " (" $rating " @ BGG)") }}
+            {{ if $bggYear }}{{ $gameLabel = (print $gameLabel " (" $bggYear ")")}}{{ end }}
+            {{ $gameLabel = (print $gameLabel " - " $rating " with " $numRatings " ratings @ BGG" ) }}
         {{ end }}
         <meta property="twitter:label1" content="Game" />
         <meta property="twitter:data1" content="{{ $gameLabel }}" />
