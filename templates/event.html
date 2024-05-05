@@ -52,12 +52,17 @@
         {{ $rating := (bggRating $e.GameSystem) }}
         {{ $numRatings := (bggNumRatings $e.GameSystem) }}
         {{ $bggYear := (bggYear $e.GameSystem) }}
-        {{ if $rating }}
-            {{ if $bggYear }}{{ $gameLabel = (print $gameLabel " (" $bggYear ")")}}{{ end }}
-            {{ $gameLabel = (print $gameLabel " - " $rating " with " $numRatings " ratings @ BGG" ) }}
-        {{ end }}
+        {{ if $bggYear }}{{ $gameLabel = (print $gameLabel " (" $bggYear ")")}}{{ end }}
         <meta property="twitter:label1" content="Game" />
         <meta property="twitter:data1" content="{{ $gameLabel }}" />
+
+        {{ if $numRatings }}
+        {{ $ratings := atoi $numRatings }}
+        {{ if ge $ratings 100 }}
+        <meta property="twitter:label2" content="BGG Rating" />
+        <meta property="twitter:data2" content="{{ (print $rating " with " $numRatings " ratings") }}" />
+        {{ end }}
+        {{ end }}
     {{ end }}
 </head>
 
