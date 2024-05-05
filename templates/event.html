@@ -48,11 +48,12 @@
     <meta property="og:type" content="article" />
     {{ if $e.GameSystem }}
         {{ $rating := (bggRating $e.GameSystem) }}
-        {{ $gameLabel := (print "Game: " $e.GameSystem) }}
+        {{ $gameLabel := (print $e.GameSystem) }}
         {{ if $rating }}
             {{ $gameLabel = (print $gameLabel " (" $rating " @ BGG)") }}
         {{ end }}
-        <meta property="article:tag" content="{{ $gameLabel }}" />
+        <meta property="twitter:label1" content="Game" />
+        <meta property="twitter:data1" content="{{ $gameLabel }}" />
     {{ end }}
 </head>
 
