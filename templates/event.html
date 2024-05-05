@@ -45,6 +45,15 @@
     {{ template "header" $e.Title }}
     <meta property="og:title" content="{{ $e.Title }}" />
     <meta property="og:description" content="{{ $e.ShortDescription }}" />
+    <meta property="og:type" content="article" />
+    {{ if $e.GameSystem }}
+        {{ $rating := (bggRating $e.GameSystem) }}
+        {{ $gameLabel := (print "Game: " $e.GameSystem) }}
+        {{ if $rating }}
+            {{ $gameLabel = (print $gameLabel " (" $rating " @ BGG)") }}
+        {{ end }}
+        <meta property="article:tag" content="{{ $gameLabel }}" />
+    {{ end }}
 </head>
 
 <body>

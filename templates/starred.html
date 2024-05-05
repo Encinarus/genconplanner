@@ -160,8 +160,6 @@
             title: {{ $e.Title }},
             start: new Date(({{ $e.StartTime.Unix }} - 60 * 60 * 4) * 1000),
             end: new Date(({{ $e.EndTime.Unix }}- 60 * 60 * 4) * 1000),
-            // start: "{{ $e.StartTime }}",
-            // end: "{{ $e.EndTime }}",
             url: {{ $e.PlannerUrl }},
             backgroundColor: colors.get('{{ $e.ShortCategory}}'),
             description: {{ $e.ShortDescription }},
