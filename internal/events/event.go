@@ -163,6 +163,14 @@ type GenconEvent struct {
 	OrgId                int64
 }
 
+func (event *GenconEvent) IsoStartTime() string {
+	return event.StartTime.String()
+}
+
+func (event *GenconEvent) IsoEndTime() string {
+	return event.EndTime.String()
+}
+
 func NormalizeEvent(event *GenconEvent) *GenconEvent {
 	systemRemappings := map[string]string{
 		"5 Minute Dungeon":                         "5-Minute Dungeon",
