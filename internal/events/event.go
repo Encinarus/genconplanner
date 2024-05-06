@@ -266,6 +266,7 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		"Hellboy The Board Game":                   "Hellboy: The Board Game",
 		"Hulk Smash":                               "The Incredible Hulk Smash",
 		"Ierusalem":                                "Ierusalem: Anno Domini",
+		"Imperial Assault":                         "Star Wars: Imperial Assault",
 		"Inca Empire TCG":                          "Inca Empire: The Card Game",
 		"Kinfire Chronicles":                       "Kinfire Chronicles: Night's Fall",
 		"Kung-Fu Zoo":                              "Kung Fu Zoo",
@@ -330,6 +331,10 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 
 	if canonicalSystem, found := systemRemappings[event.GameSystem]; found {
 		event.GameSystem = canonicalSystem
+	}
+
+	if event.GameSystem == "Avalon" && event.Title == "Avalon: The Riven Veil Demo" {
+		event.GameSystem = "Avalon: The Riven Veil"
 	}
 
 	if event.GameSystem == "Among Cultists" && event.RulesEdition == "1st" {

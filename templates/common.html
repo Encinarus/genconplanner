@@ -30,19 +30,26 @@
 
 {{ define "bggLink" }}
     {{ $game := . }}
-    {{ if  $game }}{{ $game }}
-      {{ $url := (bggPage $game) }}
-      {{ $rating := (bggRating  $game) }}
-      {{ $numRatings := (bggNumRatings $game) }}
-      {{ $bggYear := (bggYear $game) }}
-      {{ if $url }} -
-      <a href="{{ $url }}" class="bggLink text-decoration-none" target="_blank" rel="noopener noreferrer">
-          BGG
-          {{ if $rating }} - {{ $rating }}, {{ $numRatings }} ratings{{ end }}
-          {{ if $bggYear }} - {{ $bggYear }}{{ end }}
-      </a>
-      {{end}}
-    {{ else }}N/A{{ end }}
+
+    {{ if  $game }}
+        {{ $url := (bggPage $game) }}
+        {{ $bggYear := (bggYear $game) }}
+        {{ $rating := (bggRating $game) }}
+
+        {{ if $url }}
+            {{ $numRatings := (bggNumRatings $game) }}
+            {{ $ratings := atoi $numRatings }}
+            {{ $enough_ratings := ge $ratings 100 }}
+            <a href="{{ $url }}" class="bggLink text-decoration-none" target="_blank" rel="noopener noreferrer">
+                {{ $game }}{{ if $bggYear }} ({{ $bggYear }}) {{ end }}
+                {{ if $enough_ratings }} - BGG {{ $rating }}, {{ $numRatings }} ratings{{ end }}
+            </a>
+        {{ else }}
+            {{ $game }}
+        {{ end }}
+    {{ else }}
+    N/A
+    {{ end }}
 {{ end }}
 
 {{ define "scriptFooter" }}
