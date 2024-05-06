@@ -2,12 +2,14 @@ package web
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -53,6 +55,12 @@ type QueryParams struct {
 	Query           string
 	OrgId           int
 	Category        string
+}
+
+func caseInsensitiveSort(data []string) {
+	slices.SortFunc(data, func(a, b string) int {
+		return cmp.Compare(strings.ToLower(a), strings.ToLower(b))
+	})
 }
 
 func parseQuery(params QueryParams) *postgres.ParsedQuery {
@@ -295,7 +303,7 @@ func PartitionGroups(
 		}
 		majorPartitions[majorKey][minorKey] = append(majorPartitions[majorKey][minorKey], group)
 	}
-	sort.Strings(majorKeys)
+	caseInsensitiveSort(majorKeys)
 	if !params.SortAsc {
 		// What I want is to be able to say, sort.String(sort.Reverse(majorKeys))
 		// Unfortunately, go is kind of dumb about this. Like really dumb. []string
@@ -309,7 +317,7 @@ func PartitionGroups(
 	}
 
 	for k := range minorKeys {
-		sort.Strings(minorKeys[k])
+		caseInsensitiveSort(minorKeys[k])
 	}
 	// Now that we've sorted, move sold out to the end
 	if hasSoldOut && len(majorKeys) > 1 {

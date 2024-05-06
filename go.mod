@@ -1,7 +1,7 @@
 module github.com/Encinarus/genconplanner
 
-// +heroku goVersion go1.18
-go 1.18
+// +heroku goVersion go1.21
+go 1.21
 
 require (
 	firebase.google.com/go v3.13.0+incompatible
