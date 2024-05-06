@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine AS genconplanner-base
+FROM golang:1.22 AS genconplanner-base
 
 WORKDIR /usr/src/app
 
