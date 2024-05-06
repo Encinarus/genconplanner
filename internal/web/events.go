@@ -3,11 +3,14 @@ package web
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
 )
 
 type LookupResult struct {
@@ -51,6 +54,9 @@ func renderHtml(c *gin.Context, result *LookupResult, appContext *Context) {
 	for _, loadedEvents := range result.EventsPerDay {
 		starred = starred && allStarred(loadedEvents)
 	}
+	nextUpdateTime := time.Now().Add(time.Hour).Truncate(time.Hour).Add(time.Minute * 5)
+	c.Header("Cache-Control", fmt.Sprintf("max-age=%d", nextUpdateTime.Sub(time.Now())/time.Second))
+
 	c.HTML(http.StatusOK, "event.html", gin.H{
 		"result":       result,
 		"eventsPerDay": result.EventsPerDay,
