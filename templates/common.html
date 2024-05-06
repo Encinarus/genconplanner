@@ -38,7 +38,8 @@
 
         {{ if $url }}
             {{ $numRatings := (bggNumRatings $game) }}
-            {{ $ratings := atoi $numRatings }}
+            {{ $ratings := 0}}
+            {{ if $numRatings }}{{ $ratings = atoi $numRatings }}{{ end }}
             {{ $enough_ratings := ge $ratings 100 }}
             <a href="{{ $url }}" class="bggLink text-decoration-none" target="_blank" rel="noopener noreferrer">
                 {{ $game }}{{ if $bggYear }} ({{ $bggYear }}) {{ end }}
