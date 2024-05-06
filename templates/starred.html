@@ -158,8 +158,10 @@
     let events = [
         {{ range $e := .calendarGroups }}{
             title: {{ $e.Title }},
-            start: "{{ $e.IsoStartTime }}",
-            end: "{{ $e.IsoEndTime }}",
+            start: new Date(({{ $e.StartTime.Unix }} - 60 * 60 * 4) * 1000),
+            end: new Date(({{ $e.EndTime.Unix }}- 60 * 60 * 4) * 1000),
+            // start: "{{ $e.IsoStartTime }}",
+            // end: "{{ $e.IsoEndTime }}",
             url: {{ $e.PlannerUrl }},
             backgroundColor: colors.get('{{ $e.ShortCategory}}'),
             description: {{ $e.ShortDescription }},
