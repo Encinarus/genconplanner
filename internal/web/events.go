@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/Encinarus/genconplanner/internal/events"
@@ -70,6 +71,17 @@ func renderJson(c *gin.Context, result *LookupResult, appContext *Context) {
 	json.NewEncoder(c.Writer).Encode(result)
 }
 
+func renderNotFound(c *gin.Context, eventId string, appContext *Context) {
+	regex := regexp.MustCompile(".*?([0-9]*)$")
+	genconUrl := ""
+	genconId := regex.FindStringSubmatch(eventId)
+	if genconId != nil {
+		genconUrl = fmt.Sprintf("https://www.gencon.com/events/%v", genconId[1])
+	}
+	appContext.Year = time.Now().Year()
+	c.HTML(http.StatusNotFound, "event_not_found.html", gin.H{"eventId": eventId, "genconUrl": genconUrl, "context": appContext})
+}
+
 func ViewEvent(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		eventId := c.Param("eid")
@@ -79,6 +91,10 @@ func ViewEvent(db *sql.DB) gin.HandlerFunc {
 		if err != nil {
 			log.Printf("Unable to lookup event %v\n", err)
 			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		if result == nil || result.MainEvent == nil {
+			renderNotFound(c, eventId, appContext)
 			return
 		}
 		appContext.Year = result.MainEvent.Year

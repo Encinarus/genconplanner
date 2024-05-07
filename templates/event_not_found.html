@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+    {{ template "header" "Gencon Events"}}
+</head>
+
+<body>
+<div class="container">
+    {{ template "navbar" .context }}
+    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">Event not found {{ .eventId }} </h1>
+    <p>
+        Sorry about that, that event wasn't found. Check the id, or wait a few hours. It may not have been
+        exported yet. {{ if .genconUrl }}You may be able to find it at <a href="{{.genconUrl}}">GenCon's event page</a>. {{ end }}
+    </p>
+</div>
+</body>
+
+{{ template "scriptFooter" .context }}
+</body>
+</html>

@@ -15,8 +15,9 @@ COPY ./cmd ./cmd
 FROM genconplanner-base AS update
 
 RUN go build -o /usr/local/bin/update ./cmd/update
-CMD ["/bin/sh", "-c", "/usr/local/bin/update -db=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB?sslmode=disable"]
-
+COPY ./data ./data
+# CMD ["/bin/sh", "-c", "/usr/local/bin/update -db=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB?sslmode=disable"]
+CMD ["/bin/sh", "-c", "/usr/local/bin/update -db=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB?sslmode=disable -eventFile=./data/debug_events.xlsx"]
 
 
 # --------------------------
