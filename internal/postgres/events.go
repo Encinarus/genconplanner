@@ -3,11 +3,12 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"github.com/Encinarus/genconplanner/internal/events"
-	"github.com/lib/pq"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/lib/pq"
 )
 
 type CalendarEventCluster struct {
@@ -67,7 +68,7 @@ type ParsedQuery struct {
 	StartAfterHour  int
 	EndBeforeHour   int
 	EndAfterHour    int
-	OrgId 			int
+	OrgId           int
 }
 
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
@@ -584,7 +585,7 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 	numEventFields := len(eventFields)
 
 	for _, row := range updatedRows {
-		whereClause := fmt.Sprintf(
+		updatedFields := fmt.Sprintf(
 			"(%s) = %s",
 			strings.Join(eventFields, ", "),
 			fmt.Sprintf(
@@ -592,7 +593,7 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 				rangeSlice(1, numEventFields)...))
 		updateStatement := fmt.Sprintf(
 			"UPDATE events SET %s WHERE event_id='%s'",
-			whereClause,
+			updatedFields,
 			row.EventId)
 
 		valueArgs := eventToDbFields(row)
