@@ -427,6 +427,13 @@ func NormalizeEvent(event *GenconEvent) *GenconEvent {
 		event.GameSystem = "Atlantis Rising (Second Edition)"
 	}
 
+	if event.Group == "" {
+		event.Group = event.GMNames
+		if event.Group == "" {
+			event.Group = "n/a"
+		}
+	}
+
 	return event
 }
 
