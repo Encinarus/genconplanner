@@ -1,0 +1,79 @@
+openapi: 3.0.2
+info:
+  title: GenconPlanner API
+  description: |-
+    This server provides support for loading a processed view of the events
+    posted at [gencon.com](https://www.gencon.com/events). The underlying data
+    is based on the export every 6 hours.
+
+    Some useful links:
+    - [The GenconPlanner repo](https://github.com/Encinarus/genconplanner)
+    - [The GenconPlanner UI](https://genconplanner.com)
+
+  contact:
+    email: admin@genconplanner.com
+  license:
+    name: The MIT License (MIT)
+    url: https://opensource.org/license/mit
+  version: 1.0.0
+servers:
+  - url: http://genconplanner.com/api/v1
+tags:
+  - name: category
+    description: A summary of events in a given category
+
+paths:
+  /category/{year}:
+    get:
+      tags:
+        - category
+      description: Returns a summary of each category in the given year.
+      parameters:
+        - name: year
+          in: path
+          description: Specifies which year to summarize.
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                 $ref: '#/components/schemas/Category'
+components:
+  schemas:
+    Category:
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - ANI
+            - BGM
+            - CGM
+            - EGM
+            - ENT
+            - FLM
+            - HMN
+            - KID
+            - LRP
+            - MHE
+            - NMN
+            - RPG
+            - RPGA
+            - SEM
+            - SPA
+            - TCG
+            - TDA
+            - TRD
+            - WKS
+            - ZED
+        year:
+          type: integer
+        eventCount:
+          type: integer
+          description: How many events are associated with this category.
+        name:
+          type: string
