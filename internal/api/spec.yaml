@@ -17,7 +17,7 @@ info:
     url: https://opensource.org/license/mit
   version: 1.0.0
 servers:
-  - url: http://genconplanner.com/api/v1
+  - url: https://www.genconplanner.com/api/v1
 tags:
   - name: category
     description: A summary of events in a given category
@@ -31,6 +31,8 @@ paths:
       parameters:
         - name: year
           in: path
+          schema:
+            type: integer
           description: Specifies which year to summarize.
           required: true
       responses:
@@ -42,10 +44,165 @@ paths:
                 type: array
                 items:
                  $ref: '#/components/schemas/Category'
+  /event/{event_id}:
+    get:
+      tags:
+        - event
+      description: Returns a specific gencon event.
+      parameters:
+        - name: event_id
+          in: path
+          schema:
+            type: string
+          description: The Game ID for an event at gencon.
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+
 components:
   schemas:
+    GameSystem:
+      type: object
+      description: A game system, possibly with a reference to BGG.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        bggId:
+          type: integer
+        bggRating:
+          type: number
+        numBggRatings:
+          type: number
+        yearPublished:
+          type: number
+    EventRef:
+      type: object
+      description: A reference to an event.
+      required:
+        - eventId
+        - ticketsAvailable
+        - startTime
+      properties:
+        eventId: 
+          type: string
+        ticketsAvailable:
+          type: integer
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+    EventSummary:
+      type: object
+      description: A short summary of an event.
+      properties:
+        anchorEventId:
+          type: string
+        shortDescription:
+          type: string
+        wedTickets:
+          type: integer
+        thuTickets:
+          type: integer
+        friTickets:
+          type: integer
+        satTickets:
+          type: integer
+        sunTickets:
+          type: integer
+    Event:
+      type: object
+      description: The full details of a particular event.
+      properties:
+        eventId:
+          type: string
+        year:
+          type: integer
+        active:
+          type: boolean
+        title:
+          type: string
+        shortDescription:
+          type: string
+        longDescription:
+          type: string
+        categoryCode:
+          type: string
+          example: BGM
+        gameSystem:
+          $ref: '#/components/schemas/GameSystem'
+        rulesEdition:
+          type: string
+        minPlayers:
+          type: integer
+        maxPlayers:
+          type: integer
+        ageRequired:
+          type: string
+        experienceRequired:
+          type: string
+        materialsProvided:
+          type: boolean
+        startTime:
+          type: string
+          format: date-time
+        durtion:
+          type: integer
+          description: Duration of the event in minutes.
+        endTime:
+          type: string
+          format: date-time
+        gmNames:
+          type: string
+        website:
+          type: string
+        email:
+          type: string
+          description: This is named email but theres no enforcement that it's email shaped.
+        isTournament:
+          type: boolean
+        roundNumber:
+          type: integer
+        totalRounds:
+          type: integer
+        minPlayTime:
+          type: integer
+          description: The minimum time the event could take, in minutes.
+        attendeeRegistration:
+          type: string
+          description: Restrictions on who can register for this event.
+        cost:
+          type: integer
+          description: Cost in dollars to register for the event.
+        location:
+          type: string
+          description: Location of the event, generally the building the event is in.
+        roomName:
+          type: string
+          description: The room the event is in.
+        tableNumber:
+          type: string
+          description: The specific table this event is at.
+        ticketAvailable:
+          type: integer
+        lastModified:
+          type: string
+          format: date-time
+        relatedEvents:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventRef'
     Category:
       type: object
+      description: A summary of one category of events for a given year at Gen Con.
       properties:
         code:
           type: string

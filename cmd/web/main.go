@@ -119,7 +119,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.POST("/party/new", web.NewParty(db))
 	r.GET("/party/:party_id", web.Party(db))
 
-	api.BuildAPIRoutes(r.Group("/api/v1"), db)
+	api.BuildAPIRoutes(r.Group("/api/v1"), db, cache)
 
 	r.Run(fmt.Sprintf(":%d", *port))
 }
