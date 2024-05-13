@@ -208,7 +208,9 @@ func searchEvents(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 
 	apiResults := make([]EventSummary, 0)
 	for _, match := range matches {
-		apiResults = append(apiResults, *convertEventGroup(match))
+		eventGroup := convertEventGroup(match)
+		eventGroup.GameSystem = lookupGame(match.GameSystem, gameCache)
+		apiResults = append(apiResults, *eventGroup)
 	}
 
 	c.Header("Content-Type", "application/json")
