@@ -80,6 +80,8 @@ paths:
                   type: string
                 year:
                   type: integer
+                search:
+                  type: string
       responses:
         '200':
           description: Search results

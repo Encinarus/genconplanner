@@ -17,6 +17,9 @@ import (
 type EventsSearch struct {
 	Category string `form:"cat"`
 	Year     int    `form:"year"`
+
+	// Not yet implemented
+	FullSearch string `form:"search"`
 }
 
 // Used in search results
@@ -199,7 +202,7 @@ func searchEvents(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 		search.Year = time.Now().Year()
 	}
 
-	matches, err := postgres.LoadEventGroupsForCategory(db, search.Category, search.Year, []int{})
+	matches, err := postgres.LoadEventGroupsForCategory(db, search.Category, search.Year)
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)

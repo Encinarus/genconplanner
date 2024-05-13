@@ -94,12 +94,7 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	return &group, nil
 }
 
-func LoadEventGroupsForCategory(db *sql.DB, short_category string, year int, days []int) ([]*EventGroup, error) {
-	daysOfWeek := []int{3, 4, 5, 6, 0}
-
-	if days != nil && len(days) > 0 {
-		daysOfWeek = days
-	}
+func LoadEventGroupsForCategory(db *sql.DB, short_category string, year int) ([]*EventGroup, error) {
 	rows, err := db.Query(`
 SELECT 
 	e.event_id,
@@ -136,9 +131,8 @@ FROM events e
 						AND e.short_category = c.short_category
 						AND e.cluster_key = c.cluster_key
 						AND e.start_time = c.start_time
-						AND e.day_of_week = ANY ($3)
 WHERE e.year = $1
-ORDER BY c.tickets_available > 0 desc, title`, year, short_category, pq.Array(daysOfWeek))
+ORDER BY c.tickets_available > 0 desc, title`, year, short_category)
 	if err != nil {
 		return nil, err
 	}

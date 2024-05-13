@@ -76,7 +76,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 			return
 		}
 
-		eventGroups, err := postgres.LoadEventGroupsForCategory(db, params.Category, params.Year, []int{})
+		eventGroups, err := postgres.LoadEventGroupsForCategory(db, params.Category, params.Year)
 		if err != nil {
 			log.Printf("Error loading event groups")
 			c.AbortWithError(http.StatusBadRequest, err)
