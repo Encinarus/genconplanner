@@ -18,6 +18,7 @@ info:
   version: 1.0.0
 servers:
   - url: https://www.genconplanner.com/api/v1
+  - url: http://localhost:8080/api/v1
 tags:
   - name: category
     description: A summary of events in a given category
@@ -63,7 +64,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
-
+  /events/:
+    post:
+      tags:
+        - event
+      description: Searches for events matching the request
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                cat:
+                  type: string
+                year:
+                  type: integer
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: '#/components/schemas/EventSummary'
 components:
   schemas:
     GameSystem:
@@ -102,12 +127,14 @@ components:
           format: date-time
     EventSummary:
       type: object
-      description: A short summary of an event.
+      description: A summary of a group of related events.
       properties:
         anchorEventId:
           type: string
         shortDescription:
           type: string
+        numEvents:
+          type: integer
         wedTickets:
           type: integer
         thuTickets:
@@ -118,6 +145,8 @@ components:
           type: integer
         sunTickets:
           type: integer
+        gameSystem:
+          $ref: "#/components/schemas/GameSystem"
     Event:
       type: object
       description: The full details of a particular event.

@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"time"
 
@@ -11,6 +12,25 @@ import (
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 )
+
+// Search param struct for looking up events
+type EventsSearch struct {
+	Category string `form:"cat"`
+	Year     int    `form:"year"`
+}
+
+// Used in search results
+type EventSummary struct {
+	AnchorEventId    string     `json:"anchorEventId"`
+	ShortDescription string     `json:"shortDescription"`
+	NumEvents        int        `json:"numEvents"`
+	WedTickets       int        `json:"wedTickets"`
+	ThuTickets       int        `json:"thuTickets"`
+	FriTickets       int        `json:"friTickets"`
+	SatTickets       int        `json:"satTickets"`
+	SunTickets       int        `json:"sunTickets"`
+	GameSystem       GameSystem `json:"gameSystem"`
+}
 
 type GameSystem struct {
 	Name          string  `json:"name"`
@@ -114,7 +134,7 @@ func lookupGame(gameSystem string, gameCache *background.GameCache) GameSystem {
 func lookupEvent(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 	eventId := c.Param("event_id")
 	if len(strings.TrimSpace(eventId)) == 0 {
-		c.AbortWithStatus(400)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
@@ -122,11 +142,11 @@ func lookupEvent(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 	dbEvents, err := postgres.LoadSimilarEvents(db, eventId, "")
 
 	if err != nil {
-		c.AbortWithError(500, err)
+		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	if len(dbEvents) == 0 {
-		c.AbortWithStatus(404)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
@@ -151,8 +171,56 @@ func lookupEvent(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 	json.NewEncoder(c.Writer).Encode(apiEvent)
 }
 
+func convertEventGroup(dbEventGroup *postgres.EventGroup) *EventSummary {
+	var apiEventSummary EventSummary
+	apiEventSummary.AnchorEventId = dbEventGroup.EventId
+	apiEventSummary.ShortDescription = dbEventGroup.Description
+	apiEventSummary.NumEvents = dbEventGroup.Count
+	apiEventSummary.WedTickets = dbEventGroup.WedTickets
+	apiEventSummary.ThuTickets = dbEventGroup.ThursTickets
+	apiEventSummary.FriTickets = dbEventGroup.FriTickets
+	apiEventSummary.SatTickets = dbEventGroup.SatTickets
+	apiEventSummary.FriTickets = dbEventGroup.FriTickets
+
+	return &apiEventSummary
+}
+
+func searchEvents(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
+	var search EventsSearch
+
+	err := c.ShouldBind(&search)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if search.Year == 0 {
+		// Default to this year if not specified.
+		search.Year = time.Now().Year()
+	}
+
+	matches, err := postgres.LoadEventGroupsForCategory(db, search.Category, search.Year, []int{})
+
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	apiResults := make([]EventSummary, 0)
+	for _, match := range matches {
+		apiResults = append(apiResults, *convertEventGroup(match))
+	}
+
+	c.Header("Content-Type", "application/json")
+	json.NewEncoder(c.Writer).Encode(apiResults)
+}
+
 func eventRoutes(api_group *gin.RouterGroup, db *sql.DB, gameCache *background.GameCache) {
 	api_group.GET("/event/:event_id", func(c *gin.Context) {
 		lookupEvent(c, db, gameCache)
+	})
+
+	api_group.POST("/events/", func(c *gin.Context) {
+		searchEvents(c, db, gameCache)
 	})
 }

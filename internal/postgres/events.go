@@ -94,7 +94,7 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	return &group, nil
 }
 
-func LoadEventGroups(db *sql.DB, cat string, year int, days []int) ([]*EventGroup, error) {
+func LoadEventGroupsForCategory(db *sql.DB, short_category string, year int, days []int) ([]*EventGroup, error) {
 	daysOfWeek := []int{3, 4, 5, 6, 0}
 
 	if days != nil && len(days) > 0 {
@@ -102,43 +102,43 @@ func LoadEventGroups(db *sql.DB, cat string, year int, days []int) ([]*EventGrou
 	}
 	rows, err := db.Query(`
 SELECT 
-       e.event_id,
-	   e.title,
-	   e.short_description,
-	   e.short_category,
-       e.game_system,
-       e.org_group,
-	   c.num_events,
-	   c.tickets_available,
-	   c.wednesday_tickets,
-	   c.thursday_tickets,
-	   c.friday_tickets,
-	   c.saturday_tickets,
-	   c.sunday_tickets
+	e.event_id,
+	e.title,
+	e.short_description,
+	e.short_category,
+	e.game_system,
+	e.org_group,
+	c.num_events,
+	c.tickets_available,
+	c.wednesday_tickets,
+	c.thursday_tickets,
+	c.friday_tickets,
+	c.saturday_tickets,
+	c.sunday_tickets
 FROM events e 
 	JOIN (
 		SELECT 
-			   cluster_key,
-			   short_category,
-			   title,
-			   min(start_time) as start_time,
-			   count(1) as num_events,
-			   sum(tickets_available) as tickets_available,
-			   sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-			   sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-			   sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-			   sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-			   sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
+			cluster_key,
+			short_category,
+			title,
+			min(start_time) as start_time,
+			count(1) as num_events,
+			sum(tickets_available) as tickets_available,
+			sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+			sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+			sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+			sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+			sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
 		FROM events
 		WHERE active and year=$1 and short_category=$2
 		GROUP BY cluster_key, short_category, title
 		) as c ON e.title = c.title 
-		       AND e.short_category = c.short_category
-			   AND e.cluster_key = c.cluster_key
-			   AND e.start_time = c.start_time
-			   AND e.day_of_week = ANY ($3)
+						AND e.short_category = c.short_category
+						AND e.cluster_key = c.cluster_key
+						AND e.start_time = c.start_time
+						AND e.day_of_week = ANY ($3)
 WHERE e.year = $1
-ORDER BY c.tickets_available > 0 desc, title`, year, cat, pq.Array(daysOfWeek))
+ORDER BY c.tickets_available > 0 desc, title`, year, short_category, pq.Array(daysOfWeek))
 	if err != nil {
 		return nil, err
 	}
