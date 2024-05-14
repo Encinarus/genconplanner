@@ -78,10 +78,41 @@ paths:
               properties:
                 cat:
                   type: string
+                  enum:
+                    - ANI
+                    - BGM
+                    - CGM
+                    - EGM
+                    - ENT
+                    - FLM
+                    - HMN
+                    - KID
+                    - LRP
+                    - MHE
+                    - NMN
+                    - RPG
+                    - RPGA
+                    - SEM
+                    - SPA
+                    - TCG
+                    - TDA
+                    - TRD
+                    - WKS
+                    - ZED
                 year:
                   type: integer
                 search:
                   type: string
+                minWedTickets:
+                  type: integer
+                minThuTickets:
+                  type: integer
+                minFriTickets:
+                  type: integer
+                minSatTickets:
+                  type: integer
+                minSunTickets:
+                  type: integer
       responses:
         '200':
           description: Search results

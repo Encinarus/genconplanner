@@ -15,11 +15,16 @@ import (
 
 // Search param struct for looking up events
 type EventsSearch struct {
-	Category string `form:"cat"`
-	Year     int    `form:"year"`
+	Category      string `form:"cat"`
+	Year          int    `form:"year"`
+	MinWedTickets int    `form:"minWedTickets"`
+	MinThuTickets int    `form:"minThuTickets"`
+	MinFriTickets int    `form:"minFriTickets"`
+	MinSatTickets int    `form:"minSatTickets"`
+	MinSunTickets int    `form:"minSunTickets"`
 
 	// Not yet implemented
-	FullSearch string `form:"search"`
+	TextQuery string `form:"search"`
 }
 
 // Used in search results
@@ -202,10 +207,21 @@ func searchEvents(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 		search.Year = time.Now().Year()
 	}
 
-	matches, err := postgres.LoadEventGroupsForCategory(db, search.Category, search.Year)
+	var q postgres.SearchQuery
+	q.CategoryShortCode = search.Category
+	q.Year = search.Year
+	q.RawQuery = search.TextQuery
+	q.MinWedTickets = search.MinWedTickets
+	q.MinThuTickets = search.MinThuTickets
+	q.MinFriTickets = search.MinFriTickets
+	q.MinSatTickets = search.MinSatTickets
+	q.MinSunTickets = search.MinSunTickets
+
+	matches, err := postgres.SearchEvents(db, q)
+	// postgres.LoadEventGroupsForCategory(db, search.Category, search.Year)
 
 	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
+		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 

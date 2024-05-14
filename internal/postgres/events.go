@@ -1,7 +1,9 @@
 package postgres
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
 	"log"
 	"strings"
@@ -71,6 +73,17 @@ type ParsedQuery struct {
 	OrgId           int
 }
 
+type SearchQuery struct {
+	Year              int
+	CategoryShortCode string
+	MinWedTickets     int
+	MinThuTickets     int
+	MinFriTickets     int
+	MinSatTickets     int
+	MinSunTickets     int
+	RawQuery          string
+}
+
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	var group EventGroup
 	if err := rows.Scan(
@@ -92,6 +105,60 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 		return nil, err
 	}
 	return &group, nil
+}
+
+func SearchEvents(db *sql.DB, query SearchQuery) ([]*EventGroup, error) {
+	results := make([]*EventGroup, 0)
+
+	// Optional search terms should be incorporated into the WHERE clause as
+	// AND (<term was omitted> OR <apply term>)
+	rows, err := db.Query(`
+SELECT
+	MIN(e.event_id) AS anchor_event,
+	e.title, 
+	e.short_description AS short_description,
+	e.short_category AS short_category,
+	e.game_system AS game_system,
+	e.org_group AS org_group,
+	COUNT(*) AS num_events,
+	SUM(tickets_available) AS tickets_available,
+	sum(CASE WHEN e.day_of_week = 3 THEN e.tickets_available ELSE 0 END) as wednesday_tickets,
+	sum(CASE WHEN e.day_of_week = 4 THEN e.tickets_available ELSE 0 END) as thursday_tickets,
+	sum(CASE WHEN e.day_of_week = 5 THEN e.tickets_available ELSE 0 END) as friday_tickets,
+	sum(CASE WHEN e.day_of_week = 6 THEN e.tickets_available ELSE 0 END) as saturday_tickets,
+	sum(CASE WHEN e.day_of_week = 0 THEN e.tickets_available ELSE 0 END) as sunday_tickets
+FROM
+  events AS e
+WHERE
+	active
+  AND (LENGTH($1) = 0 OR short_category = $1)
+	AND ($2 = 0 OR year = $2)
+	AND ($3 = 0 OR (day_of_week = 3 AND tickets_available >= $3))
+	AND ($4 = 0 OR (day_of_week = 4 AND tickets_available >= $4))
+	AND ($5 = 0 OR (day_of_week = 5 AND tickets_available >= $5))
+	AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
+	AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
+	AND (LENGTH($8) = 0 OR (search_key @@ to_tsquery($8)))
+GROUP BY
+  cluster_key, short_description, short_category, game_system, org_group, title 
+	`, query.CategoryShortCode, query.Year, query.MinWedTickets,
+		query.MinThuTickets, query.MinFriTickets, query.MinSatTickets,
+		query.MinSunTickets, reformatRawQuery(query.RawQuery))
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		group, err := rowToGroup(rows)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, group)
+	}
+
+	return results, nil
 }
 
 func LoadEventGroupsForCategory(db *sql.DB, short_category string, year int) ([]*EventGroup, error) {
@@ -149,6 +216,49 @@ ORDER BY c.tickets_available > 0 desc, title`, year, short_category)
 	}
 
 	return groups, nil
+}
+
+func reformatRawQuery(rawQuery string) string {
+	rawQuery = strings.Replace(rawQuery, "!", "", -1)
+	rawQuery = strings.Replace(rawQuery, "&", "", -1)
+	rawQuery = strings.Replace(rawQuery, "(", "", -1)
+	rawQuery = strings.Replace(rawQuery, ")", "", -1)
+	rawQuery = strings.Replace(rawQuery, "|", "", -1)
+
+	queryReader := csv.NewReader(bytes.NewBufferString(rawQuery))
+	queryReader.Comma = ' '
+
+	splitQuery, _ := queryReader.Read()
+
+	queryTerms := make([]string, 0)
+	for _, term := range splitQuery {
+		invertTerm := false
+		if strings.HasPrefix(term, "-") {
+			term = strings.TrimLeft(term, "-")
+			invertTerm = true
+		}
+
+		// Now remove remaining symbols we want to allow in field-specific
+		// searches, but not in the general text search
+		term = strings.Replace(term, "<", "", -1)
+		term = strings.Replace(term, ">", "", -1)
+		term = strings.Replace(term, "=", "", -1)
+		term = strings.Replace(term, "-", "", -1)
+		term = strings.Replace(term, "~", "", -1)
+		term = strings.TrimSpace(term)
+		if len(term) == 0 {
+			continue
+		}
+		if invertTerm {
+			term = "!" + term
+		}
+		queryTerms = append(queryTerms, term)
+	}
+
+	tsquery := strings.Join(queryTerms, " & ")
+	tsquery = strings.ReplaceAll(tsquery, "'", "")
+
+	return tsquery
 }
 
 func LoadCategorySummary(db *sql.DB, year int) ([]*CategorySummary, error) {
@@ -280,19 +390,19 @@ GROUP BY cluster_key, short_category, title
 
 	fullQuery := fmt.Sprintf(`
 SELECT 
-       e.event_id,
-	   e.title,
-	   e.short_description,
-	   e.short_category,
-       e.game_system,
-       e.org_group,
-	   c.num_events,
-	   c.tickets_available,
-	   c.wed_tickets,
-	   c.thu_tickets,
-	   c.fri_tickets,
-	   c.sat_tickets,
-	   c.sun_tickets
+		e.event_id,
+		e.title,
+		e.short_description,
+		e.short_category,
+		e.game_system,
+		e.org_group,
+		c.num_events,
+		c.tickets_available,
+		c.wed_tickets,
+		c.thu_tickets,
+		c.fri_tickets,
+		c.sat_tickets,
+		c.sun_tickets
 FROM events e JOIN (%v) AS c 
 	ON e.title = c.title
         AND e.short_category = c.short_category
