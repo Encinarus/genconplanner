@@ -2,6 +2,7 @@ package web
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -75,7 +76,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 			return
 		}
 
-		eventGroups, err := postgres.LoadEventGroups(db, params.Category, params.Year, []int{})
+		eventGroups, err := postgres.LoadEventGroupsForCategory(db, params.Category, params.Year)
 		if err != nil {
 			log.Printf("Error loading event groups")
 			c.AbortWithError(http.StatusBadRequest, err)
@@ -87,6 +88,10 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 			totalEvents += group.Count
 		}
 		majorHeadings, minorHeadings, partitions := PartitionGroups(eventGroups, appContext, params)
+		// Cache until we expect the next update
+		// Pick 5 minutes past the hour
+		nextUpdateTime := time.Now().Add(time.Hour).Truncate(time.Hour).Add(time.Minute * 5)
+		c.Header("Cache-Control", fmt.Sprintf("max-age=%d", time.Until(nextUpdateTime)/time.Second))
 		c.HTML(http.StatusOK, "results.html", gin.H{
 			"context":       appContext,
 			"majorHeadings": majorHeadings,

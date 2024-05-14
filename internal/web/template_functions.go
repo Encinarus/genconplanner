@@ -2,10 +2,12 @@ package web
 
 import (
 	"fmt"
-	"github.com/Encinarus/genconplanner/internal/background"
 	"html/template"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/Encinarus/genconplanner/internal/background"
 )
 
 var textStrippingRegex, _ = regexp.Compile("[^a-zA-Z0-9]+")
@@ -18,6 +20,7 @@ func GetTemplateFunctions(cache *background.GameCache) template.FuncMap {
 	return template.FuncMap{
 		"toId":          textToId,
 		"dict":          dict,
+		"atoi":          strconv.Atoi,
 		"bggPage":       func(gameName string) string { return bggPage(gameName, cache) },
 		"bggRating":     func(gameName string) string { return bggRating(gameName, cache) },
 		"bggNumRatings": func(gameName string) string { return bggNumRatings(gameName, cache) },

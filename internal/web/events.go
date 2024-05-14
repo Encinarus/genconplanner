@@ -3,11 +3,15 @@ package web
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"regexp"
+	"time"
+
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
 )
 
 type LookupResult struct {
@@ -51,6 +55,9 @@ func renderHtml(c *gin.Context, result *LookupResult, appContext *Context) {
 	for _, loadedEvents := range result.EventsPerDay {
 		starred = starred && allStarred(loadedEvents)
 	}
+	nextUpdateTime := time.Now().Add(time.Hour).Truncate(time.Hour).Add(time.Minute * 5)
+	c.Header("Cache-Control", fmt.Sprintf("max-age=%d", nextUpdateTime.Sub(time.Now())/time.Second))
+
 	c.HTML(http.StatusOK, "event.html", gin.H{
 		"result":       result,
 		"eventsPerDay": result.EventsPerDay,
@@ -64,6 +71,17 @@ func renderJson(c *gin.Context, result *LookupResult, appContext *Context) {
 	json.NewEncoder(c.Writer).Encode(result)
 }
 
+func renderNotFound(c *gin.Context, eventId string, appContext *Context) {
+	regex := regexp.MustCompile(".*?([0-9]*)$")
+	genconUrl := ""
+	genconId := regex.FindStringSubmatch(eventId)
+	if genconId != nil {
+		genconUrl = fmt.Sprintf("https://www.gencon.com/events/%v", genconId[1])
+	}
+	appContext.Year = time.Now().Year()
+	c.HTML(http.StatusNotFound, "event_not_found.html", gin.H{"eventId": eventId, "genconUrl": genconUrl, "context": appContext})
+}
+
 func ViewEvent(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		eventId := c.Param("eid")
@@ -73,6 +91,10 @@ func ViewEvent(db *sql.DB) gin.HandlerFunc {
 		if err != nil {
 			log.Printf("Unable to lookup event %v\n", err)
 			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+		if result == nil || result.MainEvent == nil {
+			renderNotFound(c, eventId, appContext)
 			return
 		}
 		appContext.Year = result.MainEvent.Year

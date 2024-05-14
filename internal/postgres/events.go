@@ -1,13 +1,16 @@
 package postgres
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
-	"github.com/Encinarus/genconplanner/internal/events"
-	"github.com/lib/pq"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/lib/pq"
 )
 
 type CalendarEventCluster struct {
@@ -67,7 +70,18 @@ type ParsedQuery struct {
 	StartAfterHour  int
 	EndBeforeHour   int
 	EndAfterHour    int
-	OrgId 			int
+	OrgId           int
+}
+
+type SearchQuery struct {
+	Year              int
+	CategoryShortCode string
+	MinWedTickets     int
+	MinThuTickets     int
+	MinFriTickets     int
+	MinSatTickets     int
+	MinSunTickets     int
+	RawQuery          string
 }
 
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
@@ -93,51 +107,99 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	return &group, nil
 }
 
-func LoadEventGroups(db *sql.DB, cat string, year int, days []int) ([]*EventGroup, error) {
-	daysOfWeek := []int{3, 4, 5, 6, 0}
+func SearchEvents(db *sql.DB, query SearchQuery) ([]*EventGroup, error) {
+	results := make([]*EventGroup, 0)
 
-	if days != nil && len(days) > 0 {
-		daysOfWeek = days
+	// Optional search terms should be incorporated into the WHERE clause as
+	// AND (<term was omitted> OR <apply term>)
+	rows, err := db.Query(`
+SELECT
+	MIN(e.event_id) AS anchor_event,
+	e.title, 
+	e.short_description AS short_description,
+	e.short_category AS short_category,
+	e.game_system AS game_system,
+	e.org_group AS org_group,
+	COUNT(*) AS num_events,
+	SUM(tickets_available) AS tickets_available,
+	sum(CASE WHEN e.day_of_week = 3 THEN e.tickets_available ELSE 0 END) as wednesday_tickets,
+	sum(CASE WHEN e.day_of_week = 4 THEN e.tickets_available ELSE 0 END) as thursday_tickets,
+	sum(CASE WHEN e.day_of_week = 5 THEN e.tickets_available ELSE 0 END) as friday_tickets,
+	sum(CASE WHEN e.day_of_week = 6 THEN e.tickets_available ELSE 0 END) as saturday_tickets,
+	sum(CASE WHEN e.day_of_week = 0 THEN e.tickets_available ELSE 0 END) as sunday_tickets
+FROM
+  events AS e
+WHERE
+	active
+  AND (LENGTH($1) = 0 OR short_category = $1)
+	AND ($2 = 0 OR year = $2)
+	AND ($3 = 0 OR (day_of_week = 3 AND tickets_available >= $3))
+	AND ($4 = 0 OR (day_of_week = 4 AND tickets_available >= $4))
+	AND ($5 = 0 OR (day_of_week = 5 AND tickets_available >= $5))
+	AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
+	AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
+	AND (LENGTH($8) = 0 OR (search_key @@ to_tsquery($8)))
+GROUP BY
+  cluster_key, short_description, short_category, game_system, org_group, title 
+	`, query.CategoryShortCode, query.Year, query.MinWedTickets,
+		query.MinThuTickets, query.MinFriTickets, query.MinSatTickets,
+		query.MinSunTickets, reformatRawQuery(query.RawQuery))
+
+	if err != nil {
+		return nil, err
 	}
+	defer rows.Close()
+
+	for rows.Next() {
+		group, err := rowToGroup(rows)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, group)
+	}
+
+	return results, nil
+}
+
+func LoadEventGroupsForCategory(db *sql.DB, short_category string, year int) ([]*EventGroup, error) {
 	rows, err := db.Query(`
 SELECT 
-       e.event_id,
-	   e.title,
-	   e.short_description,
-	   e.short_category,
-       e.game_system,
-       e.org_group,
-	   c.num_events,
-	   c.tickets_available,
-	   c.wednesday_tickets,
-	   c.thursday_tickets,
-	   c.friday_tickets,
-	   c.saturday_tickets,
-	   c.sunday_tickets
+	e.event_id,
+	e.title,
+	e.short_description,
+	e.short_category,
+	e.game_system,
+	e.org_group,
+	c.num_events,
+	c.tickets_available,
+	c.wednesday_tickets,
+	c.thursday_tickets,
+	c.friday_tickets,
+	c.saturday_tickets,
+	c.sunday_tickets
 FROM events e 
 	JOIN (
 		SELECT 
-			   cluster_key,
-			   short_category,
-			   title,
-			   min(start_time) as start_time,
-			   count(1) as num_events,
-			   sum(tickets_available) as tickets_available,
-			   sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-			   sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-			   sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-			   sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-			   sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
+			cluster_key,
+			short_category,
+			title,
+			min(start_time) as start_time,
+			count(1) as num_events,
+			sum(tickets_available) as tickets_available,
+			sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+			sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+			sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+			sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+			sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
 		FROM events
 		WHERE active and year=$1 and short_category=$2
 		GROUP BY cluster_key, short_category, title
 		) as c ON e.title = c.title 
-		       AND e.short_category = c.short_category
-			   AND e.cluster_key = c.cluster_key
-			   AND e.start_time = c.start_time
-			   AND e.day_of_week = ANY ($3)
+						AND e.short_category = c.short_category
+						AND e.cluster_key = c.cluster_key
+						AND e.start_time = c.start_time
 WHERE e.year = $1
-ORDER BY c.tickets_available > 0 desc, title`, year, cat, pq.Array(daysOfWeek))
+ORDER BY c.tickets_available > 0 desc, title`, year, short_category)
 	if err != nil {
 		return nil, err
 	}
@@ -154,6 +216,49 @@ ORDER BY c.tickets_available > 0 desc, title`, year, cat, pq.Array(daysOfWeek))
 	}
 
 	return groups, nil
+}
+
+func reformatRawQuery(rawQuery string) string {
+	rawQuery = strings.Replace(rawQuery, "!", "", -1)
+	rawQuery = strings.Replace(rawQuery, "&", "", -1)
+	rawQuery = strings.Replace(rawQuery, "(", "", -1)
+	rawQuery = strings.Replace(rawQuery, ")", "", -1)
+	rawQuery = strings.Replace(rawQuery, "|", "", -1)
+
+	queryReader := csv.NewReader(bytes.NewBufferString(rawQuery))
+	queryReader.Comma = ' '
+
+	splitQuery, _ := queryReader.Read()
+
+	queryTerms := make([]string, 0)
+	for _, term := range splitQuery {
+		invertTerm := false
+		if strings.HasPrefix(term, "-") {
+			term = strings.TrimLeft(term, "-")
+			invertTerm = true
+		}
+
+		// Now remove remaining symbols we want to allow in field-specific
+		// searches, but not in the general text search
+		term = strings.Replace(term, "<", "", -1)
+		term = strings.Replace(term, ">", "", -1)
+		term = strings.Replace(term, "=", "", -1)
+		term = strings.Replace(term, "-", "", -1)
+		term = strings.Replace(term, "~", "", -1)
+		term = strings.TrimSpace(term)
+		if len(term) == 0 {
+			continue
+		}
+		if invertTerm {
+			term = "!" + term
+		}
+		queryTerms = append(queryTerms, term)
+	}
+
+	tsquery := strings.Join(queryTerms, " & ")
+	tsquery = strings.ReplaceAll(tsquery, "'", "")
+
+	return tsquery
 }
 
 func LoadCategorySummary(db *sql.DB, year int) ([]*CategorySummary, error) {
@@ -285,19 +390,19 @@ GROUP BY cluster_key, short_category, title
 
 	fullQuery := fmt.Sprintf(`
 SELECT 
-       e.event_id,
-	   e.title,
-	   e.short_description,
-	   e.short_category,
-       e.game_system,
-       e.org_group,
-	   c.num_events,
-	   c.tickets_available,
-	   c.wed_tickets,
-	   c.thu_tickets,
-	   c.fri_tickets,
-	   c.sat_tickets,
-	   c.sun_tickets
+		e.event_id,
+		e.title,
+		e.short_description,
+		e.short_category,
+		e.game_system,
+		e.org_group,
+		c.num_events,
+		c.tickets_available,
+		c.wed_tickets,
+		c.thu_tickets,
+		c.fri_tickets,
+		c.sat_tickets,
+		c.sun_tickets
 FROM events e JOIN (%v) AS c 
 	ON e.title = c.title
         AND e.short_category = c.short_category
@@ -584,7 +689,7 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 	numEventFields := len(eventFields)
 
 	for _, row := range updatedRows {
-		whereClause := fmt.Sprintf(
+		updatedFields := fmt.Sprintf(
 			"(%s) = %s",
 			strings.Join(eventFields, ", "),
 			fmt.Sprintf(
@@ -592,7 +697,7 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 				rangeSlice(1, numEventFields)...))
 		updateStatement := fmt.Sprintf(
 			"UPDATE events SET %s WHERE event_id='%s'",
-			whereClause,
+			updatedFields,
 			row.EventId)
 
 		valueArgs := eventToDbFields(row)

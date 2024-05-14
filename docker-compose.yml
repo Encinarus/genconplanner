@@ -6,7 +6,6 @@ services:
     build:
       dockerfile: ./Dockerfile
       target: update
-    restart: on-failure
     links:
     - db
     environment:

@@ -158,19 +158,22 @@
     let events = [
         {{ range $e := .calendarGroups }}{
             title: {{ $e.Title }},
-            start: new Date({{ $e.StartTime.Unix }} * 1000),
-            end: new Date({{ $e.EndTime.Unix }} * 1000),
+            start: new Date(({{ $e.StartTime.Unix }} - 60 * 60 * 4) * 1000),
+            end: new Date(({{ $e.EndTime.Unix }}- 60 * 60 * 4) * 1000),
+            // start: "{{ $e.StartTime }}",
+            // end: "{{ $e.EndTime }}",
             url: {{ $e.PlannerUrl }},
             backgroundColor: colors.get('{{ $e.ShortCategory}}'),
             description: {{ $e.ShortDescription }},
             similarCount: {{ $e.SimilarCount }},
         },
         {{ end }}
-    ]
+    ];
     let calendarEl = document.getElementById('calendar');
     let calendar = new FullCalendar.Calendar(calendarEl, {
         navLinks: false,
         initialView: 'genconWeek',
+        scrollTime: '08:00:00',
         editable: false,
         initialDate: '{{ $start }}',
         timeZone: 'America/Indiana/Indianapolis',
@@ -180,12 +183,14 @@
             center: 'title',
             right: 'timeGridDay,genconWeek' // buttons for switching between views
         },
+        height: 600,
         events: events,
         views: {
             genconWeek: {
                 type: 'timeGrid',
                 duration: { days: 5 },
                 buttonText: 'week',
+                scrollTime: '08:00:00',
             }
         },
         eventDidMount: function(info) {
@@ -211,6 +216,8 @@
 
     });
 
+    calendar.setHeight(600);
+    calendar.scrollToTime("08:00");
     calendar.render();
 
     function updateCalendar(eventGroups) {
@@ -232,6 +239,8 @@
                 });
             }
         });
+        calendar.setHeight(600);
+        calendar.scrollToTime("08:00");
     }
 
     // If the auth token is expired, we'll return an empty page,
@@ -242,7 +251,8 @@
             url: '/listStarredGroups/{{.context.Year}}',
             type: 'GET',
             dataType: 'json',
-        }).done(function(data){
+        }).done(function(
+            data){
             updateCalendar(data);
         });
     });

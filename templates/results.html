@@ -96,7 +96,7 @@
                 </li>
             </ul>
 
-            <input type="hidden" id="year" value="{{ .context.Year }}">
+            <input type="hidden" name="year" value="{{ .context.Year }}">
             <button type="submit" class="btn btn-primary">Search</button>
         </form>
         <hr/>
@@ -104,7 +104,7 @@
 </div>
 <div class="main">
     <div class="row">
-    <div class="col-md-2">
+    <div class="col-md-2 d-none d-md-block">
         <h3 style="margin-top: 0">{{ .breakdown }}</h3>
         {{ range $major := $majorHeadings }}
         {{ $subHeadings := (index $minorHeadings $major )}}

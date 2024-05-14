@@ -3,10 +3,11 @@ package background
 import (
 	"context"
 	"database/sql"
-	"github.com/Encinarus/genconplanner/internal/bgg"
-	"github.com/Encinarus/genconplanner/internal/postgres"
 	"log"
 	"time"
+
+	"github.com/Encinarus/genconplanner/internal/bgg"
+	"github.com/Encinarus/genconplanner/internal/postgres"
 )
 
 func addIdsToBacklog(backlog map[int64]bool, newIds []int64) {
@@ -99,7 +100,7 @@ func UpdateGamesFromBGG(db *sql.DB) {
 		379078, 379644, 381356, 381676, 381677, 381819, 383086, 383459, 385245, 385610,
 		387163, 387201, 387202, 387263, 238327, 367584, 286559, 184771, 367197, 121193,
 		381984, 359156, 344050, 385415, 369436, 28, 386990, 353019, 376472, 368103,
-		373914, 344341, 200114, 285110, 331228,
+		373914, 344341, 200114, 285110, 331228, 381117, 366470, 407812, 193949,
 	}
 	gameBacklog := map[int64]bool{}
 	for _, id := range gamesToAddToBacklog {
