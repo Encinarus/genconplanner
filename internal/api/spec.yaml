@@ -24,6 +24,18 @@ tags:
     description: A summary of events in a given category
 
 paths:
+  /user/:
+    get:
+      tags:
+        - user
+      description: Returns the currently logged in user.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
   /category/{year}:
     get:
       tags:
@@ -122,8 +134,35 @@ paths:
                 type: array
                 items: 
                   $ref: '#/components/schemas/EventSummary'
+security:
+  - firebase: [ ]
 components:
+  securitySchemes:
+    firebase:
+      type: "oauth2"
+      flows:
+        implicit:
+          authorizationUrl: "https://securetoken.googleapis.com/v1/token?key=AIzaSyAGtjwGiHYFnXE1UbzLTPeIz8Ix06WIdBs"
+          scopes:
+            read: Grants read access
+            write: Grants write access
+            admin: Grants access to admin operations
+      x-google-issuer: "https://securetoken.google.com/genconplanner-v2"
+      x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+      x-google-audiences: "genconplanner-v2"
   schemas:
+    User:
+      type: object
+      description: A user for the system
+      properties:
+        email:
+          type: string
+        displayName:
+          type: string
+        starredEvents:
+          type: array
+          items:
+            type: string
     GameSystem:
       type: object
       description: A game system, possibly with a reference to BGG.
