@@ -311,21 +311,15 @@ ORDER BY e1.start_time`, fields), eventId, year, userEmail)
 	}
 	defer rows.Close()
 
-	loadedEvents := make(map[string]*events.GenconEvent)
+	loadedEvents := make([]*events.GenconEvent, 0)
 	for rows.Next() {
 		event, err := scanEvent(rows)
 		if err != nil {
 			return nil, err
 		}
-
-		loadedEvents[event.EventId] = events.NormalizeEvent(event)
+		loadedEvents = append(loadedEvents, events.NormalizeEvent(event))
 	}
-
-	result := make([]*events.GenconEvent, 0)
-	for _, event := range loadedEvents {
-		result = append(result, event)
-	}
-	return result, nil
+	return loadedEvents, nil
 }
 
 func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
