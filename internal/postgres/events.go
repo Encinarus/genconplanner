@@ -419,9 +419,9 @@ WHERE %v
 ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 `, innerQuery, fullWhere)
 
-	log.Printf(fullQuery)
+	// log.Printf(fullQuery)
 
-	loadedEvents := make([]*EventGroup, 0)
+	loadedEvents := make(map[string]*EventGroup)
 	rows, err := db.Query(fullQuery)
 	if err != nil {
 		return nil, err
@@ -435,9 +435,15 @@ ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 			return nil, err
 		}
 
-		loadedEvents = append(loadedEvents, group)
+		loadedEvents[group.EventId] = group
 	}
-	return loadedEvents, nil
+
+	results := make([]*EventGroup, 0)
+	for _, group := range loadedEvents {
+		results = append(results, group)
+	}
+
+	return results, nil
 }
 
 func loadEventIds(tx *sql.Tx, year int) (map[string]time.Time, map[string]time.Time, error) {
