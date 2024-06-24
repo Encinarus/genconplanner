@@ -13,6 +13,7 @@ import (
 
 func parseHttp(sourceFile string) []*events.GenconEvent {
 	resp, err := http.Get(sourceFile)
+	
 	if err != nil {
 		panic(err)
 	}

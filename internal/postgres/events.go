@@ -743,7 +743,7 @@ func bulkInsert(tx *sql.Tx, newRows []*events.GenconEvent) error {
 		_, err := tx.Exec(insertStatement, valueArgs...)
 
 		if err != nil {
-			log.Printf("Error on processing event: %s %v", batch, err.(pq.PGError))
+			log.Printf("Error on processing event: %v %v", batch, err.(pq.PGError))
 			return err
 		}
 	}
