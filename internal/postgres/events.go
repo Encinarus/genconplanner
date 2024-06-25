@@ -138,7 +138,7 @@ WHERE
 	AND ($5 = 0 OR (day_of_week = 5 AND tickets_available >= $5))
 	AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
 	AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
-	AND (LENGTH($8) = 0 OR (search_key @@ to_tsquery($8)))
+	AND (LENGTH($8) = 0 OR (search_key @@ to_tsquery('english', $8)))
 GROUP BY
   cluster_key, short_description, short_category, game_system, org_group, title 
 	`, query.CategoryShortCode, query.Year, query.MinWedTickets,
@@ -344,7 +344,7 @@ func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 	tsquery := strings.Join(query.TextQueries, " & ")
 	tsquery = strings.ReplaceAll(tsquery, "'", "")
 	if len(tsquery) > 0 {
-		innerFrom = fmt.Sprintf("%v, to_tsquery('%v') q", innerFrom, tsquery)
+		innerFrom = fmt.Sprintf("%v, to_tsquery('english', '%v') q", innerFrom, tsquery)
 		innerWhere = fmt.Sprintf("%v AND search_key @@ q", innerWhere)
 		titleRank = "min(ts_rank(title_tsv, q))"
 		searchRank = "min(ts_rank(search_key, q))"
@@ -413,7 +413,7 @@ WHERE %v
 ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 `, innerQuery, fullWhere)
 
-	log.Printf(fullQuery)
+	log.Println(fullQuery)
 
 	loadedEvents := make([]*EventGroup, 0)
 	rows, err := db.Query(fullQuery)
@@ -431,6 +431,8 @@ ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 
 		loadedEvents = append(loadedEvents, group)
 	}
+
+	log.Printf("Loaded %v events: ", len(loadedEvents))
 	return loadedEvents, nil
 }
 
