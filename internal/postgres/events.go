@@ -138,12 +138,12 @@ WHERE
 	AND ($5 = 0 OR (day_of_week = 5 AND tickets_available >= $5))
 	AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
 	AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
-	AND (LENGTH($8) = 0 OR (search_key @@ to_tsquery('english', $8)))
+	AND (LENGTH($8) = 0 OR (search_key @@ websearch_to_tsquery('english', $8)))
 GROUP BY
   cluster_key, short_description, short_category, game_system, org_group, title 
 	`, query.CategoryShortCode, query.Year, query.MinWedTickets,
 		query.MinThuTickets, query.MinFriTickets, query.MinSatTickets,
-		query.MinSunTickets, reformatRawQuery(query.RawQuery))
+		query.MinSunTickets, query.RawQuery)
 
 	if err != nil {
 		return nil, err
@@ -344,7 +344,7 @@ func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 	tsquery := strings.Join(query.TextQueries, " & ")
 	tsquery = strings.ReplaceAll(tsquery, "'", "")
 	if len(tsquery) > 0 {
-		innerFrom = fmt.Sprintf("%v, to_tsquery('english', '%v') q", innerFrom, tsquery)
+		innerFrom = fmt.Sprintf("%v, websearch_to_tsquery('english', '%v') q", innerFrom, tsquery)
 		innerWhere = fmt.Sprintf("%v AND search_key @@ q", innerWhere)
 		titleRank = "min(ts_rank(title_tsv, q))"
 		searchRank = "min(ts_rank(search_key, q))"
