@@ -86,6 +86,8 @@ type SearchQuery struct {
 
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	var group EventGroup
+	var title_rank float64
+	var search_rank float64
 	if err := rows.Scan(
 		&group.EventId,
 		&group.Name,
@@ -101,6 +103,8 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 		&group.FriTickets,
 		&group.SatTickets,
 		&group.SunTickets,
+		&title_rank,
+		&search_rank
 	); err != nil {
 		return nil, err
 	}
@@ -126,7 +130,9 @@ SELECT
 	sum(CASE WHEN e.day_of_week = 4 THEN e.tickets_available ELSE 0 END) as thursday_tickets,
 	sum(CASE WHEN e.day_of_week = 5 THEN e.tickets_available ELSE 0 END) as friday_tickets,
 	sum(CASE WHEN e.day_of_week = 6 THEN e.tickets_available ELSE 0 END) as saturday_tickets,
-	sum(CASE WHEN e.day_of_week = 0 THEN e.tickets_available ELSE 0 END) as sunday_tickets
+	sum(CASE WHEN e.day_of_week = 0 THEN e.tickets_available ELSE 0 END) as sunday_tickets,
+	0 as title_rank,
+	0 as search_rank
 FROM
   events AS e
 WHERE
@@ -176,7 +182,9 @@ SELECT
 	c.thursday_tickets,
 	c.friday_tickets,
 	c.saturday_tickets,
-	c.sunday_tickets
+	c.sunday_tickets,
+	0 as title_rank,
+	0 as search_rank
 FROM events e 
 	JOIN (
 		SELECT 
@@ -406,8 +414,8 @@ SELECT  distinct
 		c.fri_tickets,
 		c.sat_tickets,
 		c.sun_tickets,
-		c.title_rank,
-		c.search_rank		
+		c.title_rank as title_rank,
+		c.search_rank as search_rank		
 FROM events e JOIN (%v) AS c 
 	ON e.title = c.title
         AND e.short_category = c.short_category
