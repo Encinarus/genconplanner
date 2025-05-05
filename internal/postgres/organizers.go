@@ -2,14 +2,15 @@ package postgres
 
 import (
 	"database/sql"
-	"github.com/lib/pq"
 	log "log"
 	"sort"
+
+	"github.com/lib/pq"
 )
 
 type Organizer struct {
-	Id int64
-	Aliases []string
+	Id        int64
+	Aliases   []string
 	NumEvents int64
 }
 
@@ -43,7 +44,7 @@ GROUP BY 1
 		return nil, err
 	}
 
-	orgs := make([]*Organizer, 0, 0)
+	orgs := make([]*Organizer, 0)
 	defer rows.Close()
 	for rows.Next() {
 		var org Organizer

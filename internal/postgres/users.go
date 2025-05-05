@@ -3,11 +3,12 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"github.com/Encinarus/genconplanner/internal/events"
-	"github.com/lib/pq"
 	"log"
 	"sort"
 	"strings"
+
+	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/lib/pq"
 )
 
 type User struct {

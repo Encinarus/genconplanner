@@ -306,7 +306,7 @@ func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.
 	  AND e1.year = $2
 	ORDER BY e1.start_time`, fields)
 	rows, err := db.Query(raw_query, eventId, year, userEmail)
-	
+
 	log.Printf("Similar event query: %s", raw_query)
 
 	if err != nil {
@@ -405,7 +405,9 @@ SELECT  distinct
 		c.thu_tickets,
 		c.fri_tickets,
 		c.sat_tickets,
-		c.sun_tickets
+		c.sun_tickets,
+		c.title_rank,
+		c.search_rank,		
 FROM events e JOIN (%v) AS c 
 	ON e.title = c.title
         AND e.short_category = c.short_category

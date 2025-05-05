@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+
 	"github.com/lib/pq"
 )
 
@@ -29,7 +30,7 @@ WHERE pm.email = $1
 	}
 
 	defer rows.Close()
-	partyIds := make([]int64, 0, 0)
+	partyIds := make([]int64, 0)
 	partiesById := make(map[int64]*Party)
 	for rows.Next() {
 		var p Party
@@ -59,7 +60,7 @@ GROUP BY u.email, u.display_name
 
 	for rows.Next() {
 		var u User
-		userParties := make([]int64, 0, 0)
+		userParties := make([]int64, 0)
 		err = rows.Scan(&u.Email, &u.DisplayName, pq.Array(&userParties))
 		if err != nil {
 			return nil, err
@@ -69,7 +70,7 @@ GROUP BY u.email, u.display_name
 		}
 	}
 
-	parties := make([]*Party, 0, 0)
+	parties := make([]*Party, 0)
 	for _, party := range partiesById {
 		parties = append(parties, party)
 	}
