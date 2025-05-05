@@ -104,7 +104,7 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 		&group.SatTickets,
 		&group.SunTickets,
 		&title_rank,
-		&search_rank
+		&search_rank,
 	); err != nil {
 		return nil, err
 	}
