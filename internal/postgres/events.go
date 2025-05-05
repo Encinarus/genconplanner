@@ -293,18 +293,21 @@ func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.
 	year := events.YearFromEvent(eventId)
 
 	fields := "e1." + strings.Join(eventFields(), ", e1.")
-	rows, err := db.Query(fmt.Sprintf(`
-SELECT %s, se.event_id is not null, o.id
-FROM events e1 
-     JOIN events e2 on e1.year = e2.year
-          AND e1.short_category = e2.short_category
-          AND e1.title = e2.title
-          AND e1.cluster_key = e2.cluster_key
-     LEFT JOIN starred_events se ON se.event_id = e1.event_id AND se.email = $3
-     LEFT JOIN orgs o ON lower(o.alias) = lower(e1.org_group)
-WHERE e2.event_id = $1
-  AND e1.year = $2
-ORDER BY e1.start_time`, fields), eventId, year, userEmail)
+	raw_query := fmt.Sprintf(`
+	SELECT distinct %s, se.event_id is not null, o.id
+	FROM events e1 
+		 JOIN events e2 on e1.year = e2.year
+			  AND e1.short_category = e2.short_category
+			  AND e1.title = e2.title
+			  AND e1.cluster_key = e2.cluster_key
+		 LEFT JOIN starred_events se ON se.event_id = e1.event_id AND se.email = $3
+		 LEFT JOIN orgs o ON lower(o.alias) = lower(e1.org_group)
+	WHERE e2.event_id = $1
+	  AND e1.year = $2
+	ORDER BY e1.start_time`, fields)
+	rows, err := db.Query(raw_query, eventId, year, userEmail)
+	
+	log.Printf("Similar event query: %s", raw_query)
 
 	if err != nil {
 		return nil, err
@@ -351,7 +354,7 @@ func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 	}
 
 	innerQuery := fmt.Sprintf(`
-SELECT 
+SELECT
 	cluster_key,
 	short_category,
 	title,
@@ -389,7 +392,7 @@ GROUP BY cluster_key, short_category, title
 	}
 
 	fullQuery := fmt.Sprintf(`
-SELECT 
+SELECT  distinct
 		e.event_id,
 		e.title,
 		e.short_description,

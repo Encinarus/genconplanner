@@ -276,11 +276,25 @@ CREATE TRIGGER update_dow BEFORE INSERT OR UPDATE ON public.events
 
 -- DROP TRIGGER cluster_vectorupdate ON public.events;
 
+CREATE FUNCTION custer_update_trigger() RETURNS trigger AS $$
+begin
+  new.cluster_key :=
+    to_tsvector('pg_catalog.english', coalesce(new.title, '')) ||
+    to_tsvector('pg_catalog.english', coalesce(new.short_description)) ||
+    to_tsvector('pg_catalog.english', coalesce(new.org_group)) ||
+    to_tsvector('pg_catalog.english', coalesce(new.event_type)) ||
+    to_tsvector('pg_catalog.english', coalesce(new.game_system)) ||
+    to_tsvector('pg_catalog.english', coalesce(new.rules_edition)) ||
+    to_tsvector('pg_catalog.english', CONCAT(year, 'eventyear'))
+  return new;
+end
+$$ LANGUAGE plpgsql;
+
 CREATE TRIGGER cluster_vectorupdate
   BEFORE INSERT OR UPDATE
   ON public.events
   FOR EACH ROW
-EXECUTE PROCEDURE tsvector_update_trigger('cluster_key', 'pg_catalog.english', 'title', 'short_description', 'org_group', 'event_type', 'game_system', 'rules_edition');
+EXECUTE FUNCTION custer_update_trigger();
 
 -- Trigger: desc_vectorupdate
 

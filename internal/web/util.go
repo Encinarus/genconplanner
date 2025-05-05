@@ -265,6 +265,7 @@ func BootstrapContext(app *firebase.App, db *sql.DB, bggCache *background.GameCa
 
 		appContext.Firebase = getFirebaseConfig()
 		appContext.BggCache = bggCache
+		log.Println("Setting context")
 
 		c.Set("context", &appContext)
 		c.Next()
