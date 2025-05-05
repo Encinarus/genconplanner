@@ -407,7 +407,7 @@ SELECT  distinct
 		c.sat_tickets,
 		c.sun_tickets,
 		c.title_rank,
-		c.search_rank,		
+		c.search_rank		
 FROM events e JOIN (%v) AS c 
 	ON e.title = c.title
         AND e.short_category = c.short_category
