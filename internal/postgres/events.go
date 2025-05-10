@@ -361,11 +361,12 @@ func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 
 	innerQuery := fmt.Sprintf(`
 SELECT
+    min(event_id) as event_id,
 	cluster_key,
 	short_category,
 	title,
 	min(start_time) as start_time,
-	count(1) as num_events,
+	count(active or null) as num_events,
 	sum(tickets_available) as tickets_available,
 	sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wed_tickets,
 	sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thu_tickets,
@@ -414,11 +415,7 @@ SELECT  distinct
 		c.sun_tickets,
 		c.title_rank as title_rank,
 		c.search_rank as search_rank		
-FROM events e JOIN (%v) AS c 
-	ON e.title = c.title
-        AND e.short_category = c.short_category
-        AND e.cluster_key = c.cluster_key
-        AND e.start_time = c.start_time
+FROM events e JOIN (%v) AS c ON e.event_id = c.event_id
     JOIN orgs o ON lower(o.alias) = lower(e.org_group)
 WHERE %v
 ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc

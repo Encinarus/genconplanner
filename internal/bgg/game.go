@@ -5,11 +5,12 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"golang.org/x/time/rate"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // XML tags generated from https://www.onlinetool.io/xmltogo/
@@ -72,8 +73,6 @@ func NewBggApi() *BggApi {
 }
 
 func (bgg *BggApi) get(ctx context.Context, url string, v interface{}) error {
-	log.Println(url)
-
 	err := bgg.limiter.Wait(ctx)
 	if err != nil {
 		return err
