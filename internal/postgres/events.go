@@ -315,8 +315,6 @@ func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.
 	ORDER BY e1.start_time`, fields)
 	rows, err := db.Query(raw_query, eventId, year, userEmail)
 
-	log.Printf("Similar event query: %s", raw_query)
-
 	if err != nil {
 		return nil, err
 	}
@@ -425,8 +423,6 @@ FROM events e JOIN (%v) AS c
 WHERE %v
 ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 `, innerQuery, fullWhere)
-
-	log.Println(fullQuery)
 
 	loadedEvents := make([]*EventGroup, 0)
 	rows, err := db.Query(fullQuery)
