@@ -86,9 +86,6 @@
                 <a href="#calendar-tab" class="nav-link active" role="tab" data-toggle="tab" aria-current="page" aria-controls="calendar-tab" aria-selected="true">Calendar</a>
             </li>
             <li class="nav-item">
-                <a href="#day-tab" class="nav-link" role="tab" data-toggle="tab" aria-controls="day-tab" aria-selected="false">By day</a>
-            </li>
-            <li class="nav-item">
                 <a href="#type-tab" class="nav-link" role="tab" data-toggle="tab" aria-controls="type-tab" aria-selected="false">By type</a>
             </li>
         </ul>
@@ -97,13 +94,6 @@
             <div class="tab-pane active mt-4" id="calendar-tab">
                 <!-- This doesn't look as good as it should... -->
                 <div id='calendar' class="tab-content"></div>
-            </div>
-            <div class="tab-pane mt-4" id="day-tab">
-                {{ template "eventBlurb" (dict "events" $wed "day" "Wednesday") }}
-                {{ template "eventBlurb" (dict "events" $thurs "day" "Thursday") }}
-                {{ template "eventBlurb" (dict "events" $fri "day" "Friday") }}
-                {{ template "eventBlurb" (dict "events" $sat "day" "Saturday") }}
-                {{ template "eventBlurb" (dict "events" $sun "day" "Sunday") }}
             </div>
             <div class="tab-pane mt-4" id="type-tab">
                 {{ template "categoryEvent" (dict "events" .eventsByCategory.ANI "fullCat" "ANI - Anime Activities") }}
