@@ -188,11 +188,11 @@ SELECT
 FROM events e 
 	JOIN (
 		SELECT 
+		    min(event_id) as event_id,
 			cluster_key,
 			short_category,
 			title,
-			min(start_time) as start_time,
-			count(1) as num_events,
+			count(active or null) as num_events,
 			sum(tickets_available) as tickets_available,
 			sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
 			sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
@@ -202,10 +202,7 @@ FROM events e
 		FROM events
 		WHERE active and year=$1 and short_category=$2
 		GROUP BY cluster_key, short_category, title
-		) as c ON e.title = c.title 
-						AND e.short_category = c.short_category
-						AND e.cluster_key = c.cluster_key
-						AND e.start_time = c.start_time
+		) as c ON e.event_id = c.event_id
 WHERE e.year = $1
 ORDER BY c.tickets_available > 0 desc, title`, year, short_category)
 	if err != nil {
