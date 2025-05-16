@@ -8,6 +8,8 @@ import (
 	"log"
 	"strconv"
 	"time"
+
+	_ "time/tzdata"
 )
 
 type excelCell struct {
