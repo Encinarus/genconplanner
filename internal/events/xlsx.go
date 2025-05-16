@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"io/ioutil"
+	"log"
 	"strconv"
 	"time"
 )
@@ -24,7 +25,10 @@ func parseTime(dateString string) time.Time {
 	// source format:			07/30/2015 03:00 PM
 	// canonical go time: 		Mon Jan 2 15:04:05 -0700 MST 2006
 	// reformatted canonical: 	01/02/2006 03:04 PM
-	location, _ := time.LoadLocation("America/Indianapolis")
+	location, err := time.LoadLocation("America/Indianapolis")
+	if err != nil {
+		log.Printf("Error processing location: %v", err)
+	}
 	parsed, _ := time.ParseInLocation(
 		"01/02/2006 03:04 PM",
 		dateString,
