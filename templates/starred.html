@@ -163,7 +163,7 @@
     let calendar = new FullCalendar.Calendar(calendarEl, {
         navLinks: false,
         initialView: 'genconWeek',
-        scrollTime: '08:00:00',
+        scrollTime: '06:00:00',
         editable: false,
         initialDate: '{{ $start }}',
         timeZone: 'America/Indiana/Indianapolis',
@@ -173,14 +173,14 @@
             center: 'title',
             right: 'timeGridDay,genconWeek' // buttons for switching between views
         },
-        height: 600,
+        height: 850,
         events: events,
         views: {
             genconWeek: {
                 type: 'timeGrid',
                 duration: { days: 5 },
                 buttonText: 'week',
-                scrollTime: '08:00:00',
+                scrollTime: '06:00:00',
             }
         },
         eventDidMount: function(info) {
@@ -206,8 +206,6 @@
 
     });
 
-    calendar.setHeight(600);
-    calendar.scrollToTime("08:00");
     calendar.render();
 
     function updateCalendar(eventGroups) {
@@ -229,8 +227,6 @@
                 });
             }
         });
-        calendar.setHeight(600);
-        calendar.scrollToTime("08:00");
     }
 
     // If the auth token is expired, we'll return an empty page,
