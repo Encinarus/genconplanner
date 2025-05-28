@@ -241,6 +241,10 @@ func eventRoutes(api_group *gin.RouterGroup, db *sql.DB, gameCache *background.G
 		lookupEvent(c, db, gameCache)
 	})
 
+	api_group.GET("/events", func(c *gin.Context) {
+		searchEvents(c, db, gameCache)
+	})
+
 	api_group.POST("/events/", func(c *gin.Context) {
 		searchEvents(c, db, gameCache)
 	})
