@@ -30,6 +30,7 @@ type EventsSearch struct {
 // Used in search results
 type EventSummary struct {
 	AnchorEventId    string     `json:"anchorEventId"`
+	Title 			 string 	`json:"title"`
 	ShortDescription string     `json:"shortDescription"`
 	NumEvents        int        `json:"numEvents"`
 	WedTickets       int        `json:"wedTickets"`
@@ -182,6 +183,7 @@ func lookupEvent(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 func convertEventGroup(dbEventGroup *postgres.EventGroup) *EventSummary {
 	var apiEventSummary EventSummary
 	apiEventSummary.AnchorEventId = dbEventGroup.EventId
+	apiEventSummary.Title = dbEventGroup.Name
 	apiEventSummary.ShortDescription = dbEventGroup.Description
 	apiEventSummary.NumEvents = dbEventGroup.Count
 	apiEventSummary.WedTickets = dbEventGroup.WedTickets
