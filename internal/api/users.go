@@ -2,13 +2,11 @@ package api
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 
 	firebase "firebase.google.com/go"
-	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 )
 
@@ -68,14 +66,14 @@ func requireLogin(c *gin.Context, app *firebase.App) string {
 	return email
 }
 
-func getUser(c *gin.Context, db *sql.DB, app *firebase.App) {
+func getUser(c *gin.Context, repo EventRepository, app *firebase.App) {
 	email := requireLogin(c, app)
 	if email == "" {
 		// requireLogin already aborted the request.
 		return
 	}
 
-	dbUser, err := postgres.LoadOrCreateUser(db, email)
+	dbUser, err := repo.LoadOrCreateUser(email)
 	if err != nil {
 		log.Printf("error loading/creating user: %v\n", err)
 		c.AbortWithError(http.StatusServiceUnavailable, err)
@@ -87,10 +85,9 @@ func getUser(c *gin.Context, db *sql.DB, app *firebase.App) {
 	user.Email = dbUser.Email
 	c.Header("Content-Type", "application/json")
 	json.NewEncoder(c.Writer).Encode(user)
-
 }
 
-func loadUserEvents(c *gin.Context, db *sql.DB, app *firebase.App) {
+func loadUserEvents(c *gin.Context, repo EventRepository, app *firebase.App) {
 	email := requireLogin(c, app)
 	if email == "" {
 		// requireLogin already aborted the request.
@@ -99,7 +96,7 @@ func loadUserEvents(c *gin.Context, db *sql.DB, app *firebase.App) {
 
 	// TODO: factor in user email and year from params
 	var userEvents UserEvents
-	starredIds, err := postgres.GetStarredIds(db, email)
+	starredIds, err := repo.GetStarredIds(email)
 	if err != nil {
 		log.Printf("error getting user starred list: %v\n", err)
 	} else {
@@ -116,11 +113,11 @@ func loadUserEvents(c *gin.Context, db *sql.DB, app *firebase.App) {
 	json.NewEncoder(c.Writer).Encode(userEvents)
 }
 
-func userRoutes(api_group *gin.RouterGroup, db *sql.DB, app *firebase.App) {
+func userRoutes(api_group *gin.RouterGroup, repo EventRepository, app *firebase.App) {
 	api_group.GET("/user/", func(c *gin.Context) {
-		getUser(c, db, app)
+		getUser(c, repo, app)
 	})
 	api_group.GET("/user/events/:email/:year", func(c *gin.Context) {
-		loadUserEvents(c, db, app)
+		loadUserEvents(c, repo, app)
 	})
 }

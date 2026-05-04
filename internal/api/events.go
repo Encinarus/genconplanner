@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -140,7 +139,7 @@ func lookupGame(gameSystem string, gameCache *background.GameCache) GameSystem {
 	return result
 }
 
-func lookupEvent(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
+func lookupEvent(c *gin.Context, repo EventRepository, gameCache *background.GameCache) {
 	eventId := c.Param("event_id")
 	if len(strings.TrimSpace(eventId)) == 0 {
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -148,7 +147,7 @@ func lookupEvent(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 	}
 
 	var apiEvent Event
-	dbEvents, err := postgres.LoadSimilarEvents(db, eventId, "")
+	dbEvents, err := repo.LoadSimilarEvents(eventId, "")
 
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -195,7 +194,7 @@ func convertEventGroup(dbEventGroup *postgres.EventGroup) *EventSummary {
 	return &apiEventSummary
 }
 
-func searchEvents(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
+func searchEvents(c *gin.Context, repo EventRepository, gameCache *background.GameCache) {
 	var search EventsSearch
 
 	err := c.ShouldBind(&search)
@@ -219,8 +218,7 @@ func searchEvents(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 	q.MinSatTickets = search.MinSatTickets
 	q.MinSunTickets = search.MinSunTickets
 
-	matches, err := postgres.SearchEvents(db, q)
-	// postgres.LoadEventGroupsForCategory(db, search.Category, search.Year)
+	matches, err := repo.SearchEvents(q)
 
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -238,16 +236,16 @@ func searchEvents(c *gin.Context, db *sql.DB, gameCache *background.GameCache) {
 	json.NewEncoder(c.Writer).Encode(apiResults)
 }
 
-func eventRoutes(api_group *gin.RouterGroup, db *sql.DB, gameCache *background.GameCache) {
+func eventRoutes(api_group *gin.RouterGroup, repo EventRepository, gameCache *background.GameCache) {
 	api_group.GET("/event/:event_id", func(c *gin.Context) {
-		lookupEvent(c, db, gameCache)
+		lookupEvent(c, repo, gameCache)
 	})
 
 	api_group.GET("/events", func(c *gin.Context) {
-		searchEvents(c, db, gameCache)
+		searchEvents(c, repo, gameCache)
 	})
 
 	api_group.POST("/events/", func(c *gin.Context) {
-		searchEvents(c, db, gameCache)
+		searchEvents(c, repo, gameCache)
 	})
 }

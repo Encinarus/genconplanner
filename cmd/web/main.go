@@ -119,7 +119,8 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.POST("/party/new", web.NewParty(db))
 	r.GET("/party/:party_id", web.Party(db))
 
-	api.BuildAPIRoutes(r.Group("/api/v1"), db, cache, app)
+	repo := &api.PostgresRepository{DB: db}
+	api.BuildAPIRoutes(r.Group("/api/v1"), repo, cache, app)
 
 	r.Run(fmt.Sprintf(":%d", *port))
 }

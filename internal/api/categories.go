@@ -1,12 +1,10 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"strconv"
 	"strings"
 
-	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,7 +15,7 @@ type Category struct {
 	Year       int    `json:"year"`
 }
 
-func listCategories(c *gin.Context, db *sql.DB) {
+func listCategories(c *gin.Context, repo EventRepository) {
 	year := 0
 	var err error
 	if len(strings.TrimSpace(c.Param("year"))) > 0 {
@@ -33,7 +31,7 @@ func listCategories(c *gin.Context, db *sql.DB) {
 		return
 	}
 
-	summary, err := postgres.LoadCategorySummary(db, year)
+	summary, err := repo.LoadCategorySummary(year)
 
 	if err != nil {
 		c.AbortWithError(500, err)
@@ -54,8 +52,8 @@ func listCategories(c *gin.Context, db *sql.DB) {
 	json.NewEncoder(c.Writer).Encode(results)
 }
 
-func categoryRoutes(api_group *gin.RouterGroup, db *sql.DB) {
+func categoryRoutes(api_group *gin.RouterGroup, repo EventRepository) {
 	api_group.GET("/category/:year", func(c *gin.Context) {
-		listCategories(c, db)
+		listCategories(c, repo)
 	})
 }
