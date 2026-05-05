@@ -96,6 +96,7 @@ paths:
                     - CGM
                     - EGM
                     - ENT
+                    - ESC
                     - FLM
                     - HMN
                     - KID
@@ -313,6 +314,7 @@ components:
             - CGM
             - EGM
             - ENT
+            - ESC
             - FLM
             - HMN
             - KID

@@ -41,6 +41,7 @@ func AllCategories() map[string]string {
 		"CGM":  "Non-Collectable/Tradable Card Games",
 		"EGM":  "Electronic Games",
 		"ENT":  "Entertainment Events",
+		"ESC":  "Escape Rooms",
 		"FLM":  "Film Fest",
 		"HMN":  "Historical Miniatures",
 		"KID":  "Kids Activities",
