@@ -1,12 +1,10 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/Encinarus/genconplanner/internal/background"
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
@@ -125,10 +123,10 @@ func convertEvent(apiEvent *Event, dbEvent *events.GenconEvent) {
 	apiEvent.LastModified = dbEvent.LastModified
 }
 
-func lookupGame(gameSystem string, gameCache *background.GameCache) GameSystem {
+func (s *Server) lookupGame(gameSystem string) GameSystem {
 	result := GameSystem{Name: gameSystem}
 
-	dbGame := gameCache.FindGame(gameSystem)
+	dbGame := s.Games.FindGame(gameSystem)
 	if dbGame != nil {
 		result.BggId = dbGame.BggId
 		result.BggRating = dbGame.AvgRatings
@@ -139,22 +137,22 @@ func lookupGame(gameSystem string, gameCache *background.GameCache) GameSystem {
 	return result
 }
 
-func lookupEvent(c *gin.Context, repo EventRepository, gameCache *background.GameCache) {
+func (s *Server) LookupEvent(c *gin.Context) {
 	eventId := c.Param("event_id")
 	if len(strings.TrimSpace(eventId)) == 0 {
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Missing event_id"})
 		return
 	}
 
 	var apiEvent Event
-	dbEvents, err := repo.LoadSimilarEvents(eventId, "")
+	dbEvents, err := s.Repo.LoadSimilarEvents(eventId, "")
 
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
 	if len(dbEvents) == 0 {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Event not found"})
 		return
 	}
 
@@ -163,7 +161,7 @@ func lookupEvent(c *gin.Context, repo EventRepository, gameCache *background.Gam
 
 		if dbEvent.EventId == eventId {
 			convertEvent(&apiEvent, dbEvent)
-			apiEvent.GameSystem = lookupGame(dbEvent.GameSystem, gameCache)
+			apiEvent.GameSystem = s.lookupGame(dbEvent.GameSystem)
 		} else {
 			// It's a related event
 			var related EventRef
@@ -175,8 +173,7 @@ func lookupEvent(c *gin.Context, repo EventRepository, gameCache *background.Gam
 		}
 	}
 
-	c.Header("Content-Type", "application/json")
-	json.NewEncoder(c.Writer).Encode(apiEvent)
+	c.JSON(http.StatusOK, apiEvent)
 }
 
 func convertEventGroup(dbEventGroup *postgres.EventGroup) *EventSummary {
@@ -189,17 +186,17 @@ func convertEventGroup(dbEventGroup *postgres.EventGroup) *EventSummary {
 	apiEventSummary.ThuTickets = dbEventGroup.ThursTickets
 	apiEventSummary.FriTickets = dbEventGroup.FriTickets
 	apiEventSummary.SatTickets = dbEventGroup.SatTickets
-	apiEventSummary.FriTickets = dbEventGroup.FriTickets
+	apiEventSummary.SunTickets = dbEventGroup.SunTickets
 
 	return &apiEventSummary
 }
 
-func searchEvents(c *gin.Context, repo EventRepository, gameCache *background.GameCache) {
+func (s *Server) SearchEvents(c *gin.Context) {
 	var search EventsSearch
 
 	err := c.ShouldBind(&search)
 	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid search parameters"})
 		return
 	}
 
@@ -218,34 +215,19 @@ func searchEvents(c *gin.Context, repo EventRepository, gameCache *background.Ga
 	q.MinSatTickets = search.MinSatTickets
 	q.MinSunTickets = search.MinSunTickets
 
-	matches, err := repo.SearchEvents(q)
+	matches, err := s.Repo.SearchEvents(q)
 
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
 
 	apiResults := make([]EventSummary, 0)
 	for _, match := range matches {
 		eventGroup := convertEventGroup(match)
-		eventGroup.GameSystem = lookupGame(match.GameSystem, gameCache)
+		eventGroup.GameSystem = s.lookupGame(match.GameSystem)
 		apiResults = append(apiResults, *eventGroup)
 	}
 
-	c.Header("Content-Type", "application/json")
-	json.NewEncoder(c.Writer).Encode(apiResults)
-}
-
-func eventRoutes(api_group *gin.RouterGroup, repo EventRepository, gameCache *background.GameCache) {
-	api_group.GET("/event/:event_id", func(c *gin.Context) {
-		lookupEvent(c, repo, gameCache)
-	})
-
-	api_group.GET("/events", func(c *gin.Context) {
-		searchEvents(c, repo, gameCache)
-	})
-
-	api_group.POST("/events/", func(c *gin.Context) {
-		searchEvents(c, repo, gameCache)
-	})
+	c.JSON(http.StatusOK, apiResults)
 }

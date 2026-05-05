@@ -21,17 +21,17 @@ type UserEvents struct {
 }
 
 
-func getUser(c *gin.Context, repo EventRepository) {
+func (s *Server) GetUser(c *gin.Context) {
 	email := GetUserEmail(c)
 	if email == "" {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
 
-	dbUser, err := repo.LoadOrCreateUser(email)
+	dbUser, err := s.Repo.LoadOrCreateUser(email)
 	if err != nil {
 		log.Printf("error loading/creating user: %v\n", err)
-		c.AbortWithError(http.StatusServiceUnavailable, err)
+		c.AbortWithStatusJSON(http.StatusServiceUnavailable, ErrorResponse{Error: "Service Unavailable"})
 		return
 	}
 
@@ -41,7 +41,7 @@ func getUser(c *gin.Context, repo EventRepository) {
 	c.JSON(http.StatusOK, user)
 }
 
-func loadUserEvents(c *gin.Context, repo EventRepository) {
+func (s *Server) LoadUserEvents(c *gin.Context) {
 	email := GetUserEmail(c)
 	if email == "" {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
@@ -50,7 +50,7 @@ func loadUserEvents(c *gin.Context, repo EventRepository) {
 
 	// TODO: factor in user email and year from params
 	var userEvents UserEvents
-	starredIds, err := repo.GetStarredIds(email)
+	starredIds, err := s.Repo.GetStarredIds(email)
 	if err != nil {
 		log.Printf("error getting user starred list: %v\n", err)
 	} else {
@@ -64,13 +64,4 @@ func loadUserEvents(c *gin.Context, repo EventRepository) {
 	}
 
 	c.JSON(http.StatusOK, userEvents)
-}
-
-func userRoutes(api_group *gin.RouterGroup, repo EventRepository) {
-	api_group.GET("/user/", func(c *gin.Context) {
-		getUser(c, repo)
-	})
-	api_group.GET("/user/events/:email/:year", func(c *gin.Context) {
-		loadUserEvents(c, repo)
-	})
 }

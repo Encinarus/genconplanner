@@ -7,8 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/Encinarus/genconplanner/internal/background"
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
@@ -17,8 +15,7 @@ import (
 
 func TestCategoryValidation(t *testing.T) {
 	server, stub, _, _, r := setupTestServer()
-	apiGroup := r.Group("/api/v1")
-	categoryRoutes(apiGroup, server.Repo)
+	server.RegisterRoutes(r.Group("/api"))
 
 	tests := []struct {
 		name         string
@@ -67,16 +64,8 @@ func TestCategoryValidation(t *testing.T) {
 }
 
 func TestEventLookup(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	stub := &StubRepository{}
-	// We need a dummy game cache
-	db, _, _ := sqlmock.New()
-	cache := background.NewGameCache(db)
-
-	r := gin.New()
-	apiGroup := r.Group("/api/v1")
-	eventRoutes(apiGroup, stub, cache)
+	server, stub, _, games, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
 
 	tests := []struct {
 		name         string
@@ -90,8 +79,11 @@ func TestEventLookup(t *testing.T) {
 			setupStub: func() {
 				stub.LoadSimilarEventsFn = func(id string, email string) ([]*events.GenconEvent, error) {
 					return []*events.GenconEvent{
-						{EventId: id, Title: "Test Event", ShortCategory: "BGM"},
+						{EventId: id, Title: "Test Event", ShortCategory: "BGM", GameSystem: "Catan"},
 					}, nil
+				}
+				games.FindGameFn = func(name string) *postgres.Game {
+					return &postgres.Game{Name: name}
 				}
 			},
 			expectedCode: http.StatusOK,
@@ -120,7 +112,9 @@ func TestEventLookup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setupStub()
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", "/api/v1/event/"+tt.eventId, nil)
 			r.ServeHTTP(w, req)
@@ -133,15 +127,8 @@ func TestEventLookup(t *testing.T) {
 }
 
 func TestEventSearch(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	stub := &StubRepository{}
-	db, _, _ := sqlmock.New()
-	cache := background.NewGameCache(db)
-
-	r := gin.New()
-	apiGroup := r.Group("/api/v1")
-	eventRoutes(apiGroup, stub, cache)
+	server, stub, _, games, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
 
 	tests := []struct {
 		name         string
@@ -155,8 +142,11 @@ func TestEventSearch(t *testing.T) {
 			setupStub: func() {
 				stub.SearchEventsFn = func(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
 					return []*postgres.EventGroup{
-						{Name: "Board Game Group", EventId: "BGM24123", Count: 1},
+						{Name: "Board Game Group", EventId: "BGM24123", Count: 1, GameSystem: "Catan"},
 					}, nil
+				}
+				games.FindGameFn = func(name string) *postgres.Game {
+					return &postgres.Game{Name: name}
 				}
 			},
 			expectedCode: http.StatusOK,
@@ -175,7 +165,9 @@ func TestEventSearch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setupStub()
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", "/api/v1/events"+tt.query, nil)
 			r.ServeHTTP(w, req)

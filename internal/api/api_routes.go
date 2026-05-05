@@ -14,10 +14,5 @@ func BuildAPIRoutes(api_group *gin.RouterGroup, repo EventRepository, gameCache 
 		Games: &GameCacheWrapper{Cache: gameCache},
 	}
 
-	categoryRoutes(api_group, server.Repo)
-	eventRoutes(api_group, server.Repo, gameCache)
-
-	authGroup := api_group.Group("/")
-	authGroup.Use(server.AuthMiddleware())
-	userRoutes(authGroup, server.Repo)
+	server.RegisterRoutes(api_group)
 }

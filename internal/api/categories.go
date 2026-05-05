@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -15,26 +14,26 @@ type Category struct {
 	Year       int    `json:"year"`
 }
 
-func listCategories(c *gin.Context, repo EventRepository) {
+func (s *Server) ListCategories(c *gin.Context) {
 	year := 0
 	var err error
 	if len(strings.TrimSpace(c.Param("year"))) > 0 {
 		year, err = strconv.Atoi(c.Param("year"))
 		if err != nil {
-			c.AbortWithError(400, err)
+			c.AbortWithStatusJSON(400, ErrorResponse{Error: "Invalid year"})
 			return
 		}
 	}
 
 	if year < 2020 {
-		c.AbortWithStatus(400)
+		c.AbortWithStatusJSON(400, ErrorResponse{Error: "Year must be 2020 or later"})
 		return
 	}
 
-	summary, err := repo.LoadCategorySummary(year)
+	summary, err := s.Repo.LoadCategorySummary(year)
 
 	if err != nil {
-		c.AbortWithError(500, err)
+		c.AbortWithStatusJSON(500, ErrorResponse{Error: "Internal server error"})
 		return
 	}
 
@@ -48,12 +47,5 @@ func listCategories(c *gin.Context, repo EventRepository) {
 		})
 	}
 
-	c.Header("Content-Type", "application/json")
-	json.NewEncoder(c.Writer).Encode(results)
-}
-
-func categoryRoutes(api_group *gin.RouterGroup, repo EventRepository) {
-	api_group.GET("/category/:year", func(c *gin.Context) {
-		listCategories(c, repo)
-	})
+	c.JSON(200, results)
 }
