@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Encinarus/genconplanner/internal/events"
@@ -243,5 +244,172 @@ func TestAuthMiddleware(t *testing.T) {
 				t.Errorf("Expected body %s, got %s", tt.expectedBody, w.Body.String())
 			}
 		})
+	}
+}
+func TestLoadUserEvents(t *testing.T) {
+	server, stub, auth, _, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	tests := []struct {
+		name         string
+		email        string
+		year         string
+		cookieValue  string
+		setupStub    func()
+		expectedCode int
+	}{
+		{
+			name:         "Success path",
+			email:        "test@example.com",
+			year:         "2024",
+			cookieValue:  "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+				stub.GetStarredIdsFn = func(email string, year int) (*postgres.UserStarredEvents, error) {
+					return &postgres.UserStarredEvents{
+						Email: email,
+						StarredEvents: []postgres.StarredEvent{
+							{EventId: "BGM24123", Level: "event"},
+						},
+					}, nil
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Unauthorized - Email mismatch",
+			email:        "other@example.com",
+			year:         "2024",
+			cookieValue:  "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+			},
+			expectedCode: http.StatusUnauthorized,
+		},
+		{
+			name:         "Invalid year",
+			email:        "test@example.com",
+			year:         "abc",
+			cookieValue:  "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/api/v1/user/events/"+tt.email+"/"+tt.year, nil)
+			if tt.cookieValue != "" {
+				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+			}
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedCode {
+				t.Errorf("Expected status code %d, got %d", tt.expectedCode, w.Code)
+			}
+		})
+	}
+}
+func TestGetUser(t *testing.T) {
+	server, stub, auth, _, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	tests := []struct {
+		name         string
+		cookieValue  string
+		setupStub    func()
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:        "Success path",
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+				stub.LoadOrCreateUserFn = func(email string) (*postgres.User, error) {
+					return &postgres.User{Email: email, DisplayName: "Test User"}, nil
+				}
+			},
+			expectedCode: http.StatusOK,
+			expectedBody: `{"email":"test@example.com","displayName":"Test User"}`,
+		},
+		{
+			name:         "Unauthorized",
+			cookieValue:  "",
+			expectedCode: http.StatusUnauthorized,
+		},
+		{
+			name:        "Service Unavailable",
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+				stub.LoadOrCreateUserFn = func(email string) (*postgres.User, error) {
+					return nil, fmt.Errorf("db error")
+				}
+			},
+			expectedCode: http.StatusServiceUnavailable,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/api/v1/user", nil)
+			if tt.cookieValue != "" {
+				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+			}
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedCode {
+				t.Errorf("Expected status code %d, got %d", tt.expectedCode, w.Code)
+			}
+			if tt.expectedBody != "" && w.Body.String() != tt.expectedBody {
+				t.Errorf("Expected body %s, got %s", tt.expectedBody, w.Body.String())
+			}
+		})
+	}
+}
+
+func TestEventSearchPost(t *testing.T) {
+	server, stub, _, games, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	stub.SearchEventsFn = func(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
+		if q.CategoryShortCode == "BGM" && q.Year == 2024 {
+			return []*postgres.EventGroup{{Name: "Board Game", EventId: "BGM123", Count: 1, GameSystem: "Catan"}}, nil
+		}
+		return []*postgres.EventGroup{}, nil
+	}
+	games.FindGameFn = func(name string) *postgres.Game {
+		return &postgres.Game{Name: name}
+	}
+
+	w := httptest.NewRecorder()
+	// POST with form data
+	req, _ := http.NewRequest("POST", "/api/v1/events", strings.NewReader("cat=BGM&year=2024"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 }

@@ -244,7 +244,37 @@ WHERE email = $1;
 	}
 }
 
-func GetStarredIds(db *sql.DB, email string) (*UserStarredEvents, error) {
+func GetStarredIds(db *sql.DB, email string, year int) (*UserStarredEvents, error) {
+	starredEvents := UserStarredEvents{
+		Email: email,
+	}
+
+	query := `
+SELECT se.event_id, se.level
+FROM starred_events se
+JOIN events e ON se.event_id = e.event_id
+WHERE se.email = $1 AND e.year = $2;`
+
+	rows, err := db.Query(query, email, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var starred StarredEvent
+		err = rows.Scan(&starred.EventId, &starred.Level)
+
+		if err != nil {
+			return nil, err
+		}
+		starredEvents.StarredEvents = append(starredEvents.StarredEvents, starred)
+	}
+
+	return &starredEvents, nil
+}
+
+func GetAllStarredIds(db *sql.DB, email string) (*UserStarredEvents, error) {
 	starredEvents := UserStarredEvents{
 		Email: email,
 	}

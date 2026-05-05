@@ -12,7 +12,8 @@ type EventRepository interface {
 	SearchEvents(q postgres.SearchQuery) ([]*postgres.EventGroup, error)
 	LoadSimilarEvents(eventId string, userEmail string) ([]*events.GenconEvent, error)
 	LoadOrCreateUser(email string) (*postgres.User, error)
-	GetStarredIds(email string) (*postgres.UserStarredEvents, error)
+	GetStarredIds(email string, year int) (*postgres.UserStarredEvents, error)
+	GetAllStarredIds(email string) (*postgres.UserStarredEvents, error)
 }
 
 type PostgresRepository struct {
@@ -35,6 +36,10 @@ func (r *PostgresRepository) LoadOrCreateUser(email string) (*postgres.User, err
 	return postgres.LoadOrCreateUser(r.DB, email)
 }
 
-func (r *PostgresRepository) GetStarredIds(email string) (*postgres.UserStarredEvents, error) {
-	return postgres.GetStarredIds(r.DB, email)
+func (r *PostgresRepository) GetStarredIds(email string, year int) (*postgres.UserStarredEvents, error) {
+	return postgres.GetStarredIds(r.DB, email, year)
+}
+
+func (r *PostgresRepository) GetAllStarredIds(email string) (*postgres.UserStarredEvents, error) {
+	return postgres.GetAllStarredIds(r.DB, email)
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -42,15 +43,26 @@ func (s *Server) GetUser(c *gin.Context) {
 }
 
 func (s *Server) LoadUserEvents(c *gin.Context) {
-	email := GetUserEmail(c)
-	if email == "" {
+	authedEmail := GetUserEmail(c)
+	paramEmail := c.Param("email")
+	yearParam := c.Param("year")
+
+	if authedEmail == "" || authedEmail != paramEmail {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
 
-	// TODO: factor in user email and year from params
+	year, err := strconv.Atoi(yearParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid year"})
+		return
+	}
+
 	var userEvents UserEvents
-	starredIds, err := s.Repo.GetStarredIds(email)
+	userEvents.Email = authedEmail
+	userEvents.Year = year
+
+	starredIds, err := s.Repo.GetStarredIds(authedEmail, year)
 	if err != nil {
 		log.Printf("error getting user starred list: %v\n", err)
 	} else {

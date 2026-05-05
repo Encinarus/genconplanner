@@ -20,7 +20,6 @@ type EventsSearch struct {
 	MinSatTickets int    `form:"minSatTickets"`
 	MinSunTickets int    `form:"minSunTickets"`
 
-	// Not yet implemented
 	TextQuery string `form:"search"`
 }
 
@@ -177,6 +176,9 @@ func (s *Server) LookupEvent(c *gin.Context) {
 }
 
 func convertEventGroup(dbEventGroup *postgres.EventGroup) *EventSummary {
+	if dbEventGroup == nil {
+		return nil
+	}
 	var apiEventSummary EventSummary
 	apiEventSummary.AnchorEventId = dbEventGroup.EventId
 	apiEventSummary.Title = dbEventGroup.Name
@@ -225,6 +227,9 @@ func (s *Server) SearchEvents(c *gin.Context) {
 	apiResults := make([]EventSummary, 0)
 	for _, match := range matches {
 		eventGroup := convertEventGroup(match)
+		if eventGroup == nil {
+			continue
+		}
 		eventGroup.GameSystem = s.lookupGame(match.GameSystem)
 		apiResults = append(apiResults, *eventGroup)
 	}

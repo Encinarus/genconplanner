@@ -21,7 +21,7 @@ func GetStarredEvents(db *sql.DB) func(c *gin.Context) {
 			return
 		}
 
-		starredRows, err := postgres.GetStarredIds(db, appContext.Email)
+		starredRows, err := postgres.GetAllStarredIds(db, appContext.Email)
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
