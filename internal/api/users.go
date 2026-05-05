@@ -1,12 +1,9 @@
 package api
 
 import (
-	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 
-	firebase "firebase.google.com/go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,53 +20,11 @@ type UserEvents struct {
 	TicketedEvents  []string `json:"ticketedEvents"`
 }
 
-func getFirebaseUser(c *gin.Context, app *firebase.App) (email string, err error) {
-	idToken, err := c.Cookie("signinToken")
 
-	if err != nil {
-		log.Printf("error getting signin token %v", err)
-		return "", err
-	}
-
-	ctx := context.Background()
-	client, err := app.Auth(ctx)
-	if err != nil {
-		log.Printf("error getting Auth client: %v\n", err)
-		return "", err
-	}
-
-	token, err := client.VerifyIDToken(ctx, idToken)
-	if err != nil {
-		log.Printf("error verifying ID token: %v\n", err)
-		return "", err
-	}
-
-	if token != nil {
-		return token.Claims["email"].(string), nil
-	}
-
-	return "", nil
-}
-
-func requireLogin(c *gin.Context, app *firebase.App) string {
-	email, err := getFirebaseUser(c, app)
-	if err != nil {
-		log.Printf("error getting signin token %v", err)
-		c.AbortWithError(http.StatusUnauthorized, err)
-		return ""
-	} else if email == "" {
-		log.Printf("No token, but also no error, unclear what to do")
-		c.AbortWithError(http.StatusUnauthorized, err)
-		return ""
-	}
-
-	return email
-}
-
-func getUser(c *gin.Context, repo EventRepository, app *firebase.App) {
-	email := requireLogin(c, app)
+func getUser(c *gin.Context, repo EventRepository) {
+	email := GetUserEmail(c)
 	if email == "" {
-		// requireLogin already aborted the request.
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
 
@@ -83,14 +38,13 @@ func getUser(c *gin.Context, repo EventRepository, app *firebase.App) {
 	var user User
 	user.DisplayName = dbUser.DisplayName
 	user.Email = dbUser.Email
-	c.Header("Content-Type", "application/json")
-	json.NewEncoder(c.Writer).Encode(user)
+	c.JSON(http.StatusOK, user)
 }
 
-func loadUserEvents(c *gin.Context, repo EventRepository, app *firebase.App) {
-	email := requireLogin(c, app)
+func loadUserEvents(c *gin.Context, repo EventRepository) {
+	email := GetUserEmail(c)
 	if email == "" {
-		// requireLogin already aborted the request.
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
 
@@ -109,15 +63,14 @@ func loadUserEvents(c *gin.Context, repo EventRepository, app *firebase.App) {
 		}
 	}
 
-	c.Header("Content-Type", "application/json")
-	json.NewEncoder(c.Writer).Encode(userEvents)
+	c.JSON(http.StatusOK, userEvents)
 }
 
-func userRoutes(api_group *gin.RouterGroup, repo EventRepository, app *firebase.App) {
+func userRoutes(api_group *gin.RouterGroup, repo EventRepository) {
 	api_group.GET("/user/", func(c *gin.Context) {
-		getUser(c, repo, app)
+		getUser(c, repo)
 	})
 	api_group.GET("/user/events/:email/:year", func(c *gin.Context) {
-		loadUserEvents(c, repo, app)
+		loadUserEvents(c, repo)
 	})
 }

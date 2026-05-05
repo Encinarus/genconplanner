@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -181,6 +182,73 @@ func TestEventSearch(t *testing.T) {
 
 			if w.Code != tt.expectedCode {
 				t.Errorf("Expected status code %d, got %d", tt.expectedCode, w.Code)
+			}
+		})
+	}
+}
+
+func TestAuthMiddleware(t *testing.T) {
+	server, _, auth, _, r := setupTestServer()
+
+	r.GET("/protected", server.AuthMiddleware(), func(c *gin.Context) {
+		email := GetUserEmail(c)
+		c.JSON(http.StatusOK, gin.H{"email": email})
+	})
+
+	tests := []struct {
+		name         string
+		cookieValue  string
+		setupStub    func()
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:         "Missing cookie",
+			cookieValue:  "",
+			expectedCode: http.StatusUnauthorized,
+			expectedBody: `{"error":"Unauthorized"}`,
+		},
+		{
+			name:        "Invalid token",
+			cookieValue: "invalid",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "", fmt.Errorf("invalid token")
+				}
+			},
+			expectedCode: http.StatusUnauthorized,
+			expectedBody: `{"error":"Unauthorized"}`,
+		},
+		{
+			name:        "Valid token",
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+			},
+			expectedCode: http.StatusOK,
+			expectedBody: `{"email":"test@example.com"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/protected", nil)
+			if tt.cookieValue != "" {
+				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+			}
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedCode {
+				t.Errorf("Expected status code %d, got %d", tt.expectedCode, w.Code)
+			}
+			if tt.expectedBody != "" && w.Body.String() != tt.expectedBody {
+				t.Errorf("Expected body %s, got %s", tt.expectedBody, w.Body.String())
 			}
 		})
 	}
