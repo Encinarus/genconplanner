@@ -1,0 +1,66 @@
+package api
+
+import (
+	"context"
+
+	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/gin-gonic/gin"
+)
+
+// StubRepository implements EventRepository for testing.
+type StubRepository struct {
+	LoadCategorySummaryFn func(int) ([]*postgres.CategorySummary, error)
+	SearchEventsFn        func(postgres.SearchQuery) ([]*postgres.EventGroup, error)
+	LoadSimilarEventsFn   func(string, string) ([]*events.GenconEvent, error)
+	LoadOrCreateUserFn    func(string) (*postgres.User, error)
+	GetStarredIdsFn       func(string) (*postgres.UserStarredEvents, error)
+}
+
+func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
+	return s.LoadCategorySummaryFn(year)
+}
+func (s *StubRepository) SearchEvents(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
+	return s.SearchEventsFn(q)
+}
+func (s *StubRepository) LoadSimilarEvents(eventId string, userEmail string) ([]*events.GenconEvent, error) {
+	return s.LoadSimilarEventsFn(eventId, userEmail)
+}
+func (s *StubRepository) LoadOrCreateUser(email string) (*postgres.User, error) {
+	return s.LoadOrCreateUserFn(email)
+}
+func (s *StubRepository) GetStarredIds(email string) (*postgres.UserStarredEvents, error) {
+	return s.GetStarredIdsFn(email)
+}
+
+// StubAuthService implements AuthService for testing.
+type StubAuthService struct {
+	VerifyIDTokenFn func(context.Context, string) (string, error)
+}
+
+func (s *StubAuthService) VerifyIDToken(ctx context.Context, idToken string) (string, error) {
+	return s.VerifyIDTokenFn(ctx, idToken)
+}
+
+// StubGameService implements GameService for testing.
+type StubGameService struct {
+	FindGameFn func(string) *postgres.Game
+}
+
+func (s *StubGameService) FindGame(name string) *postgres.Game {
+	return s.FindGameFn(name)
+}
+
+// setupTestServer returns a configured Gin engine and stubs for testing.
+func setupTestServer() (*Server, *StubRepository, *StubAuthService, *StubGameService, *gin.Engine) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &StubRepository{}
+	auth := &StubAuthService{}
+	games := &StubGameService{}
+
+	server := NewServer(repo, auth, games)
+	router := gin.New()
+
+	return server, repo, auth, games, router
+}

@@ -13,37 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type StubRepository struct {
-	LoadCategorySummaryFn func(int) ([]*postgres.CategorySummary, error)
-	SearchEventsFn        func(postgres.SearchQuery) ([]*postgres.EventGroup, error)
-	LoadSimilarEventsFn   func(string, string) ([]*events.GenconEvent, error)
-	LoadOrCreateUserFn    func(string) (*postgres.User, error)
-	GetStarredIdsFn       func(string) (*postgres.UserStarredEvents, error)
-}
-
-func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
-	return s.LoadCategorySummaryFn(year)
-}
-func (s *StubRepository) SearchEvents(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
-	return s.SearchEventsFn(q)
-}
-func (s *StubRepository) LoadSimilarEvents(eventId string, userEmail string) ([]*events.GenconEvent, error) {
-	return s.LoadSimilarEventsFn(eventId, userEmail)
-}
-func (s *StubRepository) LoadOrCreateUser(email string) (*postgres.User, error) {
-	return s.LoadOrCreateUserFn(email)
-}
-func (s *StubRepository) GetStarredIds(email string) (*postgres.UserStarredEvents, error) {
-	return s.GetStarredIdsFn(email)
-}
 
 func TestCategoryValidation(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	stub := &StubRepository{}
-	r := gin.New()
+	server, stub, _, _, r := setupTestServer()
 	apiGroup := r.Group("/api/v1")
-	categoryRoutes(apiGroup, stub)
+	categoryRoutes(apiGroup, server.Repo)
 
 	tests := []struct {
 		name         string
