@@ -101,17 +101,14 @@ func GetUserEmail(c *gin.Context) string {
 func (s *Server) RegisterRoutes(group *gin.RouterGroup) {
 	v1 := group.Group("/v1")
 	{
-		v1.GET("/category/:year", s.ListCategories)
-		v1.GET("/event/:event_id", s.LookupEvent)
-		v1.GET("/events", s.SearchEvents)
-		v1.POST("/events", s.SearchEvents)
+		s.registerCategoryRoutes(v1)
+		s.registerEventRoutes(v1)
 
 		// Auth protected group
 		auth := v1.Group("/")
 		auth.Use(s.AuthMiddleware())
 		{
-			auth.GET("/user", s.GetUser)
-			auth.GET("/user/events/:email/:year", s.LoadUserEvents)
+			s.registerUserRoutes(auth)
 		}
 	}
 }

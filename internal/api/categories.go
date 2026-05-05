@@ -49,3 +49,6 @@ func (s *Server) ListCategories(c *gin.Context) {
 
 	c.JSON(200, results)
 }
+func (s *Server) registerCategoryRoutes(group *gin.RouterGroup) {
+	group.GET("/category/:year", s.ListCategories)
+}

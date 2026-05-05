@@ -231,3 +231,9 @@ func (s *Server) SearchEvents(c *gin.Context) {
 
 	c.JSON(http.StatusOK, apiResults)
 }
+
+func (s *Server) registerEventRoutes(group *gin.RouterGroup) {
+	group.GET("/event/:event_id", s.LookupEvent)
+	group.GET("/events", s.SearchEvents)
+	group.POST("/events", s.SearchEvents)
+}

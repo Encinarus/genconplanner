@@ -65,3 +65,8 @@ func (s *Server) LoadUserEvents(c *gin.Context) {
 
 	c.JSON(http.StatusOK, userEvents)
 }
+
+func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
+	group.GET("/user", s.GetUser)
+	group.GET("/user/events/:email/:year", s.LoadUserEvents)
+}
