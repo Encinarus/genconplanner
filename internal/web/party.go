@@ -64,7 +64,7 @@ func NewParty(db *sql.DB) func(c *gin.Context) {
 		partyName := c.PostForm("partyName")
 		year, err := strconv.ParseInt(c.PostForm("year"), 10, 64)
 		if err != nil {
-			log.Printf("Couldn't parse %v, defaulting to this year")
+			log.Printf("Couldn't parse year %v, defaulting to this year", c.PostForm("year"))
 			year = int64(time.Now().Year())
 		}
 		log.Printf("Creating a new party: %v, %v, with %v as a member\n", partyName, year, appContext.Email)
