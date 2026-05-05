@@ -9,6 +9,7 @@ import (
 	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/api"
 	"github.com/Encinarus/genconplanner/internal/background"
+	"github.com/Encinarus/genconplanner/internal/logging"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/Encinarus/genconplanner/internal/web"
 	"github.com/gin-gonic/gin"
@@ -30,12 +31,14 @@ var sourceFile = flag.String("eventFile", "https://www.gencon.com/downloads/even
 func main() {
 	flag.Parse()
 
+	logging.PrintEnv()
+
 	// Don't care about canceling or errors
 	go hmetrics.Report(context.Background(), hmetrics.DefaultEndpoint, nil)
 
 	db, err := postgres.OpenDb()
 	if err != nil {
-		log.Println("Error opening postgres")
+		logging.LogWithError(err, "Error opening postgres")
 		log.Fatal(err)
 	}
 	defer db.Close()
@@ -48,6 +51,8 @@ func main() {
 }
 
 func SetupBackground(db *sql.DB) {
+	apiKey := os.Getenv("BGG_API_KEY")
+
 	// We run this in a background thread on web because running as a separate
 	// app would be expensive. Unlike updating from gencon, these take a long time to
 	// process, so the app would be running continually, costing a bit more money than
@@ -58,7 +63,7 @@ func SetupBackground(db *sql.DB) {
 	go func() {
 		for {
 			// Delay until the next tick
-			background.UpdateGamesFromBGG(db)
+			background.UpdateGamesFromBGG(db, apiKey)
 			select {
 			case <-bggTicker.C:
 			}
@@ -88,6 +93,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	}
 
 	r := gin.Default()
+	r.Use(logging.ErrorStackTrace())
 	r.Use(web.BootstrapContext(app, db, cache))
 
 	r.SetFuncMap(web.GetTemplateFunctions(cache))

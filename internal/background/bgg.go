@@ -71,9 +71,13 @@ func RefreshGame(ctx context.Context, bggId int64,
 	return g, nil
 }
 
-func UpdateGamesFromBGG(db *sql.DB) {
+func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
+	if apiKey == "" {
+		log.Println("BGG API key not set, skipping BGG update.")
+		return
+	}
 	ctx := context.Background()
-	api := bgg.NewBggApi()
+	api := bgg.NewBggApi(apiKey)
 
 	// Initial seed with kickstarter, this is a big category, good for branching out everywhere :)
 	familyBacklog := map[int64]bool{

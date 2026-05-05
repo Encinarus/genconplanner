@@ -13,6 +13,8 @@ import (
 	"golang.org/x/time/rate"
 )
 
+var ErrNoApiKey = errors.New("BGG API key not set")
+
 // XML tags generated from https://www.onlinetool.io/xmltogo/
 // Game can be a game, or expansion, see the Item.Type field.
 type Game struct {
@@ -66,34 +68,66 @@ type Family struct {
 
 type BggApi struct {
 	limiter *rate.Limiter
+	apiKey  string
 }
 
-func NewBggApi() *BggApi {
-	return &BggApi{limiter: rate.NewLimiter(rate.Every(5*time.Second), 1)}
+func NewBggApi(apiKey string) *BggApi {
+	return &BggApi{
+		limiter: rate.NewLimiter(rate.Every(5*time.Second), 1),
+		apiKey:  apiKey,
+	}
 }
 
 func (bgg *BggApi) get(ctx context.Context, url string, v interface{}) error {
+	if bgg.apiKey == "" {
+		log.Println("BGG API key not set, skipping request.")
+		return ErrNoApiKey
+	}
+
 	err := bgg.limiter.Wait(ctx)
 	if err != nil {
 		return err
 	}
 
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+	client := &http.Client{}
 
-	if resp.StatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("Surprise status code: %v", resp.StatusCode))
-	}
+	for {
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Authorization", "Bearer "+bgg.apiKey)
+		req.Header.Set("User-Agent", "GenConPlanner/1.0 (+https://github.com/Encinarus/genconplanner)")
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error in procesing body %v", err)
-		return err
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode == http.StatusAccepted {
+			resp.Body.Close()
+			log.Printf("BGG API returned 202 (Accepted) for %s, waiting 5 seconds to retry...", url)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(5 * time.Second):
+				continue
+			}
+		}
+
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("Surprise status code: %v", resp.StatusCode)
+		}
+
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("Error in processing body %v", err)
+			return err
+		}
+		return xml.Unmarshal(bodyBytes, v)
 	}
-	return xml.Unmarshal(bodyBytes, v)
 }
 
 func (bgg *BggApi) GetGame(ctx context.Context, id int64) (*Game, error) {

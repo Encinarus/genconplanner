@@ -18,6 +18,14 @@ app integration
 11. Choose a name, then click "Register App". Copy the `const
 firebaseConfig` that it generates for you
 
+# BoardGameGeek (BGG) Setup
+
+As of late 2025, BoardGameGeek requires an API key for all XML API requests. For more details, see the official [BGG XML API2 Documentation](https://boardgamegeek.com/wiki/page/BGG_XML_API2).
+
+1. Create a [BoardGameGeek account](https://boardgamegeek.com/login).
+2. Register your application at [boardgamegeek.com/applications](https://boardgamegeek.com/applications) to obtain an API key.
+3. Once obtained, set the `BGG_API_KEY` environment variable.
+
 ## Environment Variables
 
 ```
@@ -30,6 +38,8 @@ export FIREBASE_DATABASE_URL=...
 export FIREBASE_PROJECT_ID=...
 export FIREBASE_STORAGE_BUCKET=...
 export FIREBASE_MESSAGING_SENDER_ID=...
+
+export BGG_API_KEY=... # your BoardGameGeek API key
 ```
 
 Use [direnv](https://direnv.net/) to make this convenient so that you don't

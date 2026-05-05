@@ -3,6 +3,7 @@ package background
 import (
 	"database/sql"
 	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/Encinarus/genconplanner/internal/logging"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"io/ioutil"
 	"log"
@@ -49,14 +50,17 @@ func parseCsv(sourceFile string) []*events.GenconEvent {
 func writeEvents(db *sql.DB, genconEvents []*events.GenconEvent) {
 	tx, err := db.Begin()
 	if err != nil {
+		logging.LogWithError(err, "Error beginning transaction")
 		log.Fatal(err)
 	}
 	err = postgres.BulkUpdateEvents(tx, genconEvents)
 	if err != nil {
+		logging.LogWithError(err, "Error bulk updating events")
 		log.Fatal(err)
 	}
 	err = tx.Commit()
 	if err != nil {
+		logging.LogWithError(err, "Error committing transaction")
 		log.Fatal(err)
 	}
 }
