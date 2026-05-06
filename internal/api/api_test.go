@@ -141,7 +141,7 @@ func TestEventSearch(t *testing.T) {
 			name:  "Search by category",
 			query: "?cat=BGM&year=2024",
 			setupStub: func() {
-				stub.SearchEventsFn = func(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
+				stub.LoadEventGroupsForCategoryFn = func(cat string, year int) ([]*postgres.EventGroup, error) {
 					return []*postgres.EventGroup{
 						{Name: "Board Game Group", EventId: "BGM24123", Count: 1, GameSystem: "Catan"},
 					}, nil
@@ -156,7 +156,7 @@ func TestEventSearch(t *testing.T) {
 			name:  "Empty results",
 			query: "?cat=NONE",
 			setupStub: func() {
-				stub.SearchEventsFn = func(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
+				stub.LoadEventGroupsForCategoryFn = func(cat string, year int) ([]*postgres.EventGroup, error) {
 					return []*postgres.EventGroup{}, nil
 				}
 			},
@@ -413,6 +413,12 @@ func TestEventSearchPost(t *testing.T) {
 
 	stub.SearchEventsFn = func(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
 		if q.CategoryShortCode == "BGM" && q.Year == 2024 {
+			return []*postgres.EventGroup{{Name: "Board Game", EventId: "BGM123", Count: 1, GameSystem: "Catan"}}, nil
+		}
+		return []*postgres.EventGroup{}, nil
+	}
+	stub.LoadEventGroupsForCategoryFn = func(cat string, year int) ([]*postgres.EventGroup, error) {
+		if cat == "BGM" && year == 2024 {
 			return []*postgres.EventGroup{{Name: "Board Game", EventId: "BGM123", Count: 1, GameSystem: "Catan"}}, nil
 		}
 		return []*postgres.EventGroup{}, nil

@@ -121,38 +121,51 @@ func SearchEvents(db *sql.DB, query SearchQuery) ([]*EventGroup, error) {
 	// AND (<term was omitted> OR <apply term>)
 	rows, err := db.Query(`
 SELECT
-	MIN(e.event_id) AS anchor_event,
+	e.event_id,
 	e.title, 
-	e.short_description AS short_description,
-	e.short_category AS short_category,
-	e.game_system AS game_system,
-	e.org_group AS org_group,
-	MAX(o.id) AS org_id,
-	COUNT(*) AS num_events,
-	SUM(e.tickets_available) AS tickets_available,
-	sum(CASE WHEN e.day_of_week = 3 THEN e.tickets_available ELSE 0 END) as wednesday_tickets,
-	sum(CASE WHEN e.day_of_week = 4 THEN e.tickets_available ELSE 0 END) as thursday_tickets,
-	sum(CASE WHEN e.day_of_week = 5 THEN e.tickets_available ELSE 0 END) as friday_tickets,
-	sum(CASE WHEN e.day_of_week = 6 THEN e.tickets_available ELSE 0 END) as saturday_tickets,
-	sum(CASE WHEN e.day_of_week = 0 THEN e.tickets_available ELSE 0 END) as sunday_tickets,
+	e.short_description,
+	e.short_category,
+	e.game_system,
+	e.org_group,
+	o.id AS org_id,
+	c.num_events,
+	c.tickets_available,
+	c.wednesday_tickets,
+	c.thursday_tickets,
+	c.friday_tickets,
+	c.saturday_tickets,
+	c.sunday_tickets,
 	0 as title_rank,
 	0 as search_rank
-FROM
-  events AS e
-  JOIN orgs o ON lower(o.alias) = lower(e.org_group)
-WHERE
-	active
-  AND (LENGTH($1) = 0 OR short_category = $1)
-	AND ($2 = 0 OR year = $2)
-	AND ($3 = 0 OR (day_of_week = 3 AND tickets_available >= $3))
-	AND ($4 = 0 OR (day_of_week = 4 AND tickets_available >= $4))
-	AND ($5 = 0 OR (day_of_week = 5 AND tickets_available >= $5))
-	AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
-	AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
-	AND (LENGTH($8) = 0 OR (search_key @@ websearch_to_tsquery('english', $8)))
-	AND ($9 = 0 OR o.id = $9)
-GROUP BY
-  cluster_key, short_description, short_category, game_system, org_group, title 
+FROM events e
+JOIN (
+    SELECT
+        MIN(event_id) AS event_id,
+        COUNT(*) AS num_events,
+        SUM(tickets_available) AS tickets_available,
+        SUM(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+        SUM(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+        SUM(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+        SUM(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+        SUM(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets
+    FROM events
+    WHERE active
+      AND (LENGTH($1) = 0 OR short_category = $1)
+      AND ($2 = 0 OR year = $2)
+      AND ($3 = 0 OR (day_of_week = 3 AND tickets_available >= $3))
+      AND ($4 = 0 OR (day_of_week = 4 AND tickets_available >= $4))
+      AND ($5 = 0 OR (day_of_week = 5 AND tickets_available >= $5))
+      AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
+      AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
+      AND (LENGTH($8) = 0 OR (search_key @@ websearch_to_tsquery('english', $8)))
+    GROUP BY cluster_key, short_category, title
+) c ON e.event_id = c.event_id
+JOIN (
+    SELECT alias, MAX(id) as id
+    FROM orgs
+    GROUP BY alias
+) o ON lower(o.alias) = lower(e.org_group)
+WHERE ($9 = 0 OR o.id = $9)
 	`, query.CategoryShortCode, query.Year, query.MinWedTickets,
 		query.MinThuTickets, query.MinFriTickets, query.MinSatTickets,
 		query.MinSunTickets, query.RawQuery, query.OrgId)
@@ -193,24 +206,28 @@ SELECT
 	0 as title_rank,
 	0 as search_rank
 FROM events e 
-    JOIN orgs o ON lower(o.alias) = lower(e.org_group)
-	JOIN (
-		SELECT 
-		    min(event_id) as event_id,
-			cluster_key,
-			short_category,
-			title,
-			count(active or null) as num_events,
-			sum(tickets_available) as tickets_available,
-			sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-			sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-			sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-			sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-			sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
-		FROM events
-		WHERE active and year=$1 and short_category=$2
-		GROUP BY cluster_key, short_category, title
-		) as c ON e.event_id = c.event_id
+JOIN (
+    SELECT 
+        min(event_id) as event_id,
+        cluster_key,
+        short_category,
+        title,
+        count(active or null) as num_events,
+        sum(tickets_available) as tickets_available,
+        sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
+        sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
+        sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
+        sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
+        sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
+    FROM events
+    WHERE active and year=$1 and short_category=$2
+    GROUP BY cluster_key, short_category, title
+) as c ON e.event_id = c.event_id
+JOIN (
+    SELECT alias, MAX(id) as id
+    FROM orgs
+    GROUP BY alias
+) o ON lower(o.alias) = lower(e.org_group)
 WHERE e.year = $1
 ORDER BY c.tickets_available > 0 desc, title`, year, short_category)
 	if err != nil {
@@ -422,7 +439,11 @@ SELECT  distinct
 		c.title_rank as title_rank,
 		c.search_rank as search_rank		
 FROM events e JOIN (%v) AS c ON e.event_id = c.event_id
-    JOIN orgs o ON lower(o.alias) = lower(e.org_group)
+    JOIN (
+        SELECT alias, MAX(id) as id
+        FROM orgs
+        GROUP BY alias
+    ) o ON lower(o.alias) = lower(e.org_group)
 WHERE %v
 ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 `, innerQuery, fullWhere)

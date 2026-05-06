@@ -9,6 +9,7 @@ import (
 
 type EventRepository interface {
 	LoadCategorySummary(year int) ([]*postgres.CategorySummary, error)
+	LoadEventGroupsForCategory(category string, year int) ([]*postgres.EventGroup, error)
 	SearchEvents(q postgres.SearchQuery) ([]*postgres.EventGroup, error)
 	LoadSimilarEvents(eventId string, userEmail string) ([]*events.GenconEvent, error)
 	LoadOrCreateUser(email string) (*postgres.User, error)
@@ -25,6 +26,10 @@ type PostgresRepository struct {
 
 func (r *PostgresRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
 	return postgres.LoadCategorySummary(r.DB, year)
+}
+
+func (r *PostgresRepository) LoadEventGroupsForCategory(category string, year int) ([]*postgres.EventGroup, error) {
+	return postgres.LoadEventGroupsForCategory(r.DB, category, year)
 }
 
 func (r *PostgresRepository) SearchEvents(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {

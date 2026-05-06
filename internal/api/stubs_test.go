@@ -11,6 +11,7 @@ import (
 // StubRepository implements EventRepository for testing.
 type StubRepository struct {
 	LoadCategorySummaryFn func(int) ([]*postgres.CategorySummary, error)
+	LoadEventGroupsForCategoryFn func(string, int) ([]*postgres.EventGroup, error)
 	SearchEventsFn        func(postgres.SearchQuery) ([]*postgres.EventGroup, error)
 	LoadSimilarEventsFn   func(string, string) ([]*events.GenconEvent, error)
 	LoadOrCreateUserFn    func(string) (*postgres.User, error)
@@ -23,6 +24,9 @@ type StubRepository struct {
 
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
 	return s.LoadCategorySummaryFn(year)
+}
+func (s *StubRepository) LoadEventGroupsForCategory(category string, year int) ([]*postgres.EventGroup, error) {
+	return s.LoadEventGroupsForCategoryFn(category, year)
 }
 func (s *StubRepository) SearchEvents(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
 	return s.SearchEventsFn(q)

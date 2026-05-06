@@ -3,21 +3,67 @@
     padding-bottom: .1em;
 }
 
-.eventGroup h5 {
-    margin-bottom: .2em;
-    color: #337ab7;
+.eventGroup h6 {
+    color: #333;
+    margin-bottom: 0.1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.transition-all {
+    transition: all 0.3s ease-in-out;
+}
+
+.bgg-link:hover {
+    color: #0d6efd !important;
+}
+
+.bgg-link:hover .text-muted {
+    color: #0d6efd !important;
+}
+
+.border-bottom-subtle {
+    position: relative;
+}
+
+.border-bottom-subtle::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 2.5%;
+    width: 95%;
+    height: 1px;
+    background-color: rgba(0,0,0,0.05);
+}
+
+.pointer {
+    cursor: pointer;
 }
 
 .eventGroup p {
-    margin-bottom: .2em;
-    margin-left: 1em;
-    font-size: small;
+    margin-left: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .noTickets {
-    color: lightgray;
+    color: #adb5bd;
+    text-decoration: line-through;
+    opacity: 0.7;
 }
 
-.eventTickets {
-    font-size: 0.85rem;
+.groupLink {
+    color: #6c757d;
+    transition: color 0.2s, background-color 0.2s;
+    border-radius: 4px;
+}
+
+.groupLink:hover {
+    color: #0d6efd;
+    background-color: #f8f9fa;
+}
+
+.minorHeading {
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+    margin-top: 1rem;
 }

@@ -1,10 +1,20 @@
-<div class="container-fluid">
-    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">
-        Search Results
-        <small *ngIf="query()" class="text-muted" style="font-size: 1.4rem; font-weight: normal">
-            for "{{ query() }}" - {{ events().length }} matches
-        </small>
-    </h1>
+<div id="top" class="top-anchor"></div>
+<div class="sticky-top bg-white border-bottom shadow-sm transition-all" [class.py-2]="scrolled()" [class.py-4]="!scrolled()" style="z-index: 1020; top: 50px;">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <h1 class="mb-0 transition-all" [style.font-size]="scrolled() ? '1.5rem' : '2.5rem'">
+            Search Results
+            <small class="text-muted d-none d-sm-inline" [style.font-size]="scrolled() ? '1rem' : '1.4rem'">
+                "{{ query() }}" - {{ totalSessionsCount() }} events / {{ filteredGroupsCount() }} groups
+            </small>
+        </h1>
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="hideSoldOut" [checked]="hideSoldOut()" (change)="toggleHideSoldOut()">
+            <label class="form-check-label text-muted" for="hideSoldOut">Hide Sold Out</label>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid mt-4">
 
     <div *ngIf="loading()" class="text-center py-5">
         <div class="spinner-border text-primary" role="status">
@@ -13,36 +23,78 @@
     </div>
 
     <div *ngIf="!loading()">
-        <div *ngIf="events().length > 0; else noResults">
-            <div *ngFor="let event of events()" class="row">
-                <div class="col-md-12 eventGroup pb-1 border-bottom">
-                    <h5>
-                        <a class="groupLink" [routerLink]="['/event', event.anchorEventId]">
-                            {{ event.title }}
-                        </a>
-                        <small class="text-muted" style="font-size: 0.8rem; margin-left: 0.5em">
-                            {{ event.gameSystem.name }}
-                        </small>
-                    </h5>
-                    <p>{{ event.shortDescription }}</p>
-                    <p>
-                        <span *ngIf="event.wedTickets > 0"><span class="ticketsAvailable">Wed:</span> {{ event.wedTickets }} </span>
-                        <span *ngIf="event.thuTickets > 0"><span class="ticketsAvailable">Thurs:</span> {{ event.thuTickets }} </span>
-                        <span *ngIf="event.friTickets > 0"><span class="ticketsAvailable">Fri:</span> {{ event.friTickets }} </span>
-                        <span *ngIf="event.satTickets > 0"><span class="ticketsAvailable">Sat:</span> {{ event.satTickets }} </span>
-                        <span *ngIf="event.sunTickets > 0"><span class="ticketsAvailable">Sun:</span> {{ event.sunTickets }} </span>
-                    </p>
+        <div class="row">
+            <!-- Sidebar Navigation -->
+            <div class="col-md-2 d-none d-md-block">
+                <h3 style="margin-top: 0">Search</h3>
+                <div *ngFor="let major of groupedEvents()">
+                    <h5 class="minorHeading pt-2" style="font-size: 1rem; color: #666; border-bottom: 1px solid #eee; padding-bottom: 5px;">{{ major.name }}</h5>
+                    <div class="nav vstack mb-3">
+                        <div *ngFor="let minor of major.minorGroups" class="nav-item">
+                            <a class="nav-link groupLink text-decoration-none py-1 ps-0 pointer" 
+                               style="font-size: 0.85rem;"
+                               (click)="scrollToAnchor(toId(major.name, minor.minorName))">
+                                {{ minor.minorName }} ({{ minor.events.length }})
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <div *ngFor="let major of groupedEvents()" class="mb-5">
+                    <h4 class="pb-1 pt-2 border-bottom mb-3">{{ major.name }}</h4>
+                    
+                    <div *ngFor="let minor of major.minorGroups" class="mb-4">
+                        <h5 [id]="toId(major.name, minor.minorName)" class="mb-3">
+                            <ng-container *ngIf="minor.bggId; else noBgg">
+                                <a [href]="'https://boardgamegeek.com/boardgame/' + minor.bggId" target="_blank" class="text-decoration-none text-dark bgg-link">
+                                    {{ minor.minorName }}
+                                    <small *ngIf="minor.bggRating && minor.bggRating > 0" class="text-muted" style="font-size: 0.9rem; margin-left: 0.25rem">
+                                        BGG {{ minor.bggRating.toFixed(1) }}
+                                        <span *ngIf="minor.yearPublished">({{ minor.yearPublished }})</span>
+                                    </small>
+                                </a>
+                            </ng-container>
+                            <ng-template #noBgg>
+                                {{ minor.minorName }}
+                            </ng-template>
+
+                            <small class="ms-2" style="font-size: 0.8rem">
+                                (<a href="javascript:void(0)" (click)="scrollToAnchor('top')" class="text-decoration-none">top</a>)
+                            </small>
+                        </h5>
+
+                        <div class="list-group list-group-flush border rounded shadow-sm">
+                            <a *ngFor="let event of minor.events; let last = last" 
+                               [routerLink]="['/event', event.anchorEventId]"
+                               [class.border-bottom-subtle]="!last"
+                               class="list-group-item list-group-item-action eventGroup p-3 border-bottom-0">
+                               <h6 class="mb-1 fw-bold">
+                                   {{ event.title }}
+                                   <small *ngIf="(event.wedTickets + event.thuTickets + event.friTickets + event.satTickets + event.sunTickets) === 0" 
+                                          class="text-muted ms-2" style="font-size: 0.75rem; font-weight: normal; opacity: 0.7">
+                                       (Sold Out)
+                                   </small>
+                               </h6>
+                                <p class="mb-2 text-dark small" style="opacity: 0.8">{{ event.shortDescription }}</p>
+                                <ul class="list-inline eventTickets mb-0 small">
+                                    <li class="list-inline-item" [class.noTickets]="event.wedTickets === 0"><strong>Wed</strong> {{ event.wedTickets }}</li>
+                                    <li class="list-inline-item" [class.noTickets]="event.thuTickets === 0"><strong>Thurs</strong> {{ event.thuTickets }}</li>
+                                    <li class="list-inline-item" [class.noTickets]="event.friTickets === 0"><strong>Fri</strong> {{ event.friTickets }}</li>
+                                    <li class="list-inline-item" [class.noTickets]="event.satTickets === 0"><strong>Sat</strong> {{ event.satTickets }}</li>
+                                    <li class="list-inline-item" [class.noTickets]="event.sunTickets === 0"><strong>Sun</strong> {{ event.sunTickets }}</li>
+                                </ul>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="events().length === 0" class="alert alert-info">
+                    No results found for "{{ query() }}".
                 </div>
             </div>
         </div>
-        
-        <ng-template #noResults>
-            <div class="alert alert-warning" *ngIf="query()">
-                No events found matching "{{ query() }}". Try different keywords.
-            </div>
-            <div class="alert alert-info" *ngIf="!query()">
-                Enter a search term in the navbar above to find events.
-            </div>
-        </ng-template>
     </div>
 </div>

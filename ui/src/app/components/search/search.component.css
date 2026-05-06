@@ -1,7 +1,69 @@
-/* Reusing styles from CategoryDetail */
-.eventGroup h5 {
-    color: #337ab7;
+.eventGroup {
+    padding-top: .1em;
+    padding-bottom: .1em;
 }
+
+.eventGroup h6 {
+    color: #333;
+    margin-bottom: 0.1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.transition-all {
+    transition: all 0.3s ease-in-out;
+}
+
+.bgg-link:hover {
+    color: #0d6efd !important;
+}
+
+.bgg-link:hover .text-muted {
+    color: #0d6efd !important;
+}
+
+.border-bottom-subtle {
+    position: relative;
+}
+
+.border-bottom-subtle::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 2.5%;
+    width: 95%;
+    height: 1px;
+    background-color: rgba(0,0,0,0.05);
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.eventGroup p {
+    margin-left: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
 .noTickets {
-    color: lightgray;
+    color: #adb5bd;
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.groupLink {
+    color: #6c757d;
+    transition: color 0.2s, background-color 0.2s;
+    border-radius: 4px;
+}
+
+.groupLink:hover {
+    color: #0d6efd;
+    background-color: #f8f9fa;
+}
+
+.minorHeading {
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+    margin-top: 1rem;
 }

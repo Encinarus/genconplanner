@@ -20,6 +20,7 @@ export interface EventSummary {
   satTickets: number;
   sunTickets: number;
   orgId: number;
+  categoryCode: string;
   gameSystem: {
     name: string;
     bggId?: number;

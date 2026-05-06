@@ -36,6 +36,7 @@ type EventSummary struct {
 	SatTickets       int        `json:"satTickets"`
 	SunTickets       int        `json:"sunTickets"`
 	OrgId            int        `json:"orgId"`
+	CategoryCode     string     `json:"categoryCode"`
 	GameSystem       GameSystem `json:"gameSystem"`
 }
 
@@ -198,6 +199,7 @@ func convertEventGroup(dbEventGroup *postgres.EventGroup) *EventSummary {
 	apiEventSummary.SatTickets = dbEventGroup.SatTickets
 	apiEventSummary.SunTickets = dbEventGroup.SunTickets
 	apiEventSummary.OrgId = dbEventGroup.OrgId
+	apiEventSummary.CategoryCode = dbEventGroup.ShortCategory
 
 	return &apiEventSummary
 }
@@ -227,7 +229,13 @@ func (s *Server) SearchEvents(c *gin.Context) {
 	q.MinSunTickets = search.MinSunTickets
 	q.OrgId = search.OrgId
 
-	matches, err := s.Repo.SearchEvents(q)
+	var matches []*postgres.EventGroup
+
+	if len(strings.TrimSpace(search.TextQuery)) == 0 && len(search.Category) > 0 {
+		matches, err = s.Repo.LoadEventGroupsForCategory(search.Category, search.Year)
+	} else {
+		matches, err = s.Repo.SearchEvents(q)
+	}
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})

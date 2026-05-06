@@ -1,0 +1,16 @@
+.envrc
+latest.dump
+
+# Go binaries
+web
+update
+*.exe
+*.test
+
+# Node / Angular
+ui/node_modules/
+ui/dist/
+.angular/
+
+# OS files
+.DS_Store

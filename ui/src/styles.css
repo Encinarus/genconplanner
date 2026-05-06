@@ -63,10 +63,10 @@ a.fc-col-header-cell-cushion {
     color: black;
 }
 
-h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before {
+h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before, .top-anchor::before {
     display: block;
-    height: 6rem;
-    margin-top: -6rem;
+    height: 120px;
+    margin-top: -120px;
     visibility: hidden;
     content: "";
 }
