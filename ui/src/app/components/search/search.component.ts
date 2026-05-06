@@ -251,6 +251,8 @@ export class SearchComponent implements OnInit {
     }, 0);
   }
 
+  private initialLoad = true;
+
   ngOnInit(): void {
     window.addEventListener('scroll', () => {
       this.scrolled.set(window.scrollY > 50);
@@ -265,11 +267,23 @@ export class SearchComponent implements OnInit {
         this.groupingMethod.set('system');
       }
 
-      this.query.set(queryParams['q'] || '');
-      this.year.set(+(queryParams['year'] || new Date().getFullYear()));
-      this.orgId.set(queryParams['org_id'] ? +queryParams['org_id'] : undefined);
-      this.fetchResults();
-      this.starredService.fetchStarred(this.year());
+      const newQuery = queryParams['q'] || '';
+      const newYear = +(queryParams['year'] || new Date().getFullYear());
+      const newOrgId = queryParams['org_id'] ? +queryParams['org_id'] : undefined;
+
+      let needsFetch = this.initialLoad;
+      if (this.query() !== newQuery || this.year() !== newYear || this.orgId() !== newOrgId) {
+        this.query.set(newQuery);
+        this.year.set(newYear);
+        this.orgId.set(newOrgId);
+        needsFetch = true;
+      }
+
+      if (needsFetch) {
+        this.initialLoad = false;
+        this.fetchResults();
+        this.starredService.fetchStarred(this.year());
+      }
     });
   }
 

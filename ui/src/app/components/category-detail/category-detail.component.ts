@@ -273,11 +273,21 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
     }, 0);
   }
 
+  private initialLoad = true;
+
   ngOnInit(): void {
     window.addEventListener('scroll', this.onScroll);
     this.route.params.subscribe(params => {
-      this.year.set(+params['year']);
-      this.categoryCode.set(params['cat']);
+      const newYear = +params['year'];
+      const newCat = params['cat'];
+      
+      let needsFetch = this.initialLoad;
+      if (this.year() !== newYear || this.categoryCode() !== newCat) {
+        this.year.set(newYear);
+        this.categoryCode.set(newCat);
+        needsFetch = true;
+      }
+
       const grouping = params['grouping'];
       if (grouping === 'by_year') {
         this.groupingMethod.set('year');
@@ -286,7 +296,11 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
       } else {
         this.groupingMethod.set('system');
       }
-      this.fetchEvents();
+
+      if (needsFetch) {
+        this.initialLoad = false;
+        this.fetchEvents();
+      }
     });
   }
 
