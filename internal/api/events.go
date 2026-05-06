@@ -21,6 +21,7 @@ type EventsSearch struct {
 	MinSunTickets int    `form:"minSunTickets"`
 
 	TextQuery string `form:"search"`
+	OrgId     int    `form:"org_id"`
 }
 
 // Used in search results
@@ -34,6 +35,7 @@ type EventSummary struct {
 	FriTickets       int        `json:"friTickets"`
 	SatTickets       int        `json:"satTickets"`
 	SunTickets       int        `json:"sunTickets"`
+	OrgId            int        `json:"orgId"`
 	GameSystem       GameSystem `json:"gameSystem"`
 }
 
@@ -60,6 +62,9 @@ type Event struct {
 	ShortDescription     string     `json:"shortDescription"`
 	LongDescription      string     `json:"longDescription"`
 	CategoryCode         string     `json:"categoryCode"`
+	EventType            string     `json:"eventType"`
+	Group                string     `json:"group"`
+	OrgId                int64      `json:"orgId"`
 	GameSystem           GameSystem `json:"gameSystem"`
 	RulesEdition         string     `json:"rulesEdition"`
 	MinPlayers           int        `json:"minPlayers"`
@@ -96,6 +101,9 @@ func convertEvent(apiEvent *Event, dbEvent *events.GenconEvent) {
 	apiEvent.LongDescription = dbEvent.LongDescription
 
 	apiEvent.CategoryCode = dbEvent.ShortCategory
+	apiEvent.EventType = dbEvent.EventType
+	apiEvent.Group = dbEvent.Group
+	apiEvent.OrgId = dbEvent.OrgId
 	// apiEvent.GameSystem is handled elsewhere
 	apiEvent.RulesEdition = dbEvent.RulesEdition
 	apiEvent.MinPlayers = dbEvent.MinPlayers
@@ -161,15 +169,15 @@ func (s *Server) LookupEvent(c *gin.Context) {
 		if dbEvent.EventId == eventId {
 			convertEvent(&apiEvent, dbEvent)
 			apiEvent.GameSystem = s.lookupGame(dbEvent.GameSystem)
-		} else {
-			// It's a related event
-			var related EventRef
-			related.EventId = dbEvent.EventId
-			related.StartTime = dbEvent.StartTime
-			related.EndTime = dbEvent.EndTime
-			related.TicketsAvailable = dbEvent.TicketsAvailable
-			apiEvent.RelatedEvents = append(apiEvent.RelatedEvents, related)
 		}
+		
+		// Add all events (including the current one) to RelatedEvents
+		var related EventRef
+		related.EventId = dbEvent.EventId
+		related.StartTime = dbEvent.StartTime
+		related.EndTime = dbEvent.EndTime
+		related.TicketsAvailable = dbEvent.TicketsAvailable
+		apiEvent.RelatedEvents = append(apiEvent.RelatedEvents, related)
 	}
 
 	c.JSON(http.StatusOK, apiEvent)
@@ -189,6 +197,7 @@ func convertEventGroup(dbEventGroup *postgres.EventGroup) *EventSummary {
 	apiEventSummary.FriTickets = dbEventGroup.FriTickets
 	apiEventSummary.SatTickets = dbEventGroup.SatTickets
 	apiEventSummary.SunTickets = dbEventGroup.SunTickets
+	apiEventSummary.OrgId = dbEventGroup.OrgId
 
 	return &apiEventSummary
 }
@@ -216,6 +225,7 @@ func (s *Server) SearchEvents(c *gin.Context) {
 	q.MinFriTickets = search.MinFriTickets
 	q.MinSatTickets = search.MinSatTickets
 	q.MinSunTickets = search.MinSunTickets
+	q.OrgId = search.OrgId
 
 	matches, err := s.Repo.SearchEvents(q)
 

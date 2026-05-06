@@ -11,7 +11,6 @@ import (
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
-	"time"
 )
 
 
@@ -511,9 +510,9 @@ func TestGetStarredEvents(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.LoadStarredEventsFn = func(email string, year int) ([]*events.GenconEvent, error) {
-					return []*events.GenconEvent{
-						{EventId: "BGM24123", Title: "Starred Event", ShortCategory: "BGM", GameSystem: "Catan", TicketsAvailable: 10, StartTime: time.Date(2024, 8, 1, 10, 0, 0, 0, time.UTC)},
+				stub.LoadStarredEventGroupsFn = func(email string, year int) ([]*postgres.EventGroup, error) {
+					return []*postgres.EventGroup{
+						{EventId: "BGM24123", Name: "Starred Event", ShortCategory: "BGM", GameSystem: "Catan", Count: 1, ThursTickets: 10},
 					}, nil
 				}
 				games.FindGameFn = func(name string) *postgres.Game {

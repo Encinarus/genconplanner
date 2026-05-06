@@ -116,6 +116,61 @@ GROUP BY e.cluster_key, day_of_week
 	return groupedEvents, nil
 }
 
+func LoadStarredEventGroups(db *sql.DB, userEmail string, year int) ([]*EventGroup, error) {
+	rows, err := db.Query(`
+SELECT
+	MIN(e1.event_id) AS anchor_event,
+	e1.title, 
+	e1.short_description AS short_description,
+	e1.short_category AS short_category,
+	e1.game_system AS game_system,
+	e1.org_group AS org_group,
+	MAX(o.id) AS org_id,
+	COUNT(*) AS num_events,
+	SUM(e1.tickets_available) AS tickets_available,
+	sum(CASE WHEN e1.day_of_week = 3 THEN e1.tickets_available ELSE 0 END) as wednesday_tickets,
+	sum(CASE WHEN e1.day_of_week = 4 THEN e1.tickets_available ELSE 0 END) as thursday_tickets,
+	sum(CASE WHEN e1.day_of_week = 5 THEN e1.tickets_available ELSE 0 END) as friday_tickets,
+	sum(CASE WHEN e1.day_of_week = 6 THEN e1.tickets_available ELSE 0 END) as saturday_tickets,
+	sum(CASE WHEN e1.day_of_week = 0 THEN e1.tickets_available ELSE 0 END) as sunday_tickets,
+	0 as title_rank,
+	0 as search_rank
+FROM events e1
+JOIN orgs o ON lower(o.alias) = lower(e1.org_group)
+WHERE
+  e1.year = $2
+  AND e1.active
+  AND ( 
+    e1.event_id IN (SELECT event_id FROM starred_events WHERE email = $1)
+    OR
+    e1.cluster_key IN (
+      SELECT e.cluster_key
+      FROM 
+        events e
+        JOIN (SELECT event_id FROM starred_events WHERE email = $1 AND level = 'group') s
+        ON e.event_id = s.event_id
+    )
+  )
+GROUP BY
+  e1.cluster_key, e1.short_description, e1.short_category, e1.game_system, e1.org_group, e1.title
+ORDER BY e1.title`, userEmail, year)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	groups := make([]*EventGroup, 0)
+	for rows.Next() {
+		group, err := rowToGroup(rows)
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, group)
+	}
+	return groups, nil
+}
+
 func LoadStarredEvents(db *sql.DB, userEmail string, year int) ([]*events.GenconEvent, error) {
 	fields := "e1." + strings.Join(eventFields(), ", e1.")
 	rows, err := db.Query(fmt.Sprintf(`
@@ -212,9 +267,15 @@ WHERE s.email = $1
 		}
 
 		rows, err := tx.Query(`
-SELECT event_id, level
-FROM starred_events
-WHERE email = $1;
+SELECT e2.event_id, se.level
+FROM starred_events se
+JOIN events e1 ON se.event_id = e1.event_id
+JOIN events e2 ON (
+    (se.level = 'event' AND e1.event_id = e2.event_id)
+    OR
+    (se.level = 'group' AND e1.cluster_key = e2.cluster_key AND e1.year = e2.year)
+)
+WHERE se.email = $1 AND e2.active;
 `, email)
 		if err != nil {
 			tx.Rollback()
@@ -250,10 +311,15 @@ func GetStarredIds(db *sql.DB, email string, year int) (*UserStarredEvents, erro
 	}
 
 	query := `
-SELECT se.event_id, se.level
+SELECT e2.event_id, se.level
 FROM starred_events se
-JOIN events e ON se.event_id = e.event_id
-WHERE se.email = $1 AND e.year = $2;`
+JOIN events e1 ON se.event_id = e1.event_id
+JOIN events e2 ON (
+    (se.level = 'event' AND e1.event_id = e2.event_id)
+    OR
+    (se.level = 'group' AND e1.cluster_key = e2.cluster_key AND e1.year = e2.year)
+)
+WHERE se.email = $1 AND e1.year = $2 AND e2.active;`
 
 	rows, err := db.Query(query, email, year)
 	if err != nil {
@@ -280,9 +346,15 @@ func GetAllStarredIds(db *sql.DB, email string) (*UserStarredEvents, error) {
 	}
 
 	rows, err := db.Query(`
-SELECT event_id, level
-FROM starred_events
-WHERE email = $1;
+SELECT e2.event_id, se.level
+FROM starred_events se
+JOIN events e1 ON se.event_id = e1.event_id
+JOIN events e2 ON (
+    (se.level = 'event' AND e1.event_id = e2.event_id)
+    OR
+    (se.level = 'group' AND e1.cluster_key = e2.cluster_key AND e1.year = e2.year)
+)
+WHERE se.email = $1 AND e2.active;
 `, email)
 	if err != nil {
 		return nil, err

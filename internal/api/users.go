@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"time"
 )
 
 type User struct {
@@ -123,41 +122,30 @@ func (s *Server) GetStarredEvents(c *gin.Context) {
 		return
 	}
 
-	// This is a bit inefficient as it loads GenconEvents then converts,
-	// but it reuses existing postgres logic.
-	log.Printf("Loading starred events for %s year %d\n", email, year)
-	dbEvents, err := s.Repo.LoadStarredEvents(email, year)
+	// Load event groups (clusters) to match legacy UI behavior
+	log.Printf("Loading starred event groups for %s year %d\n", email, year)
+	dbGroups, err := s.Repo.LoadStarredEventGroups(email, year)
 	if err != nil {
-		log.Printf("error loading starred events: %v\n", err)
+		log.Printf("error loading starred event groups: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
-	log.Printf("Found %d starred events\n", len(dbEvents))
+	log.Printf("Found %d starred event groups\n", len(dbGroups))
 
 	apiResults := make([]EventSummary, 0)
-	for _, dbEvent := range dbEvents {
-		var apiEvent Event
-		convertEvent(&apiEvent, dbEvent)
-		
-		// Convert to summary for the list view
+	for _, dbGroup := range dbGroups {
 		var summary EventSummary
-		summary.AnchorEventId = apiEvent.EventId
-		summary.Title = apiEvent.Title
-		summary.ShortDescription = apiEvent.ShortDescription
-		summary.GameSystem = s.lookupGame(dbEvent.GameSystem)
+		summary.AnchorEventId = dbGroup.EventId
+		summary.Title = dbGroup.Name
+		summary.ShortDescription = dbGroup.Description
+		summary.NumEvents = dbGroup.Count
+		summary.GameSystem.Name = dbGroup.GameSystem
 		
-		switch dbEvent.StartTime.Weekday() {
-		case time.Wednesday:
-			summary.WedTickets = dbEvent.TicketsAvailable
-		case time.Thursday:
-			summary.ThuTickets = dbEvent.TicketsAvailable
-		case time.Friday:
-			summary.FriTickets = dbEvent.TicketsAvailable
-		case time.Saturday:
-			summary.SatTickets = dbEvent.TicketsAvailable
-		case time.Sunday:
-			summary.SunTickets = dbEvent.TicketsAvailable
-		}
+		summary.WedTickets = dbGroup.WedTickets
+		summary.ThuTickets = dbGroup.ThursTickets
+		summary.FriTickets = dbGroup.FriTickets
+		summary.SatTickets = dbGroup.SatTickets
+		summary.SunTickets = dbGroup.SunTickets
 		
 		apiResults = append(apiResults, summary)
 	}

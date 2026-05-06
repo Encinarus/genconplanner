@@ -1,10 +1,11 @@
 .details-grid {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
 }
 
 .details-grid .row {
-    border-bottom: 1px solid #f8f9fa;
-    padding: 8px 0;
+    padding: 1px 0;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 .details-grid .row:last-child {
@@ -12,10 +13,30 @@
 }
 
 .breadcrumb {
-    margin-bottom: 2rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 1rem !important;
 }
 
 h3 {
-    font-size: 1.25rem;
+    font-size: 1.75rem;
+    color: #343a40;
+}
+
+h4 {
+    font-size: 1.3rem;
     color: #495057;
+}
+
+.thisSession {
+    background-color: #e7f1ff;
+    font-style: italic;
+    border-left: 4px solid #0d6efd;
+}
+
+.otherSession {
+    padding: 2px 0.2rem !important;
+}
+
+.otherSessions {
+    margin-bottom: 0;
 }

@@ -16,6 +16,7 @@ type EventRepository interface {
 	GetAllStarredIds(email string) (*postgres.UserStarredEvents, error)
 	UpdateStarredEvent(email string, eventId string, starGroup bool, add bool) (*postgres.UserStarredEvents, error)
 	LoadStarredEvents(email string, year int) ([]*events.GenconEvent, error)
+	LoadStarredEventGroups(email string, year int) ([]*postgres.EventGroup, error)
 }
 
 type PostgresRepository struct {
@@ -51,4 +52,8 @@ func (r *PostgresRepository) UpdateStarredEvent(email string, eventId string, st
 
 func (r *PostgresRepository) LoadStarredEvents(email string, year int) ([]*events.GenconEvent, error) {
 	return postgres.LoadStarredEvents(r.DB, email, year)
+}
+
+func (r *PostgresRepository) LoadStarredEventGroups(email string, year int) ([]*postgres.EventGroup, error) {
+	return postgres.LoadStarredEventGroups(r.DB, email, year)
 }

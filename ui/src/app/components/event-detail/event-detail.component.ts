@@ -17,7 +17,7 @@ export class EventDetailComponent implements OnInit {
 
   eventId = signal<string>('');
   event = signal<Event | null>(null);
-  isStarred = signal<boolean>(false);
+  starredEventIds = signal<string[]>([]);
   loading = signal<boolean>(true);
   
   groupedEvents = computed(() => {
@@ -79,8 +79,14 @@ export class EventDetailComponent implements OnInit {
     if (!user || !user.email) return;
 
     this.api.getUserEvents(user.email, this.event()?.year || 2026).subscribe(data => {
-      this.isStarred.set(data.starredEvents?.includes(this.eventId()));
+      this.starredEventIds.set(data.starredEvents || []);
     });
+  }
+
+  isStarred = computed(() => this.starredEventIds().includes(this.eventId()));
+
+  isSessionStarred(sid: string): boolean {
+    return this.starredEventIds().includes(sid);
   }
 
   toggleStar(): void {
@@ -91,8 +97,8 @@ export class EventDetailComponent implements OnInit {
     }
 
     const newStarred = !this.isStarred();
-    this.api.starEvent(this.eventId(), newStarred, false).subscribe(() => {
-      this.isStarred.set(newStarred);
+    this.api.starEvent(this.eventId(), newStarred, true).subscribe(() => {
+      this.checkIfStarred();
     });
   }
 }

@@ -1,19 +1,20 @@
-<div class="container" *ngIf="event() as e">
-    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom d-flex align-items-center">
-        <button type="button"
-                class="btn btn-light btn-md border me-3"
-                [class.active]="isStarred()"
-                (click)="toggleStar()">
-            <span class="material-icons" style="font-size: 1.2rem">
-                {{ isStarred() ? 'star' : 'star_outline' }}
-            </span>
-        </button>
-        <div>
-            {{ e.title }}
-            <small class="text-muted" style="font-size: 1.4rem; font-weight: normal">
-                <br>{{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}: {{ e.ticketsAvailable }} tickets, ${{ e.cost }} each
-            </small>
+<ng-container *ngIf="event() as e">
+    <h1 class="pb-2 pt-3 mb-3 border-bottom">
+        <div style="display:inline-block; vertical-align: middle;">
+            <button type="button"
+                    class="btn btn-light btn-md border sm-star"
+                    [class.active]="isStarred()"
+                    (click)="toggleStar()">
+                <span class="material-icons" style="font-size: 1.2rem">
+                    {{ isStarred() ? 'star' : 'star_outline' }}
+                </span>
+            </button>
         </div>
+        {{ e.title }}
+        <small class="text-muted" style="font-size: 1.4rem; font-weight: normal; line-height: 1.2">
+            <br>{{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}: {{ e.ticketsAvailable }} tickets, ${{ e.cost }} each
+            (<a [href]="'https://www.gencon.com/events/' + e.eventId" target="_blank">Official Listing</a>)
+        </small>
     </h1>
 
     <nav aria-label="breadcrumb">
@@ -23,52 +24,100 @@
         </ol>
     </nav>
 
-    <div class="main">
+    <div class="event-content">
         <div class="col-md-12">
-            <p class="lead"><em>{{ e.shortDescription }}</em></p>
-            <h3 class="pt-3 border-bottom mb-3">Details</h3>
+            <p class="mb-2"><em>{{ e.shortDescription }}</em></p>
+            <h3 class="pt-2">Details</h3>
             
             <div class="details-grid">
-                <div class="row mb-2">
-                    <div class="col-md-3"><strong>Timing:</strong></div>
-                    <div class="col-md-9">{{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }} ({{ e.duration }} mins)</div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Timing:</strong></div>
+                    <div class="col-md-10">{{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}</div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-md-3"><strong>Location:</strong></div>
-                    <div class="col-md-9">{{ e.location }} <span *ngIf="e.roomName">/ {{ e.roomName }}</span> <span *ngIf="e.tableNumber">/ {{ e.tableNumber }}</span></div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Gencon URL:</strong></div>
+                    <div class="col-md-10"><a [href]="'https://www.gencon.com/events/' + e.eventId" target="_blank">https://www.gencon.com/events/{{ e.eventId }}</a></div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-md-3"><strong>Long Description:</strong></div>
-                    <div class="col-md-9">{{ e.longDescription }}</div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Location:</strong></div>
+                    <div class="col-md-10">{{ e.location }} <span *ngIf="e.roomName">/ {{ e.roomName }}</span> <span *ngIf="e.tableNumber">/ {{ e.tableNumber }}</span></div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-md-3"><strong>Game System:</strong></div>
-                    <div class="col-md-9">{{ e.gameSystem.name }}</div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Long Description:</strong></div>
+                    <div class="col-md-10">{{ e.longDescription }}</div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-md-3"><strong>GM Names:</strong></div>
-                    <div class="col-md-9">{{ e.gmNames }} <span *ngIf="e.email">({{ e.email }})</span></div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Event Website:</strong></div>
+                    <div class="col-md-10">
+                        <a *ngIf="e.website" [href]="'http://' + e.website" target="_blank">{{ e.website }}</a>
+                        <span *ngIf="!e.website">N/A</span>
+                    </div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-md-3"><strong>Players:</strong></div>
-                    <div class="col-md-9">{{ e.minPlayers }} - {{ e.maxPlayers }} players</div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Organizing Group:</strong></div>
+                    <div class="col-md-10">
+                        <a *ngIf="e.group" [routerLink]="['/search']" [queryParams]="{year: e.year, org_id: e.orgId}">{{ e.group }}</a>
+                        <span *ngIf="!e.group">N/A</span>
+                    </div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-md-3"><strong>Age/Experience:</strong></div>
-                    <div class="col-md-9">{{ e.ageRequired }} / {{ e.experienceRequired }}</div>
+                <div class="row">
+                    <div class="col-md-2"><strong>GM Names:</strong></div>
+                    <div class="col-md-10">{{ e.gmNames }} <span *ngIf="e.email">({{ e.email }})</span></div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-md-3"><strong>Materials:</strong></div>
-                    <div class="col-md-9">{{ e.materialsProvided ? 'Provided' : 'Not provided' }}</div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Event Type:</strong></div>
+                    <div class="col-md-10"><a [routerLink]="['/cat', e.year, e.categoryCode]">{{ e.eventType }}</a></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Game System:</strong></div>
+                    <div class="col-md-10">
+                        <ng-container *ngIf="e.gameSystem.bggId; else noBgg">
+                            <a [href]="'https://boardgamegeek.com/boardgame/' + e.gameSystem.bggId" target="_blank" class="text-decoration-none">
+                                {{ e.gameSystem.name }}
+                                <span *ngIf="e.gameSystem.yearPublished"> ({{ e.gameSystem.yearPublished }})</span>
+                                <span *ngIf="e.gameSystem.numBggRatings && e.gameSystem.numBggRatings >= 100">
+                                     - BGG {{ e.gameSystem.bggRating | number:'1.1-1' }}, {{ e.gameSystem.numBggRatings }} ratings
+                                </span>
+                            </a>
+                        </ng-container>
+                        <ng-template #noBgg>{{ e.gameSystem.name }}</ng-template>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Rules Edition:</strong></div>
+                    <div class="col-md-10">{{ e.rulesEdition || 'N/A' }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2"><strong># Players:</strong></div>
+                    <div class="col-md-10">{{ e.minPlayers }} - {{ e.maxPlayers }} players</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Age Required:</strong></div>
+                    <div class="col-md-10">{{ e.ageRequired }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Experience Required:</strong></div>
+                    <div class="col-md-10">{{ e.experienceRequired }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Materials Provided?:</strong></div>
+                    <div class="col-md-10">{{ e.materialsProvided ? 'Yes' : 'No' }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2"><strong>Tournament?:</strong></div>
+                    <div class="col-md-10">
+                        <span *ngIf="e.isTournament">Round {{ e.roundNumber }} of {{ e.totalRounds }}</span>
+                        <span *ngIf="!e.isTournament">No</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-12 mt-5" *ngIf="groupedEvents().length > 0">
-            <h3 class="pb-3 border-bottom">Other Sessions</h3>
+        <div class="col-md-12 mt-3" *ngIf="groupedEvents().length > 0">
+            <h3 class="pb-2">Other Sessions</h3>
             <div class="row">
-                <div *ngFor="let dayGroup of groupedEvents()" class="col-md">
-                    <h5 class="mt-2">{{ dayGroup.day }}</h5>
+                <div *ngFor="let dayGroup of groupedEvents()" class="col-md-3 col-sm-6">
+                    <h4 class="mt-2">{{ dayGroup.day }}</h4>
                     <ul class="otherSessions">
                         <li *ngFor="let session of dayGroup.events" 
                             [class.thisSession]="session.eventId === e.eventId"
@@ -76,15 +125,15 @@
                             <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.3rem">
                                 <button type="button"
                                         class="btn btn-light btn-sm sm-star border"
-                                        [class.active]="false">
-                                    <span class="material-icons" style="font-size: 1rem">star_outline</span>
+                                        [class.active]="isSessionStarred(session.eventId)">
+                                    <span class="material-icons" style="font-size: 1rem">
+                                        {{ isSessionStarred(session.eventId) ? 'star' : 'star_outline' }}
+                                    </span>
                                 </button>
                             </div>
                             <div style="display:inline-block;">
-                                <em *ngIf="session.eventId === e.eventId">This event</em>
-                                <a *ngIf="session.eventId !== e.eventId" [routerLink]="['/event', session.eventId]">{{ session.eventId }}</a>
-                                <br>
-                                {{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}
+                                <span *ngIf="session.eventId === e.eventId">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }} (This session)</span>
+                                <a *ngIf="session.eventId !== e.eventId" [routerLink]="['/event', session.eventId]">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}</a>
                                 <br>
                                 <strong *ngIf="session.ticketsAvailable > 0">{{ session.ticketsAvailable }}</strong>
                                 <span *ngIf="session.ticketsAvailable === 0">{{ session.ticketsAvailable }}</span>
@@ -96,7 +145,7 @@
             </div>
         </div>
     </div>
-</div>
+</ng-container>
 
 <div *ngIf="loading()" class="text-center py-5">
     <div class="spinner-border text-primary" role="status">

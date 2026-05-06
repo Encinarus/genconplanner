@@ -50,6 +50,7 @@ type EventGroup struct {
 	ShortCategory string
 	GameSystem    string
 	OrgGroup      string
+	OrgId         int
 	Count         int
 	WedTickets    int
 	ThursTickets  int
@@ -82,6 +83,7 @@ type SearchQuery struct {
 	MinSatTickets     int
 	MinSunTickets     int
 	RawQuery          string
+	OrgId             int
 }
 
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
@@ -95,6 +97,7 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 		&group.ShortCategory,
 		&group.GameSystem,
 		&group.OrgGroup,
+		&group.OrgId,
 		// Aggregate fields
 		&group.Count,
 		&group.TotalTickets,
@@ -124,8 +127,9 @@ SELECT
 	e.short_category AS short_category,
 	e.game_system AS game_system,
 	e.org_group AS org_group,
+	MAX(o.id) AS org_id,
 	COUNT(*) AS num_events,
-	SUM(tickets_available) AS tickets_available,
+	SUM(e.tickets_available) AS tickets_available,
 	sum(CASE WHEN e.day_of_week = 3 THEN e.tickets_available ELSE 0 END) as wednesday_tickets,
 	sum(CASE WHEN e.day_of_week = 4 THEN e.tickets_available ELSE 0 END) as thursday_tickets,
 	sum(CASE WHEN e.day_of_week = 5 THEN e.tickets_available ELSE 0 END) as friday_tickets,
@@ -135,6 +139,7 @@ SELECT
 	0 as search_rank
 FROM
   events AS e
+  JOIN orgs o ON lower(o.alias) = lower(e.org_group)
 WHERE
 	active
   AND (LENGTH($1) = 0 OR short_category = $1)
@@ -145,11 +150,12 @@ WHERE
 	AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
 	AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
 	AND (LENGTH($8) = 0 OR (search_key @@ websearch_to_tsquery('english', $8)))
+	AND ($9 = 0 OR o.id = $9)
 GROUP BY
   cluster_key, short_description, short_category, game_system, org_group, title 
 	`, query.CategoryShortCode, query.Year, query.MinWedTickets,
 		query.MinThuTickets, query.MinFriTickets, query.MinSatTickets,
-		query.MinSunTickets, query.RawQuery)
+		query.MinSunTickets, query.RawQuery, query.OrgId)
 
 	if err != nil {
 		return nil, err
@@ -176,6 +182,7 @@ SELECT
 	e.short_category,
 	e.game_system,
 	e.org_group,
+	o.id AS org_id,
 	c.num_events,
 	c.tickets_available,
 	c.wednesday_tickets,
@@ -186,6 +193,7 @@ SELECT
 	0 as title_rank,
 	0 as search_rank
 FROM events e 
+    JOIN orgs o ON lower(o.alias) = lower(e.org_group)
 	JOIN (
 		SELECT 
 		    min(event_id) as event_id,
@@ -403,6 +411,7 @@ SELECT  distinct
 		e.short_category,
 		e.game_system,
 		e.org_group,
+		o.id AS org_id,
 		c.num_events,
 		c.tickets_available,
 		c.wed_tickets,

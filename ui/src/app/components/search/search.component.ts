@@ -16,6 +16,7 @@ export class SearchComponent implements OnInit {
 
   year = signal<number>(new Date().getFullYear());
   query = signal<string>('');
+  orgId = signal<number | undefined>(undefined);
   events = signal<EventSummary[]>([]);
   loading = signal<boolean>(true);
 
@@ -23,18 +24,23 @@ export class SearchComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       this.query.set(params['q'] || '');
       this.year.set(+(params['year'] || new Date().getFullYear()));
+      this.orgId.set(params['org_id'] ? +params['org_id'] : undefined);
       this.fetchResults();
     });
   }
 
   fetchResults(): void {
-    if (!this.query()) {
+    if (!this.query() && !this.orgId()) {
       this.events.set([]);
       this.loading.set(false);
       return;
     }
     this.loading.set(true);
-    this.api.searchEvents({ year: this.year(), search: this.query() }).subscribe({
+    this.api.searchEvents({ 
+      year: this.year(), 
+      search: this.query(), 
+      org_id: this.orgId() 
+    }).subscribe({
       next: (data) => {
         this.events.set(data);
         this.loading.set(false);

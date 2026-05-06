@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Category {
@@ -19,6 +19,7 @@ export interface EventSummary {
   friTickets: number;
   satTickets: number;
   sunTickets: number;
+  orgId: number;
   gameSystem: {
     name: string;
     bggId?: number;
@@ -32,6 +33,7 @@ export interface SearchParams {
   year: number;
   cat?: string;
   search?: string;
+  org_id?: number;
 }
 
 export interface Event {
@@ -42,6 +44,9 @@ export interface Event {
   shortDescription: string;
   longDescription: string;
   categoryCode: string;
+  eventType: string;
+  group: string;
+  orgId: number;
   gameSystem: {
     name: string;
     bggId?: number;
@@ -91,10 +96,11 @@ export class ApiService {
   }
 
   searchEvents(params: SearchParams): Observable<EventSummary[]> {
-    let queryParams = `?year=${params.year}`;
-    if (params.cat) queryParams += `&cat=${params.cat}`;
-    if (params.search) queryParams += `&search=${params.search}`;
-    return this.http.get<EventSummary[]>(`/api/v1/events${queryParams}`);
+    let httpParams = new HttpParams().set('year', params.year.toString());
+    if (params.search) httpParams = httpParams.set('search', params.search);
+    if (params.cat) httpParams = httpParams.set('cat', params.cat);
+    if (params.org_id) httpParams = httpParams.set('org_id', params.org_id.toString());
+    return this.http.get<EventSummary[]>(`/api/v1/events`, { params: httpParams });
   }
 
   getEvent(eventId: string): Observable<Event> {
