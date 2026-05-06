@@ -2,11 +2,13 @@ import { Component, OnInit, AfterViewInit, OnDestroy, signal, inject, computed, 
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, EventSummary } from '../../services/api.service';
+import { Title } from '@angular/platform-browser';
 
 interface GroupedEvents {
   minorName: string;
   events: EventSummary[];
   bggRating?: number;
+  numBggRatings?: number;
   yearPublished?: number;
   isSoldOut: boolean;
   bggId?: number;
@@ -27,6 +29,16 @@ interface MajorGroup {
 export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
+  private titleService = inject(Title);
+
+  constructor() {
+    effect(() => {
+      const name = this.categoryName();
+      if (name) {
+        this.titleService.setTitle(name);
+      }
+    });
+  }
 
   private observer: IntersectionObserver | null = null;
   private isScrollingToAnchor = false;
@@ -103,6 +115,7 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
           minorName,
           events,
           bggRating: events[0].gameSystem.bggRating,
+          numBggRatings: events[0].gameSystem.numBggRatings,
           yearPublished: events[0].gameSystem.yearPublished,
           isSoldOut: totalTickets === 0,
           bggId: events[0].gameSystem.bggId

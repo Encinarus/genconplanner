@@ -1,7 +1,8 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService, Category } from '../../services/api.service';
 import { RouterModule } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-category-list',
@@ -12,6 +13,11 @@ import { RouterModule } from '@angular/router';
 })
 export class CategoryListComponent implements OnInit {
   private api = inject(ApiService);
+  private titleService = inject(Title);
+  
+  constructor() {
+    this.titleService.setTitle('Categories');
+  }
   
   categories = signal<Category[]>([]);
   year = signal<number>(new Date().getFullYear());

@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-about',
@@ -12,4 +13,10 @@ import { Component } from '@angular/core';
     :host { display: block; padding: 20px; }
   `]
 })
-export class AboutComponent {}
+export class AboutComponent {
+  private titleService = inject(Title);
+
+  constructor() {
+    this.titleService.setTitle('About');
+  }
+}

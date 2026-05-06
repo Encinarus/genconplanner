@@ -1,14 +1,16 @@
-import { Component, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, EventSummary } from '../../services/api.service';
 import { StarredService } from '../../services/starred.service';
 import { StarButtonComponent } from '../star-button/star-button.component';
+import { Title } from '@angular/platform-browser';
 
 interface GroupedEvents {
   minorName: string;
   events: EventSummary[];
   bggRating?: number;
+  numBggRatings?: number;
   yearPublished?: number;
   isSoldOut: boolean;
   bggId?: number;
@@ -30,6 +32,18 @@ export class SearchComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private starredService = inject(StarredService);
+  private titleService = inject(Title);
+
+  constructor() {
+    effect(() => {
+      const q = this.query();
+      if (q) {
+        this.titleService.setTitle(`Search: ${q}`);
+      } else {
+        this.titleService.setTitle('Search');
+      }
+    });
+  }
 
   year = signal<number>(new Date().getFullYear());
   query = signal<string>('');
@@ -98,6 +112,7 @@ export class SearchComponent implements OnInit {
           minorName,
           events,
           bggRating: events[0].gameSystem.bggRating,
+          numBggRatings: events[0].gameSystem.numBggRatings,
           yearPublished: events[0].gameSystem.yearPublished,
           isSoldOut: totalTickets === 0,
           bggId: events[0].gameSystem.bggId

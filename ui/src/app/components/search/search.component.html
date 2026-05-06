@@ -51,9 +51,11 @@
                             <ng-container *ngIf="minor.bggId; else noBgg">
                                 <a [href]="'https://boardgamegeek.com/boardgame/' + minor.bggId" target="_blank" class="text-decoration-none text-dark bgg-link">
                                     {{ minor.minorName }}
-                                    <small *ngIf="minor.bggRating && minor.bggRating > 0" class="text-muted" style="font-size: 0.9rem; margin-left: 0.25rem">
-                                        BGG {{ minor.bggRating.toFixed(1) }}
-                                        <span *ngIf="minor.yearPublished">({{ minor.yearPublished }})</span>
+                                    <small class="text-muted" style="font-size: 0.9rem; margin-left: 0.25rem">
+                                        <span *ngIf="minor.yearPublished">({{ minor.yearPublished }}) </span>
+                                        <span *ngIf="(minor.numBggRatings || 0) >= 100">
+                                            <span *ngIf="minor.yearPublished">- </span>BGG {{ minor.bggRating!.toFixed(1) }}, {{ minor.numBggRatings }} ratings
+                                        </span>
                                     </small>
                                 </a>
                             </ng-container>

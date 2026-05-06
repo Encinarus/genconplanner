@@ -1,10 +1,11 @@
-import { Component, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, Event } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { StarredService } from '../../services/starred.service';
 import { StarButtonComponent } from '../star-button/star-button.component';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-event-detail',
@@ -17,6 +18,16 @@ export class EventDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private starredService = inject(StarredService);
+  private titleService = inject(Title);
+
+  constructor() {
+    effect(() => {
+      const e = this.event();
+      if (e) {
+        this.titleService.setTitle(`Event: ${e.title}`);
+      }
+    });
+  }
 
   eventId = signal<string>('');
   event = signal<Event | null>(null);

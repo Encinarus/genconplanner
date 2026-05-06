@@ -5,6 +5,7 @@ import { ApiService, EventSummary } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { StarredService } from '../../services/starred.service';
 import { StarButtonComponent } from '../star-button/star-button.component';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-starred',
@@ -18,6 +19,7 @@ export class StarredComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
   private starredService = inject(StarredService);
+  private titleService = inject(Title);
 
   year = signal<number>(new Date().getFullYear());
   events = signal<EventSummary[]>([]);
@@ -25,6 +27,7 @@ export class StarredComponent implements OnInit {
   email = computed(() => this.auth.user()?.email || null);
 
   constructor() {
+    this.titleService.setTitle('Starred Events');
     effect(() => {
       if (this.auth.authLoaded()) {
         const year = this.year();
