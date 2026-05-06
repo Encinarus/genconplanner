@@ -2,6 +2,8 @@ import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, EventSummary } from '../../services/api.service';
+import { StarredService } from '../../services/starred.service';
+import { StarButtonComponent } from '../star-button/star-button.component';
 
 interface GroupedEvents {
   minorName: string;
@@ -20,13 +22,14 @@ interface MajorGroup {
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, StarButtonComponent],
   templateUrl: './search.component.html',
   styleUrl: './search.component.css'
 })
 export class SearchComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
+  private starredService = inject(StarredService);
 
   year = signal<number>(new Date().getFullYear());
   query = signal<string>('');
@@ -170,6 +173,7 @@ export class SearchComponent implements OnInit {
       this.year.set(+(params['year'] || new Date().getFullYear()));
       this.orgId.set(params['org_id'] ? +params['org_id'] : undefined);
       this.fetchResults();
+      this.starredService.fetchStarred(this.year());
     });
   }
 

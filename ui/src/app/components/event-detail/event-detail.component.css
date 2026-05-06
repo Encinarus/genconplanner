@@ -40,3 +40,21 @@ h4 {
 .otherSessions {
     margin-bottom: 0;
 }
+
+.sm-star {
+    padding: 0.1rem 0.4rem;
+    color: #6c757d;
+    background: white;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.sm-star:hover {
+    color: #ffc107;
+    background: #fff9e6;
+}
+
+.sm-star.active {
+    color: #ffc107;
+    border-color: #ffc107 !important;
+}

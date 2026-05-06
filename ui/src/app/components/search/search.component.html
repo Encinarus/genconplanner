@@ -71,7 +71,7 @@
                                [routerLink]="['/event', event.anchorEventId]"
                                [class.border-bottom-subtle]="!last"
                                class="list-group-item list-group-item-action eventGroup p-3 border-bottom-0">
-                               <h6 class="mb-1 fw-bold">
+                               <h6 class="mb-1 fw-medium">
                                    {{ event.title }}
                                    <small *ngIf="(event.wedTickets + event.thuTickets + event.friTickets + event.satTickets + event.sunTickets) === 0" 
                                           class="text-muted ms-2" style="font-size: 0.75rem; font-weight: normal; opacity: 0.7">

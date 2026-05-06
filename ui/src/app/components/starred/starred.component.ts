@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, EventSummary } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { StarredService } from '../../services/starred.service';
+import { StarButtonComponent } from '../star-button/star-button.component';
 
 @Component({
   selector: 'app-starred',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, StarButtonComponent],
   templateUrl: './starred.component.html',
   styleUrl: './starred.component.css'
 })
@@ -15,6 +17,7 @@ export class StarredComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private auth = inject(AuthService);
+  private starredService = inject(StarredService);
 
   year = signal<number>(new Date().getFullYear());
   events = signal<EventSummary[]>([]);
@@ -33,6 +36,7 @@ export class StarredComponent implements OnInit {
   ngOnInit(): void {
     this.route.params.subscribe(params => {
       this.year.set(+params['year'] || new Date().getFullYear());
+      this.starredService.fetchStarred(this.year());
     });
   }
 

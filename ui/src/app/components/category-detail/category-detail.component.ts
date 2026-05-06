@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, signal, inject, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, EventSummary } from '../../services/api.service';
@@ -24,9 +24,14 @@ interface MajorGroup {
   templateUrl: './category-detail.component.html',
   styleUrl: './category-detail.component.css'
 })
-export class CategoryDetailComponent implements OnInit {
+export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
+
+  private observer: IntersectionObserver | null = null;
+  private isScrollingToAnchor = false;
+  private scrollTimeout: any;
+  private intersectingIds = new Set<string>();
 
   year = signal<number>(0);
   categoryCode = signal<string>('');
@@ -137,7 +142,27 @@ export class CategoryDetailComponent implements OnInit {
   scrollToAnchor(id: string): void {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      this.isScrollingToAnchor = true;
+      
+      // Force the header to its shrunken state immediately.
+      // This ensures the browser's scroll calculation (which accounts for scroll-padding-top)
+      // aligns correctly with the final header height after the transition.
+      this.scrolled.set(true); 
+
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
+      // Update hash immediately
+      if (id === 'top') {
+        history.pushState(null, '', window.location.pathname + window.location.search);
+      } else {
+        history.pushState(null, '', window.location.pathname + window.location.search + '#' + id);
+      }
+
+      // Reset the flag after animation finishes
+      if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
+      this.scrollTimeout = setTimeout(() => {
+        this.isScrollingToAnchor = false;
+      }, 1500); // Increased timeout to ensure smooth scroll completes
     }
   }
 
@@ -161,21 +186,88 @@ export class CategoryDetailComponent implements OnInit {
       const element = document.getElementById(closestHeadingId);
       if (element) {
         element.scrollIntoView({ behavior: 'auto', block: 'start' });
-        // Adjust for the sticky header (approx 60-100px) + navbar (50px)
-        const headerOffset = this.scrolled() ? 120 : 160;
-        window.scrollBy(0, -headerOffset);
       }
     }, 0);
   }
 
   ngOnInit(): void {
-    window.addEventListener('scroll', () => {
-      this.scrolled.set(window.scrollY > 50);
-    });
+    window.addEventListener('scroll', this.onScroll);
     this.route.params.subscribe(params => {
       this.year.set(+params['year']);
       this.categoryCode.set(params['cat']);
       this.fetchEvents();
+    });
+  }
+
+  private onScroll = () => {
+    this.scrolled.set(window.scrollY > 50);
+  }
+
+  ngAfterViewInit(): void {
+    this.setupIntersectionObserver();
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('scroll', this.onScroll);
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+    if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
+  }
+  private getScrollOffset(): number {
+    const offset = getComputedStyle(document.documentElement).getPropertyValue('--total-scroll-offset');
+    return parseInt(offset, 10) || 115;
+  }
+
+  private setupIntersectionObserver(): void {
+    // Only set up if we have events
+    if (this.loading()) {
+      // We might need to wait for events to load.
+      // We can use an effect or just call this from fetchEvents.
+      return;
+    }
+
+    if (this.observer) this.observer.disconnect();
+    this.intersectingIds.clear();
+
+    if (typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    const offset = this.getScrollOffset();
+    this.observer = new IntersectionObserver((entries) => {
+      // ALWAYS update the state so it's not stale when we stop scrolling
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          this.intersectingIds.add(entry.target.id);
+        } else {
+          this.intersectingIds.delete(entry.target.id);
+        }
+      });
+
+      // Skip URL updates while we are programmatically scrolling
+      if (this.isScrollingToAnchor) return;
+
+      if (this.intersectingIds.size > 0) {
+        // Find all headers and pick the first one that is currently intersecting our zone.
+        const allHeaders = Array.from(document.querySelectorAll('h5[id]'));
+        const firstVisible = allHeaders.find(h => this.intersectingIds.has(h.id));
+        
+        if (firstVisible && window.location.hash !== '#' + firstVisible.id) {
+          history.replaceState(null, '', window.location.pathname + window.location.search + '#' + firstVisible.id);
+        }
+      }
+    }, {
+      // We use the exact offset for the rootMargin top.
+      // We use a very narrow bottom margin so that we only consider the header "active" 
+      // when it's right at the top of the content area.
+      rootMargin: `-${offset}px 0px -95% 0px`, 
+      threshold: 0
+    });
+
+    // Observe all h5 elements with IDs
+    document.querySelectorAll('h5[id]').forEach(h => {
+      this.observer?.observe(h);
     });
   }
 
@@ -185,6 +277,15 @@ export class CategoryDetailComponent implements OnInit {
       next: (data) => {
         this.events.set(data);
         this.loading.set(false);
+        
+        // After view updates, handle initial hash and observer
+        setTimeout(() => {
+          this.setupIntersectionObserver();
+          const hash = window.location.hash.substring(1);
+          if (hash) {
+            this.scrollToAnchor(hash);
+          }
+        }, 100);
       },
       error: (err) => {
         console.error('Error fetching events', err);

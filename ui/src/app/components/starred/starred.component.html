@@ -23,8 +23,9 @@
             <a *ngFor="let event of events()" 
                [routerLink]="['/event', event.anchorEventId]"
                class="list-group-item list-group-item-action eventGroup pt-3 px-3 border text-decoration-none">
-                <h5 class="mb-1">{{ event.title }} 
-                    <small class="text-muted" style="font-size: 0.8rem">{{ event.gameSystem.name }}</small>
+                <h5 class="mb-1">
+                    {{ event.title }} 
+                    <small class="text-muted ms-2" style="font-size: 0.8rem">{{ event.gameSystem.name }}</small>
                 </h5>
                 <p class="mb-2 text-dark">{{ event.shortDescription }}</p>
                 <ul class="list-inline eventTickets mb-1">

@@ -3,6 +3,7 @@ WORKDIR /ui
 COPY ui/package*.json ./
 RUN npm install
 COPY ui/ ./
+RUN npm test -- --watch=false
 RUN npm run build -- --output-path=dist/v2
 
 FROM golang:1.26 AS genconplanner-base
@@ -15,6 +16,8 @@ RUN go mod download && go mod verify
 
 COPY ./internal ./internal
 COPY ./cmd ./cmd
+
+RUN go test ./...
 
 
 

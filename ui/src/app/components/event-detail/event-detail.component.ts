@@ -3,21 +3,23 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, Event } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { StarredService } from '../../services/starred.service';
+import { StarButtonComponent } from '../star-button/star-button.component';
 
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, StarButtonComponent],
   templateUrl: './event-detail.component.html',
   styleUrl: './event-detail.component.css'
 })
 export class EventDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
+  private starredService = inject(StarredService);
 
   eventId = signal<string>('');
   event = signal<Event | null>(null);
-  starredEventIds = signal<string[]>([]);
   loading = signal<boolean>(true);
   
   groupedEvents = computed(() => {
@@ -64,7 +66,7 @@ export class EventDetailComponent implements OnInit {
     this.api.getEvent(this.eventId()).subscribe({
       next: (data) => {
         this.event.set(data);
-        this.checkIfStarred();
+        this.starredService.fetchStarred(data.year);
         this.loading.set(false);
       },
       error: (err) => {
@@ -74,31 +76,7 @@ export class EventDetailComponent implements OnInit {
     });
   }
 
-  checkIfStarred(): void {
-    const user = this.auth.user();
-    if (!user || !user.email) return;
-
-    this.api.getUserEvents(user.email, this.event()?.year || 2026).subscribe(data => {
-      this.starredEventIds.set(data.starredEvents || []);
-    });
-  }
-
-  isStarred = computed(() => this.starredEventIds().includes(this.eventId()));
-
   isSessionStarred(sid: string): boolean {
-    return this.starredEventIds().includes(sid);
-  }
-
-  toggleStar(): void {
-    const user = this.auth.user();
-    if (!user) {
-      this.auth.signIn();
-      return;
-    }
-
-    const newStarred = !this.isStarred();
-    this.api.starEvent(this.eventId(), newStarred, true).subscribe(() => {
-      this.checkIfStarred();
-    });
+    return this.starredService.isStarred(sid);
   }
 }

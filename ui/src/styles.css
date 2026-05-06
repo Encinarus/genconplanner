@@ -1,6 +1,13 @@
-/* Main content */
+:root {
+    --navbar-height: 50px;
+    --sticky-header-height: 65px; /* Shrunken height of category detail header */
+    --total-scroll-offset: calc(var(--navbar-height) + var(--sticky-header-height));
+}
+
 html {
     font-size: 14px;
+    scroll-padding-top: var(--total-scroll-offset);
+    scroll-behavior: smooth;
 }
 
 .main {
@@ -63,13 +70,7 @@ a.fc-col-header-cell-cushion {
     color: black;
 }
 
-h1[id]::before, h2[id]::before, h3[id]::before, h4[id]::before, h5[id]::before, .top-anchor::before {
-    display: block;
-    height: 120px;
-    margin-top: -120px;
-    visibility: hidden;
-    content: "";
-}
+/* Removed redundant scroll-margin-top to avoid double-offsetting */
 
 ul.otherSessions {
     list-style-type:none;
@@ -105,4 +106,8 @@ ul.otherSessions li.cancelled {
 
 h5 {
     font-size: 1rem;
+}
+
+.fw-medium {
+    font-weight: 500 !important;
 }

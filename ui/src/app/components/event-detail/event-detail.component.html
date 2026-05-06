@@ -1,14 +1,7 @@
 <ng-container *ngIf="event() as e">
     <h1 class="pb-2 pt-3 mb-3 border-bottom">
         <div style="display:inline-block; vertical-align: middle;">
-            <button type="button"
-                    class="btn btn-light btn-md border sm-star"
-                    [class.active]="isStarred()"
-                    (click)="toggleStar()">
-                <span class="material-icons" style="font-size: 1.2rem">
-                    {{ isStarred() ? 'star' : 'star_outline' }}
-                </span>
-            </button>
+            <app-star-button [eventId]="e.eventId" [year]="e.year" [iconSize]="'1.2rem'"></app-star-button>
         </div>
         {{ e.title }}
         <small class="text-muted" style="font-size: 1.4rem; font-weight: normal; line-height: 1.2">
