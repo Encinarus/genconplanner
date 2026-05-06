@@ -329,36 +329,12 @@ func PartitionGroups(
 	return majorKeys, minorKeys, majorPartitions
 }
 
-var genconDates = map[int][]string{
-	2018: {"2018-08-01", "2018-08-05"},
-	2019: {"2019-07-31", "2019-08-04"},
-	2020: {"2020-07-29", "2020-08-02"},
-	2021: {"2021-09-15", "2021-09-19"},
-	2022: {"2022-08-03", "2022-08-07"},
-	2023: {"2023-08-02", "2023-08-06"},
-	2024: {"2024-07-31", "2024-08-04"},
-	2025: {"2025-07-30", "2025-08-03"},
-	2026: {"2026-07-29", "2026-08-02"},
-	2027: {"2027-08-04", "2027-08-08"},
-	2028: {"2028-08-02", "2028-08-06"},
-	2029: {"2029-08-01", "2029-08-05"},
-	2030: {"2030-07-30", "2030-08-04"},}
-
 func GenconStartDate(year int) string {
-	dates, found := genconDates[year]
-	if !found {
-		return "2019-07-31"
-	}
-
-	return dates[0]
+	return events.GenconStartDate(year).Format("2006-01-02")
 }
 
 func GenconEndDate(year int) string {
-	dates, found := genconDates[year]
-	if !found {
-		return "2019-08-04"
-	}
-	return dates[1]
+	return events.GenconEndDate(year).Format("2006-01-02")
 }
 
 func getEnvWithDefault(key, dflt string) string {

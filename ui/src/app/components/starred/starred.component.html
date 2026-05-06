@@ -3,14 +3,19 @@
         <div>
             My Starred Events
             <small class="text-muted" style="font-size: 1.4rem; font-weight: normal">
-                {{ year() }} - {{ events().length }} events <span *ngIf="email()">({{ email() }})</span>
+                {{ year() }} - {{ starredList().length }} events <span *ngIf="email()">({{ email() }})</span>
             </small>
         </div>
-        <div class="btn-group">
-            <a [routerLink]="['/starred', 2025]" class="btn btn-outline-secondary btn-sm" [class.active]="year() === 2025">2025</a>
-            <a [routerLink]="['/starred', 2026]" class="btn btn-outline-secondary btn-sm" [class.active]="year() === 2026">2026</a>
-        </div>
     </h1>
+    
+    <ul class="nav nav-tabs nav-fill mb-4" id="viewModeTabs">
+        <li class="nav-item">
+            <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'calendar'" (click)="setViewMode('calendar')">Calendar</a>
+        </li>
+        <li class="nav-item">
+            <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'list'" (click)="setViewMode('list')">By Type</a>
+        </li>
+    </ul>
 
     <div *ngIf="loading()" class="text-center py-5">
         <div class="spinner-border text-primary" role="status">
@@ -19,29 +24,46 @@
     </div>
 
     <div *ngIf="!loading()">
-        <div class="list-group list-group-flush pb-4" *ngIf="events().length > 0; else noStarred">
-            <a *ngFor="let event of events()" 
-               [routerLink]="['/event', event.anchorEventId]"
-               class="list-group-item list-group-item-action eventGroup pt-3 px-3 border text-decoration-none">
-                <h5 class="mb-1">
-                    {{ event.title }} 
-                    <small class="text-muted ms-2" style="font-size: 0.8rem">{{ event.gameSystem.name }}</small>
-                </h5>
-                <p class="mb-2 text-dark">{{ event.shortDescription }}</p>
-                <ul class="list-inline eventTickets mb-1">
-                    <li class="list-inline-item" [class.noTickets]="event.wedTickets === 0"><strong>Wed</strong> {{ event.wedTickets }} tickets</li>
-                    <li class="list-inline-item" [class.noTickets]="event.thuTickets === 0"><strong>Thurs</strong> {{ event.thuTickets }} tickets</li>
-                    <li class="list-inline-item" [class.noTickets]="event.friTickets === 0"><strong>Fri</strong> {{ event.friTickets }} tickets</li>
-                    <li class="list-inline-item" [class.noTickets]="event.satTickets === 0"><strong>Sat</strong> {{ event.satTickets }} tickets</li>
-                    <li class="list-inline-item" [class.noTickets]="event.sunTickets === 0"><strong>Sun</strong> {{ event.sunTickets }} tickets</li>
-                </ul>
-            </a>
-        </div>
-        
-        <ng-template #noStarred>
-            <div class="alert alert-info">
-                You haven't starred any events for {{ year() }} yet.
+        <div *ngIf="viewMode() === 'list'">
+            <div *ngIf="starredList().length > 0; else noStarred">
+                <div *ngFor="let group of groupedStarredList()" class="mb-4">
+                    <div class="category-header d-flex justify-content-between align-items-center mb-2" 
+                         (click)="toggleGroup(group.code)" style="cursor: pointer;">
+                        <div class="d-flex align-items-center">
+                            <i class="bi me-2" [class.bi-chevron-down]="!isCollapsed(group.code)" [class.bi-chevron-right]="isCollapsed(group.code)"></i>
+                            <h3 class="h5 mb-0 text-uppercase tracking-wider">{{ group.code }}</h3>
+                            <span class="ms-3 badge rounded-pill bg-light text-dark border">{{ group.events.length }}</span>
+                        </div>
+                        <div class="header-line flex-grow-1 ms-3 border-bottom opacity-25"></div>
+                    </div>
+                    
+                    <div [hidden]="isCollapsed(group.code)" class="ps-3 border-start ms-2">
+                        <div *ngFor="let event of group.events" class="event-row mb-3 pb-3 border-bottom-dashed">
+                            <div class="mb-1">
+                                <div class="d-flex align-items-center mb-1 flex-wrap">
+                                    <a [href]="event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 me-3" style="font-size: 0.75rem;">
+                                        GenCon <i class="bi bi-box-arrow-up-right small"></i>
+                                    </a>
+                                    <span class="timing-label me-3">{{ formatTiming(event.startTime, event.endTime) }}</span>
+                                    <a [routerLink]="['/event', event.eventId]" class="event-id-link me-2">{{ event.eventId }}</a>
+                                    <h4 class="h6 mb-0 fw-bold">{{ event.title }}</h4>
+                                </div>
+                                <p class="text-muted small mb-0">{{ event.shortDescription }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </ng-template>
+            
+            <ng-template #noStarred>
+                <div class="alert alert-info border-0 shadow-sm">
+                    You haven't starred any events for {{ year() }} yet.
+                </div>
+            </ng-template>
+        </div>
+
+        <div *ngIf="viewMode() === 'calendar'">
+            <full-calendar #calendar [options]="calendarOptions()"></full-calendar>
+        </div>
     </div>
 </div>

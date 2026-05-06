@@ -7,7 +7,7 @@ import { SearchComponent } from './components/search/search.component';
 import { StarredComponent } from './components/starred/starred.component';
 
 export const routes: Routes = [
-  { path: '', component: CategoryListComponent },
+  { path: '', redirectTo: 'cat/2026', pathMatch: 'full' },
   { path: 'cat/:year', component: CategoryListComponent },
   { path: 'cat/:year/:cat', redirectTo: 'cat/:year/:cat/by_system', pathMatch: 'full' },
   { path: 'cat/:year/:cat/:grouping', component: CategoryDetailComponent },

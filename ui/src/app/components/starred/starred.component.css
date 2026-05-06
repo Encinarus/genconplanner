@@ -1,7 +1,69 @@
-/* Starred component styles */
-.eventGroup h5 {
-    color: #337ab7;
+.category-header {
+    user-select: none;
+    transition: opacity 0.2s;
 }
-.noTickets {
-    color: lightgray;
+
+.category-header:hover {
+    opacity: 0.8;
+}
+
+.tracking-wider {
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    color: #444;
+}
+
+.timing-label {
+    font-size: 0.85rem;
+    color: #666;
+    background: #f1f3f5;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.btn-outline-primary.py-0 {
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    border-radius: 4px;
+}
+
+.event-id-link {
+    font-size: 0.85rem;
+    color: #0073AA;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.event-id-link:hover {
+    text-decoration: underline;
+}
+
+.border-bottom-dashed {
+    border-bottom: 1px dashed #dee2e6;
+}
+
+.event-row:last-child {
+    border-bottom: none;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: #666;
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0073AA;
+    border-bottom: 2px solid #0073AA;
+    background: transparent;
+}
+
+.header-line {
+    height: 1px;
 }

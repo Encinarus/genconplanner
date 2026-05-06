@@ -37,6 +37,33 @@ export interface SearchParams {
   org_id?: number;
 }
 
+export interface CalendarEvent {
+  title: string;
+  startTime: string;
+  endTime: string;
+  genconUrl: string;
+  plannerUrl: string;
+  shortCategory: string;
+  shortDescription: string;
+  similarCount: number;
+}
+
+export interface StarredEventDetail {
+  eventId: string;
+  title: string;
+  shortDescription: string;
+  categoryCode: string;
+  startTime: string;
+  endTime: string;
+  genconUrl: string;
+  plannerUrl: string;
+}
+
+export interface CalendarMetadata {
+  startDate: string;
+  endDate: string;
+}
+
 export interface Event {
   eventId: string;
   year: number;
@@ -118,5 +145,17 @@ export class ApiService {
 
   starEvent(eventId: string, add: boolean, related: boolean): Observable<any> {
     return this.http.post<any>(`/api/v1/user/star`, { eventId, add, related });
+  }
+
+  getStarredCalendarEvents(year: number): Observable<CalendarEvent[]> {
+    return this.http.get<CalendarEvent[]>(`/api/v1/user/starred/calendar/${year}`);
+  }
+
+  getStarredIndividualEvents(year: number): Observable<StarredEventDetail[]> {
+    return this.http.get<StarredEventDetail[]>(`/api/v1/user/starred/list/${year}`);
+  }
+
+  getCalendarMetadata(year: number): Observable<CalendarMetadata> {
+    return this.http.get<CalendarMetadata>(`/api/v1/calendar/metadata/${year}`);
   }
 }

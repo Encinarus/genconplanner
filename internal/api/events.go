@@ -55,6 +55,22 @@ type EventRef struct {
 	EndTime          time.Time `json:"endTime"`
 }
 
+type CalendarEventCluster struct {
+	Title            string    `json:"title"`
+	StartTime        time.Time `json:"startTime"`
+	EndTime          time.Time `json:"endTime"`
+	GenconUrl        string    `json:"genconUrl"`
+	PlannerUrl       string    `json:"plannerUrl"`
+	ShortCategory    string    `json:"shortCategory"`
+	ShortDescription string    `json:"shortDescription"`
+	SimilarCount     int       `json:"similarCount"`
+}
+
+type CalendarMetadata struct {
+	StartDate time.Time `json:"startDate"`
+	EndDate   time.Time `json:"endDate"`
+}
+
 type Event struct {
 	EventId              string     `json:"eventId"`
 	Year                 int        `json:"year"`

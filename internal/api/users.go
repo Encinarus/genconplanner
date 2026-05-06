@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,6 +22,16 @@ type UserEvents struct {
 	TicketedEvents  []string `json:"ticketedEvents"`
 }
 
+type StarredEventDetail struct {
+	EventId          string `json:"eventId"`
+	Title            string `json:"title"`
+	ShortDescription string `json:"shortDescription"`
+	CategoryCode     string `json:"categoryCode"`
+	StartTime        string `json:"startTime"`
+	EndTime          string `json:"endTime"`
+	GenconUrl        string `json:"genconUrl"`
+	PlannerUrl       string `json:"plannerUrl"`
+}
 
 func (s *Server) GetUser(c *gin.Context) {
 	email := GetUserEmail(c)
@@ -153,9 +164,109 @@ func (s *Server) GetStarredEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, apiResults)
 }
 
+func (s *Server) GetStarredCalendarEvents(c *gin.Context) {
+	email := GetUserEmail(c)
+	yearParam := c.Param("year")
+
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	year, err := strconv.Atoi(yearParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid year"})
+		return
+	}
+
+	starredEvents, err := s.Repo.LoadStarredEvents(email, year)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	clusters, err := s.Repo.LoadStarredEventClusters(email, year, starredEvents)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	apiClusters := make([]CalendarEventCluster, 0, len(clusters))
+	for _, cluster := range clusters {
+		apiClusters = append(apiClusters, CalendarEventCluster{
+			Title:            cluster.Title,
+			StartTime:        cluster.StartTime,
+			EndTime:          cluster.EndTime,
+			GenconUrl:        cluster.GenconUrl,
+			PlannerUrl:       cluster.PlannerUrl,
+			ShortCategory:    cluster.ShortCategory,
+			ShortDescription: cluster.ShortDescription,
+			SimilarCount:     cluster.SimilarCount,
+		})
+	}
+
+	c.JSON(http.StatusOK, apiClusters)
+}
+
+func (s *Server) GetCalendarMetadata(c *gin.Context) {
+	yearParam := c.Param("year")
+	year, err := strconv.Atoi(yearParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid year"})
+		return
+	}
+
+	c.JSON(http.StatusOK, CalendarMetadata{
+		StartDate: events.GenconStartDate(year),
+		EndDate:   events.GenconEndDate(year),
+	})
+}
+
+func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
+	email := GetUserEmail(c)
+	yearParam := c.Param("year")
+
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	year, err := strconv.Atoi(yearParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid year"})
+		return
+	}
+
+	dbEvents, err := s.Repo.LoadStarredEvents(email, year)
+	if err != nil {
+		log.Printf("error loading starred individual events: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	results := make([]StarredEventDetail, 0, len(dbEvents))
+	for _, e := range dbEvents {
+		results = append(results, StarredEventDetail{
+			EventId:          e.EventId,
+			Title:            e.Title,
+			ShortDescription: e.ShortDescription,
+			CategoryCode:     e.ShortCategory,
+			StartTime:        e.StartTime.Format("2006-01-02T15:04:05Z07:00"),
+			EndTime:          e.EndTime.Format("2006-01-02T15:04:05Z07:00"),
+			GenconUrl:        e.GenconLink(),
+			PlannerUrl:       e.PlannerLink(),
+		})
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
 func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.GET("/user", s.GetUser)
 	group.GET("/user/events/:email/:year", s.LoadUserEvents)
 	group.GET("/user/starred/:year", s.GetStarredEvents)
+	group.GET("/user/starred/list/:year", s.GetStarredIndividualEvents)
+	group.GET("/user/starred/calendar/:year", s.GetStarredCalendarEvents)
+	group.GET("/calendar/metadata/:year", s.GetCalendarMetadata)
 	group.POST("/user/star", s.StarEvent)
 }

@@ -10,6 +10,43 @@ import (
 	"unicode"
 )
 
+var INDIANAPOLIS, _ = time.LoadLocation("America/Indiana/Indianapolis")
+
+var genconDates = map[int][]string{
+	2018: {"2018-08-01", "2018-08-05"},
+	2019: {"2019-07-31", "2019-08-04"},
+	2020: {"2020-07-29", "2020-08-02"},
+	2021: {"2021-09-15", "2021-09-19"},
+	2022: {"2022-08-03", "2022-08-07"},
+	2023: {"2023-08-02", "2023-08-06"},
+	2024: {"2024-07-31", "2024-08-04"},
+	2025: {"2025-07-30", "2025-08-03"},
+	2026: {"2026-07-29", "2026-08-02"},
+	2027: {"2027-08-04", "2027-08-08"},
+	2028: {"2028-08-02", "2028-08-06"},
+	2029: {"2029-08-01", "2029-08-05"},
+	2030: {"2030-07-30", "2030-08-04"},
+}
+
+func GenconStartDate(year int) time.Time {
+	dates, found := genconDates[year]
+	if !found {
+		return time.Date(year, time.July, 31, 0, 0, 0, 0, INDIANAPOLIS)
+	}
+
+	t, _ := time.ParseInLocation("2006-01-02", dates[0], INDIANAPOLIS)
+	return t
+}
+
+func GenconEndDate(year int) time.Time {
+	dates, found := genconDates[year]
+	if !found {
+		return time.Date(year, time.August, 4, 23, 59, 59, 0, INDIANAPOLIS)
+	}
+	t, _ := time.ParseInLocation("2006-01-02", dates[1], INDIANAPOLIS)
+	return t
+}
+
 var eventCategoryRegex = regexp.MustCompile(`([A-Z]*)(\d\d)([A-Z][A-Z])(\d+)`)
 
 func PartitionEventsByDay(loadedEvents []*GenconEvent) map[string][]*GenconEvent {

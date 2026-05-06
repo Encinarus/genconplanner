@@ -1,7 +1,7 @@
-import { Component, OnInit, signal, inject, effect } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService, Category } from '../../services/api.service';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
 @Component({
@@ -13,27 +13,36 @@ import { Title } from '@angular/platform-browser';
 })
 export class CategoryListComponent implements OnInit {
   private api = inject(ApiService);
+  private route = inject(ActivatedRoute);
   private titleService = inject(Title);
-  
-  constructor() {
-    this.titleService.setTitle('Categories');
-  }
   
   categories = signal<Category[]>([]);
   year = signal<number>(new Date().getFullYear());
   loading = signal<boolean>(true);
 
+  constructor() {
+    this.titleService.setTitle('Categories');
+  }
+
   ngOnInit(): void {
-    console.log('CategoryListComponent: Initializing for year', this.year());
-    
+    this.route.params.subscribe(params => {
+      const yearParam = params['year'];
+      if (yearParam) {
+        this.year.set(+yearParam);
+      }
+      this.fetchCategories();
+    });
+  }
+
+  fetchCategories(): void {
+    this.loading.set(true);
     this.api.getCategories(this.year()).subscribe({
       next: (data) => {
-        console.log('CategoryListComponent: Received categories', data.length);
         this.categories.set(data);
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('CategoryListComponent: Error fetching categories', err);
+        console.error('Error fetching categories', err);
         this.loading.set(false);
       }
     });
