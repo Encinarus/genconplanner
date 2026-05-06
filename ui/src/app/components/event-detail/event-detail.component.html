@@ -1,0 +1,105 @@
+<div class="container" *ngIf="event() as e">
+    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom d-flex align-items-center">
+        <button type="button"
+                class="btn btn-light btn-md border me-3"
+                [class.active]="isStarred()"
+                (click)="toggleStar()">
+            <span class="material-icons" style="font-size: 1.2rem">
+                {{ isStarred() ? 'star' : 'star_outline' }}
+            </span>
+        </button>
+        <div>
+            {{ e.title }}
+            <small class="text-muted" style="font-size: 1.4rem; font-weight: normal">
+                <br>{{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}: {{ e.ticketsAvailable }} tickets, ${{ e.cost }} each
+            </small>
+        </div>
+    </h1>
+
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-light py-2 px-3">
+            <li class="breadcrumb-item"><a [routerLink]="['/cat', e.year, e.categoryCode]">{{ e.categoryCode }}</a></li>
+            <li class="breadcrumb-item active">{{ e.eventId }}</li>
+        </ol>
+    </nav>
+
+    <div class="main">
+        <div class="col-md-12">
+            <p class="lead"><em>{{ e.shortDescription }}</em></p>
+            <h3 class="pt-3 border-bottom mb-3">Details</h3>
+            
+            <div class="details-grid">
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>Timing:</strong></div>
+                    <div class="col-md-9">{{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }} ({{ e.duration }} mins)</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>Location:</strong></div>
+                    <div class="col-md-9">{{ e.location }} <span *ngIf="e.roomName">/ {{ e.roomName }}</span> <span *ngIf="e.tableNumber">/ {{ e.tableNumber }}</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>Long Description:</strong></div>
+                    <div class="col-md-9">{{ e.longDescription }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>Game System:</strong></div>
+                    <div class="col-md-9">{{ e.gameSystem.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>GM Names:</strong></div>
+                    <div class="col-md-9">{{ e.gmNames }} <span *ngIf="e.email">({{ e.email }})</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>Players:</strong></div>
+                    <div class="col-md-9">{{ e.minPlayers }} - {{ e.maxPlayers }} players</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>Age/Experience:</strong></div>
+                    <div class="col-md-9">{{ e.ageRequired }} / {{ e.experienceRequired }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>Materials:</strong></div>
+                    <div class="col-md-9">{{ e.materialsProvided ? 'Provided' : 'Not provided' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-12 mt-5" *ngIf="groupedEvents().length > 0">
+            <h3 class="pb-3 border-bottom">Other Sessions</h3>
+            <div class="row">
+                <div *ngFor="let dayGroup of groupedEvents()" class="col-md">
+                    <h5 class="mt-2">{{ dayGroup.day }}</h5>
+                    <ul class="otherSessions">
+                        <li *ngFor="let session of dayGroup.events" 
+                            [class.thisSession]="session.eventId === e.eventId"
+                            class="otherSession py-2">
+                            <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.3rem">
+                                <button type="button"
+                                        class="btn btn-light btn-sm sm-star border"
+                                        [class.active]="false">
+                                    <span class="material-icons" style="font-size: 1rem">star_outline</span>
+                                </button>
+                            </div>
+                            <div style="display:inline-block;">
+                                <em *ngIf="session.eventId === e.eventId">This event</em>
+                                <a *ngIf="session.eventId !== e.eventId" [routerLink]="['/event', session.eventId]">{{ session.eventId }}</a>
+                                <br>
+                                {{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}
+                                <br>
+                                <strong *ngIf="session.ticketsAvailable > 0">{{ session.ticketsAvailable }}</strong>
+                                <span *ngIf="session.ticketsAvailable === 0">{{ session.ticketsAvailable }}</span>
+                                ticket{{ session.ticketsAvailable !== 1 ? 's' : '' }} available
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div *ngIf="loading()" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>

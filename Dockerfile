@@ -1,3 +1,10 @@
+FROM node:23 AS frontend-build
+WORKDIR /ui
+COPY ui/package*.json ./
+RUN npm install
+COPY ui/ ./
+RUN npm run build -- --output-path=dist/v2
+
 FROM golang:1.26 AS genconplanner-base
 
 WORKDIR /usr/src/app
@@ -25,6 +32,7 @@ FROM genconplanner-base AS web
 
 COPY ./templates ./templates
 COPY ./static ./static
+COPY --from=frontend-build /ui/dist/v2/browser ./static/v2
 RUN go build -o /usr/local/bin/web ./cmd/web
 
 EXPOSE 8080

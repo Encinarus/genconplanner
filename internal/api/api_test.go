@@ -11,6 +11,7 @@ import (
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 
@@ -158,6 +159,24 @@ func TestEventSearch(t *testing.T) {
 			setupStub: func() {
 				stub.SearchEventsFn = func(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
 					return []*postgres.EventGroup{}, nil
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:  "Search by text",
+			query: "?q=catan&year=2024",
+			setupStub: func() {
+				stub.SearchEventsFn = func(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
+					if q.RawQuery == "catan" {
+						return []*postgres.EventGroup{
+							{Name: "Catan Event", EventId: "BGM24123", Count: 1, GameSystem: "Catan"},
+						}, nil
+					}
+					return []*postgres.EventGroup{}, nil
+				}
+				games.FindGameFn = func(name string) *postgres.Game {
+					return &postgres.Game{Name: name}
 				}
 			},
 			expectedCode: http.StatusOK,
@@ -411,5 +430,121 @@ func TestEventSearchPost(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+}
+
+func TestStarEvent(t *testing.T) {
+	server, stub, auth, _, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	tests := []struct {
+		name         string
+		cookieValue  string
+		body         string
+		setupStub    func()
+		expectedCode int
+	}{
+		{
+			name:        "Success - Star one event",
+			cookieValue: "valid-token",
+			body:        `{"eventId":"BGM24123","add":true,"related":false}`,
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+				stub.UpdateStarredEventFn = func(email string, id string, related bool, add bool) (*postgres.UserStarredEvents, error) {
+					return &postgres.UserStarredEvents{Email: email}, nil
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Unauthorized - No token",
+			cookieValue:  "",
+			body:         `{"eventId":"BGM24123","add":true}`,
+			expectedCode: http.StatusUnauthorized,
+		},
+		{
+			name:         "Bad request - Invalid JSON",
+			cookieValue:  "valid-token",
+			body:         `{"eventId":123}`, // EventId should be string
+			expectedCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("POST", "/api/v1/user/star", strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			if tt.cookieValue != "" {
+				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+			}
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedCode {
+				t.Errorf("Expected status code %d, got %d", tt.expectedCode, w.Code)
+			}
+		})
+	}
+}
+
+func TestGetStarredEvents(t *testing.T) {
+	server, stub, auth, games, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	tests := []struct {
+		name         string
+		year         string
+		cookieValue  string
+		setupStub    func()
+		expectedCode int
+	}{
+		{
+			name:        "Success",
+			year:        "2024",
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+				stub.LoadStarredEventsFn = func(email string, year int) ([]*events.GenconEvent, error) {
+					return []*events.GenconEvent{
+						{EventId: "BGM24123", Title: "Starred Event", ShortCategory: "BGM", GameSystem: "Catan", TicketsAvailable: 10, StartTime: time.Date(2024, 8, 1, 10, 0, 0, 0, time.UTC)},
+					}, nil
+				}
+				games.FindGameFn = func(name string) *postgres.Game {
+					return &postgres.Game{Name: name}
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Unauthorized",
+			year:         "2024",
+			cookieValue:  "",
+			expectedCode: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/api/v1/user/starred/"+tt.year, nil)
+			if tt.cookieValue != "" {
+				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+			}
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedCode {
+				t.Errorf("%s: Expected status code %d, got %d", tt.name, tt.expectedCode, w.Code)
+			}
+		})
 	}
 }

@@ -1,0 +1,23 @@
+<nav class="navbar navbar-expand-sm bg-light navbar-light fixed-top border-bottom mb-4" id="navbar">
+    <div class="container-fluid">
+        <a class="navbar-brand" routerLink="/">Gen Con Planner</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navToggler"
+                aria-controls="navToggler" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navToggler">
+            <ul class="navbar-nav">
+                <li *ngIf="!displayName()" class="nav-link"><a href="javascript:void(0)" (click)="popupSignIn()">Signin</a></li>
+                <li *ngIf="displayName()" class="nav-item"><a routerLink="/starred/{{ year() }}" class="nav-link">My Starred Events</a></li>
+                <li *ngIf="displayName()" class="nav-item"><a href="javascript:void(0)" (click)="signOut()" class="nav-link">Sign out</a></li>
+                <li class="nav-item"><a routerLink="/about" class="nav-link">About</a></li>
+            </ul>
+            <form class="form-inline ms-auto d-flex" (submit)="onSearch($event)">
+                <input type="text" class="form-control me-2" placeholder="Search..." name="q" [(ngModel)]="searchQuery"/>
+                <button type="submit" class="btn btn-outline-primary btn-sm">Search</button>
+            </form>
+        </div>
+    </div>
+</nav>

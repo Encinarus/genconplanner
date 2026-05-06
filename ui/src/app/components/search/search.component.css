@@ -1,0 +1,7 @@
+/* Reusing styles from CategoryDetail */
+.eventGroup h5 {
+    color: #337ab7;
+}
+.noTickets {
+    color: lightgray;
+}

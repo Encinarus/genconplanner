@@ -1,0 +1,23 @@
+.eventGroup {
+    padding-top: .1em;
+    padding-bottom: .1em;
+}
+
+.eventGroup h5 {
+    margin-bottom: .2em;
+    color: #337ab7;
+}
+
+.eventGroup p {
+    margin-bottom: .2em;
+    margin-left: 1em;
+    font-size: small;
+}
+
+.noTickets {
+    color: lightgray;
+}
+
+.eventTickets {
+    font-size: 0.85rem;
+}

@@ -1,0 +1,19 @@
+import { Routes } from '@angular/router';
+import { CategoryListComponent } from './components/category-list/category-list.component';
+import { AboutComponent } from './components/about/about.component';
+import { CategoryDetailComponent } from './components/category-detail/category-detail.component';
+import { EventDetailComponent } from './components/event-detail/event-detail.component';
+import { SearchComponent } from './components/search/search.component';
+import { StarredComponent } from './components/starred/starred.component';
+
+export const routes: Routes = [
+  { path: '', component: CategoryListComponent },
+  { path: 'cat/:year', component: CategoryListComponent },
+  { path: 'cat/:year/:cat', component: CategoryDetailComponent },
+  { path: 'event/:eid', component: EventDetailComponent },
+  { path: 'search', component: SearchComponent },
+  { path: 'starred/:year', component: StarredComponent },
+  { path: 'about', component: AboutComponent },
+  // Redirect any other routes to home for now
+  { path: '**', redirectTo: '' }
+];

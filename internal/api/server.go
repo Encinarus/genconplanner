@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"log"
 
 	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/background"
@@ -31,7 +33,11 @@ type FirebaseAuthWrapper struct {
 }
 
 func (w *FirebaseAuthWrapper) VerifyIDToken(ctx context.Context, idToken string) (string, error) {
-	client, err := w.App.Auth(ctx)
+	if w.App == nil {
+		log.Println("FirebaseAuthWrapper: App is nil")
+		return "", fmt.Errorf("auth app not initialized")
+	}
+	client, err := w.App.Auth(context.Background())
 	if err != nil {
 		return "", err
 	}
@@ -59,17 +65,33 @@ func (w *GameCacheWrapper) FindGame(name string) *postgres.Game {
 func (s *Server) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idToken, err := c.Cookie("signinToken")
-		if err != nil {
+		if err != nil || idToken == "" {
+			// Try header as fallback
+			idToken = c.GetHeader("Authorization")
+			if len(idToken) > 7 && idToken[:7] == "Bearer " {
+				idToken = idToken[7:]
+			}
+		}
+
+		if idToken == "" {
+			log.Printf("AuthMiddleware: no token found in cookie or header\n")
 			c.AbortWithStatusJSON(401, ErrorResponse{Error: "Unauthorized"})
 			return
 		}
 
 		email, err := s.Auth.VerifyIDToken(c.Request.Context(), idToken)
-		if err != nil || email == "" {
+		if err != nil {
+			log.Printf("AuthMiddleware: token verification failed: %v\n", err)
+			c.AbortWithStatusJSON(401, ErrorResponse{Error: "Unauthorized"})
+			return
+		}
+		if email == "" {
+			log.Println("AuthMiddleware: token verified but email is empty")
 			c.AbortWithStatusJSON(401, ErrorResponse{Error: "Unauthorized"})
 			return
 		}
 
+		log.Printf("AuthMiddleware: authenticated user %s\n", email)
 		c.Set(userEmailKey, email)
 		c.Next()
 	}
@@ -78,7 +100,15 @@ func (s *Server) AuthMiddleware() gin.HandlerFunc {
 func (s *Server) OptionalAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idToken, err := c.Cookie("signinToken")
-		if err != nil {
+		if err != nil || idToken == "" {
+			// Try header as fallback
+			idToken = c.GetHeader("Authorization")
+			if len(idToken) > 7 && idToken[:7] == "Bearer " {
+				idToken = idToken[7:]
+			}
+		}
+
+		if idToken == "" {
 			c.Next()
 			return
 		}

@@ -1,0 +1,7 @@
+/* Starred component styles */
+.eventGroup h5 {
+    color: #337ab7;
+}
+.noTickets {
+    color: lightgray;
+}

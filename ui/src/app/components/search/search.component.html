@@ -1,0 +1,48 @@
+<div class="container-fluid">
+    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">
+        Search Results
+        <small *ngIf="query()" class="text-muted" style="font-size: 1.4rem; font-weight: normal">
+            for "{{ query() }}" - {{ events().length }} matches
+        </small>
+    </h1>
+
+    <div *ngIf="loading()" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div *ngIf="!loading()">
+        <div *ngIf="events().length > 0; else noResults">
+            <div *ngFor="let event of events()" class="row">
+                <div class="col-md-12 eventGroup pb-1 border-bottom">
+                    <h5>
+                        <a class="groupLink" [routerLink]="['/event', event.anchorEventId]">
+                            {{ event.title }}
+                        </a>
+                        <small class="text-muted" style="font-size: 0.8rem; margin-left: 0.5em">
+                            {{ event.gameSystem.name }}
+                        </small>
+                    </h5>
+                    <p>{{ event.shortDescription }}</p>
+                    <p>
+                        <span *ngIf="event.wedTickets > 0"><span class="ticketsAvailable">Wed:</span> {{ event.wedTickets }} </span>
+                        <span *ngIf="event.thuTickets > 0"><span class="ticketsAvailable">Thurs:</span> {{ event.thuTickets }} </span>
+                        <span *ngIf="event.friTickets > 0"><span class="ticketsAvailable">Fri:</span> {{ event.friTickets }} </span>
+                        <span *ngIf="event.satTickets > 0"><span class="ticketsAvailable">Sat:</span> {{ event.satTickets }} </span>
+                        <span *ngIf="event.sunTickets > 0"><span class="ticketsAvailable">Sun:</span> {{ event.sunTickets }} </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <ng-template #noResults>
+            <div class="alert alert-warning" *ngIf="query()">
+                No events found matching "{{ query() }}". Try different keywords.
+            </div>
+            <div class="alert alert-info" *ngIf="!query()">
+                Enter a search term in the navbar above to find events.
+            </div>
+        </ng-template>
+    </div>
+</div>

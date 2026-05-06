@@ -1,0 +1,21 @@
+.details-grid {
+    font-size: 0.95rem;
+}
+
+.details-grid .row {
+    border-bottom: 1px solid #f8f9fa;
+    padding: 8px 0;
+}
+
+.details-grid .row:last-child {
+    border-bottom: none;
+}
+
+.breadcrumb {
+    margin-bottom: 2rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+    color: #495057;
+}

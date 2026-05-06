@@ -1,0 +1,24 @@
+<h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">{{ year() }} Events by category</h1>
+
+<div *ngIf="loading()" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<div *ngIf="!loading()">
+    <div class="row" *ngIf="categories().length > 0; else noEvents">
+        <div *ngFor="let cat of categories()" class="col-md-6 col-sm-12 pb-1">
+            <a class="border btn btn-light text-center"
+               [routerLink]="['/cat', year(), cat.code]"
+               role="button"
+               style="width:100%; white-space:normal">
+               {{ cat.name }}
+               <span class="badge rounded-pill bg-secondary">{{ cat.eventCount }}</span>
+            </a>
+        </div>
+    </div>
+    <ng-template #noEvents>
+        <h2>Gen Con {{ year() }} events aren't available yet.</h2>
+    </ng-template>
+</div>

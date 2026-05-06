@@ -240,25 +240,25 @@ func BootstrapContext(app *firebase.App, db *sql.DB, bggCache *background.GameCa
 			client, err := app.Auth(ctx)
 			if err != nil {
 				log.Printf("error getting Auth client: %v\n", err)
-				return
-			}
-			token, err := client.VerifyIDToken(ctx, idToken)
-			if err != nil {
-				log.Printf("error verifying ID token: %v\n", err)
-			}
-			if token != nil {
-				email := token.Claims["email"].(string)
-
-				appContext.Email = email
-				user, err := postgres.LoadOrCreateUser(db, email)
+			} else {
+				token, err := client.VerifyIDToken(ctx, idToken)
 				if err != nil {
-					log.Printf("Error Loading/creating user: %v\n", err)
-				} else {
-					appContext.User = user
-					if user.DisplayName == "" {
-						user.DisplayName = strings.Split(email, "@")[0]
+					log.Printf("error verifying ID token: %v\n", err)
+				}
+				if token != nil {
+					email := token.Claims["email"].(string)
+
+					appContext.Email = email
+					user, err := postgres.LoadOrCreateUser(db, email)
+					if err != nil {
+						log.Printf("Error Loading/creating user: %v\n", err)
+					} else {
+						appContext.User = user
+						if user.DisplayName == "" {
+							user.DisplayName = strings.Split(email, "@")[0]
+						}
+						appContext.DisplayName = user.DisplayName
 					}
-					appContext.DisplayName = user.DisplayName
 				}
 			}
 		}

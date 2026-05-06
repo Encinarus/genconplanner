@@ -1,0 +1,46 @@
+<div class="container-fluid">
+    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+            My Starred Events
+            <small class="text-muted" style="font-size: 1.4rem; font-weight: normal">
+                {{ year() }} - {{ events().length }} events <span *ngIf="email()">({{ email() }})</span>
+            </small>
+        </div>
+        <div class="btn-group">
+            <a [routerLink]="['/starred', 2025]" class="btn btn-outline-secondary btn-sm" [class.active]="year() === 2025">2025</a>
+            <a [routerLink]="['/starred', 2026]" class="btn btn-outline-secondary btn-sm" [class.active]="year() === 2026">2026</a>
+        </div>
+    </h1>
+
+    <div *ngIf="loading()" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div *ngIf="!loading()">
+        <div class="list-group list-group-flush pb-4" *ngIf="events().length > 0; else noStarred">
+            <a *ngFor="let event of events()" 
+               [routerLink]="['/event', event.anchorEventId]"
+               class="list-group-item list-group-item-action eventGroup pt-3 px-3 border text-decoration-none">
+                <h5 class="mb-1">{{ event.title }} 
+                    <small class="text-muted" style="font-size: 0.8rem">{{ event.gameSystem.name }}</small>
+                </h5>
+                <p class="mb-2 text-dark">{{ event.shortDescription }}</p>
+                <ul class="list-inline eventTickets mb-1">
+                    <li class="list-inline-item" [class.noTickets]="event.wedTickets === 0"><strong>Wed</strong> {{ event.wedTickets }} tickets</li>
+                    <li class="list-inline-item" [class.noTickets]="event.thuTickets === 0"><strong>Thurs</strong> {{ event.thuTickets }} tickets</li>
+                    <li class="list-inline-item" [class.noTickets]="event.friTickets === 0"><strong>Fri</strong> {{ event.friTickets }} tickets</li>
+                    <li class="list-inline-item" [class.noTickets]="event.satTickets === 0"><strong>Sat</strong> {{ event.satTickets }} tickets</li>
+                    <li class="list-inline-item" [class.noTickets]="event.sunTickets === 0"><strong>Sun</strong> {{ event.sunTickets }} tickets</li>
+                </ul>
+            </a>
+        </div>
+        
+        <ng-template #noStarred>
+            <div class="alert alert-info">
+                You haven't starred any events for {{ year() }} yet.
+            </div>
+        </ng-template>
+    </div>
+</div>
