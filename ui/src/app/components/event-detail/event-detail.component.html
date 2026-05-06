@@ -49,7 +49,7 @@
                 <div class="row">
                     <div class="col-md-2"><strong>Organizing Group:</strong></div>
                     <div class="col-md-10">
-                        <a *ngIf="e.group" [routerLink]="['/search']" [queryParams]="{year: e.year, org_id: e.orgId}">{{ e.group }}</a>
+                        <a *ngIf="e.group" [routerLink]="['/search/by_system']" [queryParams]="{year: e.year, org_id: e.orgId}">{{ e.group }}</a>
                         <span *ngIf="!e.group">N/A</span>
                     </div>
                 </div>
@@ -65,12 +65,9 @@
                     <div class="col-md-2"><strong>Game System:</strong></div>
                     <div class="col-md-10">
                         <ng-container *ngIf="e.gameSystem.bggId; else noBgg">
-                            <a [href]="'https://boardgamegeek.com/boardgame/' + e.gameSystem.bggId" target="_blank" class="text-decoration-none">
-                                {{ e.gameSystem.name }}
-                                <span *ngIf="e.gameSystem.yearPublished"> ({{ e.gameSystem.yearPublished }})</span>
-                                <span *ngIf="e.gameSystem.numBggRatings && e.gameSystem.numBggRatings >= 100">
-                                     - BGG {{ e.gameSystem.bggRating | number:'1.1-1' }}, {{ e.gameSystem.numBggRatings }} ratings
-                                </span>
+                            {{ e.gameSystem.name }}
+                            <a [href]="'https://boardgamegeek.com/boardgame/' + e.gameSystem.bggId" target="_blank" class="text-decoration-none ms-2">
+                                <i class="bi bi-link-45deg"></i> BGG<ng-container *ngIf="e.gameSystem.numBggRatings && e.gameSystem.numBggRatings >= 100"> {{ e.gameSystem.bggRating | number:'1.1-1' }}, {{ e.gameSystem.numBggRatings }} ratings</ng-container><ng-container *ngIf="e.gameSystem.yearPublished"> ({{ e.gameSystem.yearPublished }})</ng-container>
                             </a>
                         </ng-container>
                         <ng-template #noBgg>{{ e.gameSystem.name }}</ng-template>

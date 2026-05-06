@@ -1,19 +1,25 @@
 import { Component, OnInit, signal, inject, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule, Router } from '@angular/router';
+import { combineLatest } from 'rxjs';
 import { ApiService, EventSummary } from '../../services/api.service';
 import { StarredService } from '../../services/starred.service';
 import { StarButtonComponent } from '../star-button/star-button.component';
 import { Title } from '@angular/platform-browser';
 
-interface GroupedEvents {
-  minorName: string;
+interface EventSubGroup {
+  systemName: string;
   events: EventSummary[];
   bggRating?: number;
   numBggRatings?: number;
   yearPublished?: number;
-  isSoldOut: boolean;
   bggId?: number;
+}
+
+interface GroupedEvents {
+  minorName: string;
+  subGroups: EventSubGroup[];
+  isSoldOut: boolean;
 }
 
 interface MajorGroup {
@@ -52,6 +58,27 @@ export class SearchComponent implements OnInit {
   loading = signal<boolean>(true);
   hideSoldOut = signal<boolean>(false);
   scrolled = signal<boolean>(false);
+  collapsedGroups = signal<Set<string>>(new Set());
+  groupingMethod = signal<'system' | 'year' | 'rating'>('system');
+  private router = inject(Router);
+
+  setGrouping(method: 'system' | 'year' | 'rating'): void {
+    this.router.navigate(['../by_' + method], { relativeTo: this.route, queryParamsHandling: 'preserve' });
+  }
+
+  toggleGroup(name: string): void {
+    const set = new Set(this.collapsedGroups());
+    if (set.has(name)) {
+      set.delete(name);
+    } else {
+      set.add(name);
+    }
+    this.collapsedGroups.set(set);
+  }
+  
+  isCollapsed(name: string): boolean {
+    return this.collapsedGroups().has(name);
+  }
 
   private categoryMap: { [key: string]: string } = {
     "ANI": "Anime Activities",
@@ -85,40 +112,81 @@ export class SearchComponent implements OnInit {
     
     if (allEvents.length === 0) return [];
 
-    const majorGroupsMap = new Map<string, Map<string, EventSummary[]>>();
+    const majorGroupsMap = new Map<string, Map<string, Map<string, EventSummary[]>>>();
 
     allEvents.forEach(event => {
       let majorKey = this.categoryMap[event.categoryCode] || event.categoryCode;
-      let minorKey = event.gameSystem.name || 'Unspecified';
+      let minorKey = 'Unspecified';
+      let subKey = event.gameSystem.name || 'Unspecified';
+      
+      if (this.groupingMethod() === 'system') {
+        minorKey = subKey;
+      } else if (this.groupingMethod() === 'year') {
+        minorKey = event.gameSystem.yearPublished ? event.gameSystem.yearPublished.toString() : 'Unknown';
+      } else if (this.groupingMethod() === 'rating') {
+        minorKey = event.gameSystem.bggRating ? 'BGG ' + Math.floor(event.gameSystem.bggRating) : 'Unrated';
+      }
 
       if (!majorGroupsMap.has(majorKey)) {
-        majorGroupsMap.set(majorKey, new Map<string, EventSummary[]>());
+        majorGroupsMap.set(majorKey, new Map<string, Map<string, EventSummary[]>>());
       }
       const minorMap = majorGroupsMap.get(majorKey)!;
       if (!minorMap.has(minorKey)) {
-        minorMap.set(minorKey, []);
+        minorMap.set(minorKey, new Map<string, EventSummary[]>());
       }
-      minorMap.get(minorKey)!.push(event);
+      const subMap = minorMap.get(minorKey)!;
+      if (!subMap.has(subKey)) {
+        subMap.set(subKey, []);
+      }
+      subMap.get(subKey)!.push(event);
     });
 
     const result: MajorGroup[] = [];
     majorGroupsMap.forEach((minorMap, majorName) => {
       const minorGroups: GroupedEvents[] = [];
-      minorMap.forEach((events, minorName) => {
-        events.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
-        const totalTickets = events.reduce((sum, e) => sum + e.wedTickets + e.thuTickets + e.friTickets + e.satTickets + e.sunTickets, 0);
+      minorMap.forEach((subMap, minorName) => {
+        const subGroups: EventSubGroup[] = [];
+        let minorTotalTickets = 0;
+        
+        subMap.forEach((events, systemName) => {
+          events.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
+          const subTotalTickets = events.reduce((sum, e) => sum + e.wedTickets + e.thuTickets + e.friTickets + e.satTickets + e.sunTickets, 0);
+          minorTotalTickets += subTotalTickets;
+
+          subGroups.push({
+            systemName,
+            events,
+            bggRating: events[0].gameSystem.bggRating,
+            numBggRatings: events[0].gameSystem.numBggRatings,
+            yearPublished: events[0].gameSystem.yearPublished,
+            bggId: events[0].gameSystem.bggId
+          });
+        });
+        
+        subGroups.sort((a, b) => a.systemName.localeCompare(b.systemName, undefined, { numeric: true, sensitivity: 'base' }));
 
         minorGroups.push({
           minorName,
-          events,
-          bggRating: events[0].gameSystem.bggRating,
-          numBggRatings: events[0].gameSystem.numBggRatings,
-          yearPublished: events[0].gameSystem.yearPublished,
-          isSoldOut: totalTickets === 0,
-          bggId: events[0].gameSystem.bggId
+          subGroups,
+          isSoldOut: minorTotalTickets === 0
         });
       });
-      minorGroups.sort((a, b) => a.minorName.localeCompare(b.minorName, undefined, { numeric: true, sensitivity: 'base' }));
+      // Sort minor groups
+      if (this.groupingMethod() === 'year') {
+        minorGroups.sort((a, b) => {
+          if (a.minorName === 'Unknown') return 1;
+          if (b.minorName === 'Unknown') return -1;
+          return b.minorName.localeCompare(a.minorName, undefined, { numeric: true, sensitivity: 'base' });
+        });
+      } else if (this.groupingMethod() === 'rating') {
+        minorGroups.sort((a, b) => {
+          if (a.minorName === 'Unrated') return 1;
+          if (b.minorName === 'Unrated') return -1;
+          return b.minorName.localeCompare(a.minorName, undefined, { numeric: true, sensitivity: 'base' });
+        });
+      } else {
+        minorGroups.sort((a, b) => a.minorName.localeCompare(b.minorName, undefined, { numeric: true, sensitivity: 'base' }));
+      }
       result.push({ name: majorName, minorGroups });
     });
 
@@ -129,14 +197,18 @@ export class SearchComponent implements OnInit {
 
   filteredGroupsCount = computed(() => {
     return this.groupedEvents().reduce((acc, major) => {
-      return acc + major.minorGroups.reduce((mSum, m) => mSum + m.events.length, 0);
+      return acc + major.minorGroups.reduce((mSum, m) => {
+        return mSum + m.subGroups.reduce((sSum, s) => sSum + s.events.length, 0);
+      }, 0);
     }, 0);
   });
 
   totalSessionsCount = computed(() => {
     return this.groupedEvents().reduce((acc, major) => {
       return acc + major.minorGroups.reduce((mSum, m) => {
-        return mSum + m.events.reduce((eSum, e) => eSum + e.numEvents, 0);
+        return mSum + m.subGroups.reduce((sSum, s) => {
+          return sSum + s.events.reduce((eSum, e) => eSum + e.numEvents, 0);
+        }, 0);
       }, 0);
     }, 0);
   });
@@ -183,10 +255,19 @@ export class SearchComponent implements OnInit {
     window.addEventListener('scroll', () => {
       this.scrolled.set(window.scrollY > 50);
     });
-    this.route.queryParams.subscribe(params => {
-      this.query.set(params['q'] || '');
-      this.year.set(+(params['year'] || new Date().getFullYear()));
-      this.orgId.set(params['org_id'] ? +params['org_id'] : undefined);
+    combineLatest([this.route.params, this.route.queryParams]).subscribe(([params, queryParams]) => {
+      const grouping = params['grouping'];
+      if (grouping === 'by_year') {
+        this.groupingMethod.set('year');
+      } else if (grouping === 'by_rating') {
+        this.groupingMethod.set('rating');
+      } else {
+        this.groupingMethod.set('system');
+      }
+
+      this.query.set(queryParams['q'] || '');
+      this.year.set(+(queryParams['year'] || new Date().getFullYear()));
+      this.orgId.set(queryParams['org_id'] ? +queryParams['org_id'] : undefined);
       this.fetchResults();
       this.starredService.fetchStarred(this.year());
     });

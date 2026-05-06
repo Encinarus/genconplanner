@@ -56,8 +56,8 @@ describe('CategoryDetailComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            params: of({ year: '2026', cat: 'BGM' }),
-            snapshot: { params: { year: '2026', cat: 'BGM' } }
+            params: of({ year: '2026', cat: 'BGM', grouping: 'by_system' }),
+            snapshot: { params: { year: '2026', cat: 'BGM', grouping: 'by_system' } }
           }
         }
       ]
@@ -108,5 +108,23 @@ describe('CategoryDetailComponent', () => {
     
     expect(rivers?.isSoldOut).toBe(true);
     expect(acquire?.isSoldOut).toBe(false);
+  });
+
+  it('should group events by year descending when groupingMethod is year', () => {
+    component.groupingMethod.set('year');
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(1);
+    expect(grouped[0].minorGroups.length).toBe(2);
+    expect(grouped[0].minorGroups[0].minorName).toBe('2019');
+    expect(grouped[0].minorGroups[1].minorName).toBe('1964');
+  });
+
+  it('should group events by bgg rating descending when groupingMethod is rating', () => {
+    component.groupingMethod.set('rating');
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(1);
+    expect(grouped[0].minorGroups.length).toBe(2);
+    expect(grouped[0].minorGroups[0].minorName).toBe('BGG 7');
+    expect(grouped[0].minorGroups[1].minorName).toBe('BGG 6');
   });
 });

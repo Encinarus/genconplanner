@@ -9,9 +9,11 @@ import { StarredComponent } from './components/starred/starred.component';
 export const routes: Routes = [
   { path: '', component: CategoryListComponent },
   { path: 'cat/:year', component: CategoryListComponent },
-  { path: 'cat/:year/:cat', component: CategoryDetailComponent },
+  { path: 'cat/:year/:cat', redirectTo: 'cat/:year/:cat/by_system', pathMatch: 'full' },
+  { path: 'cat/:year/:cat/:grouping', component: CategoryDetailComponent },
   { path: 'event/:eid', component: EventDetailComponent },
-  { path: 'search', component: SearchComponent },
+  { path: 'search', redirectTo: 'search/by_system', pathMatch: 'full' },
+  { path: 'search/:grouping', component: SearchComponent },
   { path: 'starred/:year', component: StarredComponent },
   { path: 'about', component: AboutComponent },
   // Redirect any other routes to home for now

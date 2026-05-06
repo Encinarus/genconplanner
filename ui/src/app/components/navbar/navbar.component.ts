@@ -22,7 +22,7 @@ export class NavbarComponent {
   onSearch(event: Event) {
     event.preventDefault();
     if (this.searchQuery().trim()) {
-      this.router.navigate(['/search'], { queryParams: { q: this.searchQuery(), year: this.year() } });
+      this.router.navigate(['/search/by_system'], { queryParams: { q: this.searchQuery(), year: this.year() } });
     }
   }
 

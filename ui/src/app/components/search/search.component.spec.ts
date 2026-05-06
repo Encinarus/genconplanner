@@ -48,7 +48,11 @@ describe('SearchComponent', () => {
           provide: ActivatedRoute,
           useValue: {
             queryParams: of({ q: 'test', year: '2026' }),
-            snapshot: { queryParams: { q: 'test', year: '2026' } }
+            params: of({ grouping: 'by_system' }),
+            snapshot: { 
+              queryParams: { q: 'test', year: '2026' },
+              params: { grouping: 'by_system' }
+            }
           }
         }
       ]
@@ -94,5 +98,23 @@ describe('SearchComponent', () => {
     
     component.hideSoldOut.set(true);
     expect(component.filteredGroupsCount()).toBe(2);
+  });
+
+  it('should group events by year descending when groupingMethod is year', () => {
+    component.groupingMethod.set('year');
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(2);
+    const bgmGroup = grouped.find(g => g.name === 'Board Games');
+    expect(bgmGroup?.minorGroups.length).toBe(1);
+    expect(bgmGroup?.minorGroups[0].minorName).toBe('1964');
+  });
+
+  it('should group events by bgg rating descending when groupingMethod is rating', () => {
+    component.groupingMethod.set('rating');
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(2);
+    const bgmGroup = grouped.find(g => g.name === 'Board Games');
+    expect(bgmGroup?.minorGroups.length).toBe(1);
+    expect(bgmGroup?.minorGroups[0].minorName).toBe('BGG 7');
   });
 });

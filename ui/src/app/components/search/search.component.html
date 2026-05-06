@@ -7,9 +7,24 @@
                 "{{ query() }}" - {{ totalSessionsCount() }} events / {{ filteredGroupsCount() }} groups
             </small>
         </h1>
-        <div class="form-check form-switch mb-0">
-            <input class="form-check-input" type="checkbox" id="hideSoldOut" [checked]="hideSoldOut()" (change)="toggleHideSoldOut()">
-            <label class="form-check-label text-muted" for="hideSoldOut">Hide Sold Out</label>
+        <div class="d-flex align-items-center gap-3">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Grouping Method">
+                <input type="radio" class="btn-check" name="groupingMethodSearch" id="groupSystemSearch" autocomplete="off" 
+                       [checked]="groupingMethod() === 'system'" (change)="setGrouping('system')">
+                <label class="btn btn-outline-secondary" for="groupSystemSearch">System</label>
+              
+                <input type="radio" class="btn-check" name="groupingMethodSearch" id="groupYearSearch" autocomplete="off"
+                       [checked]="groupingMethod() === 'year'" (change)="setGrouping('year')">
+                <label class="btn btn-outline-secondary" for="groupYearSearch">Year</label>
+              
+                <input type="radio" class="btn-check" name="groupingMethodSearch" id="groupRatingSearch" autocomplete="off"
+                       [checked]="groupingMethod() === 'rating'" (change)="setGrouping('rating')">
+                <label class="btn btn-outline-secondary" for="groupRatingSearch">Rating</label>
+            </div>
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="hideSoldOut" [checked]="hideSoldOut()" (change)="toggleHideSoldOut()">
+                <label class="form-check-label text-muted text-nowrap" for="hideSoldOut">Hide Sold Out</label>
+            </div>
         </div>
     </div>
 </div>
@@ -28,13 +43,18 @@
             <div class="col-md-2 d-none d-md-block">
                 <h3 style="margin-top: 0">Search</h3>
                 <div *ngFor="let major of groupedEvents()">
-                    <h5 class="minorHeading pt-2" style="font-size: 1rem; color: #666; border-bottom: 1px solid #eee; padding-bottom: 5px;">{{ major.name }}</h5>
-                    <div class="nav vstack mb-3">
+                    <h5 class="minorHeading pt-2" style="font-size: 1rem; color: #666; border-bottom: 1px solid #eee; padding-bottom: 5px; cursor: pointer;" (click)="toggleGroup(major.name)">
+                        <span class="material-icons" style="font-size: 1rem; vertical-align: text-bottom;">
+                            {{ isCollapsed(major.name) ? 'chevron_right' : 'expand_more' }}
+                        </span>
+                        {{ major.name }}
+                    </h5>
+                    <div class="nav vstack mb-3" *ngIf="!isCollapsed(major.name)">
                         <div *ngFor="let minor of major.minorGroups" class="nav-item">
                             <a class="nav-link groupLink text-decoration-none py-1 ps-0 pointer" 
                                style="font-size: 0.85rem;"
                                (click)="scrollToAnchor(toId(major.name, minor.minorName))">
-                                {{ minor.minorName }} ({{ minor.events.length }})
+                                {{ minor.minorName }} ({{ minor.subGroups.length }})
                             </a>
                         </div>
                     </div>
@@ -44,53 +64,71 @@
             <!-- Main Content -->
             <div class="col-md-10">
                 <div *ngFor="let major of groupedEvents()" class="mb-5">
-                    <h4 class="pb-1 pt-2 border-bottom mb-3">{{ major.name }}</h4>
+                    <h4 class="pb-1 pt-2 border-bottom mb-3" style="cursor: pointer;" (click)="toggleGroup(major.name)">
+                        <span class="material-icons" style="font-size: 1.5rem; vertical-align: text-bottom;">
+                            {{ isCollapsed(major.name) ? 'chevron_right' : 'expand_more' }}
+                        </span>
+                        {{ major.name }}
+                    </h4>
                     
+                    <ng-container *ngIf="!isCollapsed(major.name)">
                     <div *ngFor="let minor of major.minorGroups" class="mb-4">
                         <h5 [id]="toId(major.name, minor.minorName)" class="mb-3">
-                            <ng-container *ngIf="minor.bggId; else noBgg">
-                                <a [href]="'https://boardgamegeek.com/boardgame/' + minor.bggId" target="_blank" class="text-decoration-none text-dark bgg-link">
+                            <ng-container *ngIf="groupingMethod() === 'system' && minor.subGroups[0].bggId; else noBgg">
+                                <a [href]="'https://boardgamegeek.com/boardgame/' + minor.subGroups[0].bggId" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-dark d-flex align-items-center">
                                     {{ minor.minorName }}
                                     <small class="text-muted" style="font-size: 0.9rem; margin-left: 0.25rem">
-                                        <span *ngIf="minor.yearPublished">({{ minor.yearPublished }}) </span>
-                                        <span *ngIf="(minor.numBggRatings || 0) >= 100">
-                                            <span *ngIf="minor.yearPublished">- </span>BGG {{ minor.bggRating!.toFixed(1) }}, {{ minor.numBggRatings }} ratings
-                                        </span>
+                                        <i class="bi bi-link-45deg"></i> BGG<ng-container *ngIf="(minor.subGroups[0].numBggRatings || 0) >= 100"> {{ minor.subGroups[0].bggRating!.toFixed(1) }}, {{ minor.subGroups[0].numBggRatings }} ratings</ng-container><ng-container *ngIf="groupingMethod() !== 'year' && minor.subGroups[0].yearPublished"> ({{ minor.subGroups[0].yearPublished }})</ng-container>
                                     </small>
                                 </a>
                             </ng-container>
                             <ng-template #noBgg>
                                 {{ minor.minorName }}
                             </ng-template>
-
-                            <small class="ms-2" style="font-size: 0.8rem">
-                                (<a href="javascript:void(0)" (click)="scrollToAnchor('top')" class="text-decoration-none">top</a>)
+                            <small *ngIf="minor.isSoldOut" class="text-muted ms-2" style="font-size: 0.9rem; font-weight: normal; opacity: 0.7">
+                                (Sold Out)
                             </small>
                         </h5>
 
-                        <div class="list-group list-group-flush border rounded shadow-sm">
-                            <a *ngFor="let event of minor.events; let last = last" 
-                               [routerLink]="['/event', event.anchorEventId]"
-                               [class.border-bottom-subtle]="!last"
-                               class="list-group-item list-group-item-action eventGroup p-3 border-bottom-0">
-                               <h6 class="mb-1 fw-medium">
-                                   {{ event.title }}
-                                   <small *ngIf="(event.wedTickets + event.thuTickets + event.friTickets + event.satTickets + event.sunTickets) === 0" 
-                                          class="text-muted ms-2" style="font-size: 0.75rem; font-weight: normal; opacity: 0.7">
-                                       (Sold Out)
-                                   </small>
-                               </h6>
-                                <p class="mb-2 text-dark small" style="opacity: 0.8">{{ event.shortDescription }}</p>
-                                <ul class="list-inline eventTickets mb-0 small">
-                                    <li class="list-inline-item" [class.noTickets]="event.wedTickets === 0"><strong>Wed</strong> {{ event.wedTickets }}</li>
-                                    <li class="list-inline-item" [class.noTickets]="event.thuTickets === 0"><strong>Thurs</strong> {{ event.thuTickets }}</li>
-                                    <li class="list-inline-item" [class.noTickets]="event.friTickets === 0"><strong>Fri</strong> {{ event.friTickets }}</li>
-                                    <li class="list-inline-item" [class.noTickets]="event.satTickets === 0"><strong>Sat</strong> {{ event.satTickets }}</li>
-                                    <li class="list-inline-item" [class.noTickets]="event.sunTickets === 0"><strong>Sun</strong> {{ event.sunTickets }}</li>
-                                </ul>
-                            </a>
+                        <div *ngFor="let subGroup of minor.subGroups; let lastSubGroup = last" class="mb-3">
+                            <h6 *ngIf="groupingMethod() !== 'system'" class="text-secondary fw-bold mb-2 ps-2 border-start border-3 border-secondary" style="font-size: 0.9rem;">
+                                <ng-container *ngIf="subGroup.bggId; else noBggSub">
+                                    <a [href]="'https://boardgamegeek.com/boardgame/' + subGroup.bggId" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-secondary d-flex align-items-center">
+                                        {{ subGroup.systemName }}
+                                        <small class="text-muted" style="font-size: 0.8rem; font-weight: normal; margin-left: 0.25rem;">
+                                            <i class="bi bi-link-45deg"></i> BGG<ng-container *ngIf="(subGroup.numBggRatings || 0) >= 100"> {{ subGroup.bggRating!.toFixed(1) }}, {{ subGroup.numBggRatings }} ratings</ng-container><ng-container *ngIf="groupingMethod() !== 'year' && subGroup.yearPublished"> ({{ subGroup.yearPublished }})</ng-container>
+                                        </small>
+                                    </a>
+                                </ng-container>
+                                <ng-template #noBggSub>
+                                    {{ subGroup.systemName }}
+                                </ng-template>
+                            </h6>
+                            <div class="list-group list-group-flush border rounded shadow-sm">
+                                <a *ngFor="let event of subGroup.events; let lastEvent = last" 
+                                   [routerLink]="['/event', event.anchorEventId]"
+                                   [class.border-bottom-subtle]="!lastEvent"
+                                   class="list-group-item list-group-item-action eventGroup p-3 border-bottom-0">
+                                   <h6 class="mb-1 fw-medium">
+                                       {{ event.title }}
+                                       <small *ngIf="(event.wedTickets + event.thuTickets + event.friTickets + event.satTickets + event.sunTickets) === 0" 
+                                              class="text-muted ms-2" style="font-size: 0.75rem; font-weight: normal; opacity: 0.7">
+                                           (Sold Out)
+                                       </small>
+                                   </h6>
+                                    <p class="mb-2 text-dark small" style="opacity: 0.8">{{ event.shortDescription }}</p>
+                                    <ul class="list-inline eventTickets mb-0 small">
+                                        <li class="list-inline-item" [class.noTickets]="event.wedTickets === 0"><strong>Wed</strong> {{ event.wedTickets }}</li>
+                                        <li class="list-inline-item" [class.noTickets]="event.thuTickets === 0"><strong>Thurs</strong> {{ event.thuTickets }}</li>
+                                        <li class="list-inline-item" [class.noTickets]="event.friTickets === 0"><strong>Fri</strong> {{ event.friTickets }}</li>
+                                        <li class="list-inline-item" [class.noTickets]="event.satTickets === 0"><strong>Sat</strong> {{ event.satTickets }}</li>
+                                        <li class="list-inline-item" [class.noTickets]="event.sunTickets === 0"><strong>Sun</strong> {{ event.sunTickets }}</li>
+                                    </ul>
+                                </a>
+                            </div>
                         </div>
                     </div>
+                    </ng-container>
                 </div>
 
                 <div *ngIf="events().length === 0" class="alert alert-info">
