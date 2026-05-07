@@ -24,6 +24,12 @@ export class AuthService {
     const app = initializeApp(firebaseConfig);
     this.auth = getAuth(app);
 
+    // Initial hint from server if available
+    const serverUser = (window as any).serverSideUser;
+    if (serverUser) {
+      this.user.set(serverUser);
+    }
+
     onAuthStateChanged(this.auth, (user) => {
       this.user.set(user);
       if (user) {

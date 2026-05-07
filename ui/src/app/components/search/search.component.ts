@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { combineLatest } from 'rxjs';
 import { ApiService, EventSummary } from '../../services/api.service';
 import { StarredService } from '../../services/starred.service';
+import { LinkService } from '../../services/link.service';
 import { Title } from '@angular/platform-browser';
 
 interface EventSubGroup {
@@ -38,6 +39,7 @@ export class SearchComponent implements OnInit {
   private api = inject(ApiService);
   private starredService = inject(StarredService);
   private titleService = inject(Title);
+  public linkService = inject(LinkService);
 
   constructor() {
     effect(() => {

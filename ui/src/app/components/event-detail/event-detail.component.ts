@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, Event } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { StarredService } from '../../services/starred.service';
+import { LinkService } from '../../services/link.service';
 import { StarButtonComponent } from '../star-button/star-button.component';
 import { Title } from '@angular/platform-browser';
 
@@ -19,6 +20,7 @@ export class EventDetailComponent implements OnInit {
   private api = inject(ApiService);
   private starredService = inject(StarredService);
   private titleService = inject(Title);
+  public linkService = inject(LinkService);
 
   constructor() {
     effect(() => {

@@ -18,7 +18,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload"
@@ -105,13 +104,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.StaticFile("/robots.txt", "static/robots.txt")
 
 	r.Static("/v2", "static/v2")
-	r.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/v2") {
-			c.File("static/v2/index.html")
-			return
-		}
-		// Fallback for legacy routes or 404
-	})
+	r.NoRoute(web.ServeV2(db, cache))
 
 	r.GET("/event/:eid", web.ViewEvent(db))
 	r.GET("/search", web.Search(db))

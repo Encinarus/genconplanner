@@ -45,7 +45,7 @@
                                         GenCon <i class="bi bi-box-arrow-up-right small"></i>
                                     </a>
                                     <span class="timing-label me-3">{{ formatTiming(event.startTime, event.endTime) }}</span>
-                                    <a [routerLink]="['/event', event.eventId]" class="event-id-link me-2">{{ event.eventId }}</a>
+                                    <a [routerLink]="linkService.getEventRouterLink(event.eventId)" class="event-id-link me-2">{{ event.eventId }}</a>
                                     <h4 class="h6 mb-0 fw-bold">{{ event.title }}</h4>
                                 </div>
                                 <p class="text-muted small mb-0">{{ event.shortDescription }}</p>

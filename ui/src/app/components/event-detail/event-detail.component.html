@@ -11,7 +11,7 @@
 
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb bg-light py-2 px-3">
-            <li class="breadcrumb-item"><a [routerLink]="['/cat', e.year, e.categoryCode]">{{ e.categoryCode }}</a></li>
+            <li class="breadcrumb-item"><a [routerLink]="linkService.getCategoryRouterLink(e.year, e.categoryCode)">{{ e.categoryCode }}</a></li>
             <li class="breadcrumb-item active d-flex align-items-center">
                 {{ e.eventId }}
                 <a [href]="e.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 ms-2" style="font-size: 0.75rem; height: 1.4rem; line-height: 1.3rem;">
@@ -49,7 +49,7 @@
                 <div class="row">
                     <div class="col-md-2"><strong>Organizing Group:</strong></div>
                     <div class="col-md-10">
-                        <a *ngIf="e.group" [routerLink]="['/search/by_system']" [queryParams]="{year: e.year, org_id: e.orgId}">{{ e.group }}</a>
+                        <a *ngIf="e.group" [routerLink]="linkService.getSearchRouterLink()" [queryParams]="{year: e.year, org_id: e.orgId}">{{ e.group }}</a>
                         <span *ngIf="!e.group">N/A</span>
                     </div>
                 </div>
@@ -59,7 +59,7 @@
                 </div>
                 <div class="row">
                     <div class="col-md-2"><strong>Event Type:</strong></div>
-                    <div class="col-md-10"><a [routerLink]="['/cat', e.year, e.categoryCode]">{{ e.eventType }}</a></div>
+                    <div class="col-md-10"><a [routerLink]="linkService.getCategoryRouterLink(e.year, e.categoryCode)">{{ e.eventType }}</a></div>
                 </div>
                 <div class="row">
                     <div class="col-md-2"><strong>Game System:</strong></div>
@@ -117,7 +117,7 @@
                             </div>
                             <div style="display:inline-block;">
                                 <span *ngIf="session.eventId === e.eventId">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }} (This session)</span>
-                                <a *ngIf="session.eventId !== e.eventId" [routerLink]="['/event', session.eventId]">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}</a>
+                                <a *ngIf="session.eventId !== e.eventId" [routerLink]="linkService.getEventRouterLink(session.eventId)">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}</a>
                                 <br>
                                 <strong *ngIf="session.ticketsAvailable > 0">{{ session.ticketsAvailable }}</strong>
                                 <span *ngIf="session.ticketsAvailable === 0">{{ session.ticketsAvailable }}</span>

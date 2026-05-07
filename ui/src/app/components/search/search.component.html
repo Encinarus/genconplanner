@@ -107,7 +107,7 @@
                             @defer (on viewport) {
                                 <div class="list-group list-group-flush border rounded shadow-sm">
                                     <a *ngFor="let event of subGroup.events; let lastEvent = last" 
-                                       [routerLink]="['/event', event.anchorEventId]"
+                                       [routerLink]="linkService.getEventRouterLink(event.anchorEventId)"
                                        [class.border-bottom-subtle]="!lastEvent"
                                        class="list-group-item list-group-item-action eventGroup p-3 border-bottom-0">
                                        <h6 class="mb-1 fw-medium">

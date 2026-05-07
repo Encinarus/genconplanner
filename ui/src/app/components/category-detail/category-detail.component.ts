@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, OnDestroy, signal, inject, computed, 
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { ApiService, EventSummary } from '../../services/api.service';
+import { LinkService } from '../../services/link.service';
 import { Title } from '@angular/platform-browser';
 
 interface EventSubGroup {
@@ -35,6 +36,7 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
   private route = inject(ActivatedRoute);
   private api = inject(ApiService);
   private titleService = inject(Title);
+  public linkService = inject(LinkService);
 
   constructor() {
     effect(() => {

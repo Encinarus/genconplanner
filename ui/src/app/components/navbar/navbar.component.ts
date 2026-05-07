@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { LinkService } from '../../services/link.service';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -15,6 +16,7 @@ import { filter } from 'rxjs/operators';
 export class NavbarComponent implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
+  public linkService = inject(LinkService);
   
   year = signal<number>(new Date().getFullYear());
   displayName = computed(() => this.authService.user()?.displayName || null);
@@ -54,7 +56,7 @@ export class NavbarComponent implements OnInit {
     
     // If at root or empty, go to the categories page for that year
     if (!segments || segments.length === 0) {
-      this.router.navigate(['/cat', newYear]);
+      this.router.navigate(this.linkService.getCategoryRouterLink(newYear, ''));
       return;
     }
 
@@ -79,7 +81,7 @@ export class NavbarComponent implements OnInit {
   onSearch(event: Event) {
     event.preventDefault();
     if (this.searchQuery().trim()) {
-      this.router.navigate(['/search/by_system'], { queryParams: { q: this.searchQuery(), year: this.year() } });
+      this.router.navigate(this.linkService.getSearchRouterLink(), { queryParams: { q: this.searchQuery(), year: this.year() } });
     }
   }
 
@@ -91,7 +93,7 @@ export class NavbarComponent implements OnInit {
     await this.authService.signOut();
     // If on a protected route like /starred, redirect to home/categories
     if (this.router.url.includes('/starred/')) {
-      this.router.navigate(['/cat', this.year()]);
+      this.router.navigate(this.linkService.getCategoryRouterLink(this.year(), ''));
     }
   }
 }
