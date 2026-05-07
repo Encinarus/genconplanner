@@ -3,7 +3,9 @@ package api
 import (
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
+	"fmt"
 
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/gin-gonic/gin"
@@ -82,6 +84,9 @@ func (s *Server) LoadUserEvents(c *gin.Context) {
 	var userEvents UserEvents
 	userEvents.Email = authedEmail
 	userEvents.Year = year
+	userEvents.StarredClusters = make([]string, 0)
+	userEvents.StarredEvents = make([]string, 0)
+	userEvents.TicketedEvents = make([]string, 0)
 
 	starredIds, err := s.Repo.GetStarredIds(authedEmail, year)
 	if err != nil {
@@ -254,7 +259,7 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 		return
 	}
 
-	results := make([]StarredEventDetail, 0, len(dbEvents))
+	results := make([]StarredEventDetail, 0)
 	for _, e := range dbEvents {
 		results = append(results, StarredEventDetail{
 			EventId:          e.EventId,
@@ -315,6 +320,10 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 		StartDate: events.GenconStartDate(year),
 		EndDate:   events.GenconEndDate(year),
 	}
+	data.IndividualEvents = make([]StarredEventDetail, 0)
+	data.CalendarEvents = make([]CalendarEventCluster, 0)
+	data.StarredClusters = make([]string, 0)
+	data.StarredEvents = make([]string, 0)
 
 	for _, e := range dbEvents {
 		data.IndividualEvents = append(data.IndividualEvents, StarredEventDetail{
@@ -355,6 +364,103 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
+func (s *Server) BulkClearStarredEvents(c *gin.Context) {
+	email := GetUserEmail(c)
+	yearParam := c.Param("year")
+
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	year, err := strconv.Atoi(yearParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid year"})
+		return
+	}
+
+	err = s.Repo.ClearStarredEvents(email, year)
+	if err != nil {
+		log.Printf("error clearing starred events: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+type BulkReplaceRequest struct {
+	Text      string `json:"text"`
+	Overwrite bool   `json:"overwrite"`
+}
+
+func (s *Server) BulkReplaceStarredEvents(c *gin.Context) {
+	email := GetUserEmail(c)
+	yearParam := c.Param("year")
+
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	year, err := strconv.Atoi(yearParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid year"})
+		return
+	}
+
+	var req BulkReplaceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
+		return
+	}
+
+	// 1. Regex to find all event IDs
+	// General regex for GenCon IDs: [A-Z]{3,4}\d{2}ND\d{6,}
+	idRegex := regexp.MustCompile(`[A-Z]{3,4}\d{2}ND\d{6,}`)
+	matches := idRegex.FindAllString(req.Text, -1)
+
+	if len(matches) == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "No valid event IDs found"})
+		return
+	}
+
+	// 2. Validate that all IDs match the requested year
+	yearLastTwo := fmt.Sprintf("%02d", year%100)
+	var validIds []string
+	seen := make(map[string]bool)
+
+	for _, id := range matches {
+		// Check the year part of the ID (e.g., BGM26ND... -> 26)
+		// Prefix is 3 or 4 chars
+		idYearPart := ""
+		if id[3] >= '0' && id[3] <= '9' {
+			idYearPart = id[3:5]
+		} else {
+			idYearPart = id[4:6]
+		}
+
+		if idYearPart != yearLastTwo {
+			c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: fmt.Sprintf("Event ID %s is for a different year", id)})
+			return
+		}
+
+		if !seen[id] {
+			validIds = append(validIds, id)
+			seen[id] = true
+		}
+	}
+
+	err = s.Repo.BulkStarEvents(email, year, validIds, req.Overwrite)
+	if err != nil {
+		log.Printf("error bulk replacing starred events: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.GET("/user", s.GetUser)
 	group.GET("/user/events/:email/:year", s.LoadUserEvents)
@@ -364,4 +470,6 @@ func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.GET("/user/starred/page/:year", s.GetStarredPageData)
 	group.GET("/calendar/metadata/:year", s.GetCalendarMetadata)
 	group.POST("/user/star", s.StarEvent)
+	group.POST("/user/starred/clear/:year", s.BulkClearStarredEvents)
+	group.POST("/user/starred/bulk/:year", s.BulkReplaceStarredEvents)
 }

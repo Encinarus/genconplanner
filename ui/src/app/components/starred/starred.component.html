@@ -15,6 +15,9 @@
         <li class="nav-item">
             <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'list'" (click)="setViewMode('list')">By Type</a>
         </li>
+        <li class="nav-item">
+            <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'bulk'" (click)="setViewMode('bulk')">Bulk</a>
+        </li>
     </ul>
 
     <div *ngIf="loading()" class="text-center py-5">
@@ -64,6 +67,118 @@
 
         <div *ngIf="viewMode() === 'calendar'">
             <full-calendar #calendar [options]="calendarOptions()"></full-calendar>
+        </div>
+
+        <div *ngIf="viewMode() === 'bulk'" class="bulk-container">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card border-0 shadow-sm h-100 overflow-hidden">
+                        <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="icon-circle bg-danger bg-opacity-10 text-danger me-3">
+                                    <i class="bi bi-trash3-fill"></i>
+                                </div>
+                                <h2 class="h5 mb-0 fw-bold">Clear All Starred</h2>
+                            </div>
+                            <p class="text-muted small">Remove all starred events for the current year. This action cannot be undone.</p>
+                        </div>
+                        <div class="card-body px-4 pb-4">
+                            <div class="alert alert-danger border-0 bg-danger bg-opacity-10 d-flex align-items-center" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                                <div class="small">
+                                    This will only clear events for <strong>{{ year() }}</strong>. Events from other years are safe.
+                                </div>
+                            </div>
+                            <button class="btn btn-outline-danger w-100 py-2 mt-3 fw-semibold" (click)="onClearAll()">
+                                <i class="bi bi-x-circle me-2"></i> Clear {{ year() }} Starred Events
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card border-0 shadow-sm h-100 overflow-hidden">
+                        <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="icon-circle bg-primary bg-opacity-10 text-primary me-3">
+                                    <i class="bi bi-file-earmark-arrow-up-fill"></i>
+                                </div>
+                                <h2 class="h5 mb-0 fw-bold">Bulk Update</h2>
+                            </div>
+                            <p class="text-muted small">Paste event IDs or URLs to update your {{ year() }} starred events.</p>
+                        </div>
+                        <div class="card-body px-4 pb-4">
+                            <div class="form-group mb-3">
+                                <label for="bulkPaste" class="form-label small fw-bold text-muted text-uppercase mb-2">Paste Content Here</label>
+                                <textarea 
+                                    id="bulkPaste"
+                                    class="form-control bg-light border-0" 
+                                    rows="8" 
+                                    placeholder="Paste URLs or event IDs (e.g., BGM{{ year() % 100 }}ND306562)..."
+                                    [ngModel]="bulkInput()"
+                                    (ngModelChange)="bulkInput.set($event)"
+                                    style="resize: none; font-family: monospace; font-size: 0.85rem;"></textarea>
+                            </div>
+                            
+                            <div class="d-flex flex-column gap-2">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button 
+                                            class="btn btn-primary w-100 py-2 fw-semibold" 
+                                            (click)="onBulkUpdate(false)"
+                                            [disabled]="!bulkInput().trim()">
+                                            <i class="bi bi-plus-circle me-1"></i> Merge
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button 
+                                            class="btn btn-outline-primary w-100 py-2 fw-semibold" 
+                                            (click)="onBulkUpdate(true)"
+                                            [disabled]="!bulkInput().trim()">
+                                            <i class="bi bi-arrow-repeat me-1"></i> Replace
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="text-center mt-1">
+                                    <small class="text-muted" style="font-size: 0.7rem;">
+                                        <i class="bi bi-info-circle me-1"></i> 
+                                        <strong>Merge</strong> adds to your list. <strong>Replace</strong> overwrites it.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mt-2">
+                <div class="card-body p-4">
+                    <h3 class="h6 fw-bold mb-3 d-flex align-items-center">
+                        <i class="bi bi-lightbulb-fill text-warning me-2"></i>
+                        How it works
+                    </h3>
+                    <div class="row small text-muted">
+                        <div class="col-sm-4">
+                            <div class="d-flex">
+                                <div class="fw-bold me-2 text-dark">1.</div>
+                                <div>We scan your pasted text for any GenCon event ID pattern matching the current year.</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="d-flex">
+                                <div class="fw-bold me-2 text-dark">2.</div>
+                                <div>You'll get a confirmation showing how many unique events were identified.</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="d-flex">
+                                <div class="fw-bold me-2 text-dark">3.</div>
+                                <div>Choose <strong>Merge</strong> to add events or <strong>Replace</strong> to overwrite the year's list.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

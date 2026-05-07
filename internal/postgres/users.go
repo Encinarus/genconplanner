@@ -136,7 +136,11 @@ SELECT
 	0 as title_rank,
 	0 as search_rank
 FROM events e2
-LEFT JOIN orgs o ON lower(o.alias) = lower(e2.org_group)
+LEFT JOIN (
+    SELECT lower(alias) as lower_alias, MAX(id) as id
+    FROM orgs
+    GROUP BY lower(alias)
+) o ON o.lower_alias = lower(e2.org_group)
 WHERE e2.active AND e2.year = $2
   AND EXISTS (
       SELECT 1 FROM starred_events se
@@ -173,7 +177,11 @@ func LoadStarredEvents(db *sql.DB, userEmail string, year int) ([]*events.Gencon
 	rows, err := db.Query(fmt.Sprintf(`
 SELECT %s, true, o.id
 FROM events e2
-LEFT JOIN orgs o ON (lower(o.alias) = lower(e2.org_group))
+LEFT JOIN (
+    SELECT lower(alias) as lower_alias, MAX(id) as id
+    FROM orgs
+    GROUP BY lower(alias)
+) o ON o.lower_alias = lower(e2.org_group)
 WHERE e2.active AND e2.year = $2
   AND EXISTS (
       SELECT 1 FROM starred_events se
@@ -313,6 +321,62 @@ WHERE s.email = $1
 
 	tx.Commit()
 	return starredEvents, nil
+}
+
+func ClearStarredEvents(db *sql.DB, email string, year int) error {
+	_, err := db.Exec(`
+DELETE FROM starred_events se
+USING events e
+WHERE se.event_id = e.event_id
+  AND se.email = $1
+  AND e.year = $2
+`, email, year)
+	return err
+}
+
+func BulkStarEvents(db *sql.DB, email string, year int, eventIds []string, overwrite bool) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if overwrite {
+		// 1. Clear existing for the year
+		_, err = tx.Exec(`
+DELETE FROM starred_events se
+USING events e
+WHERE se.event_id = e.event_id
+  AND se.email = $1
+  AND e.year = $2
+`, email, year)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 2. Insert new ones
+	if len(eventIds) > 0 {
+		stmt, err := tx.Prepare(pq.CopyIn("starred_events", "email", "event_id", "level"))
+		if err != nil {
+			return err
+		}
+		defer stmt.Close()
+
+		for _, id := range eventIds {
+			_, err = stmt.Exec(email, id, "event")
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = stmt.Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func GetStarredIds(db *sql.DB, email string, year int) (*UserStarredEvents, error) {

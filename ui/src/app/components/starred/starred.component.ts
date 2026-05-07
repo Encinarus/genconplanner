@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, inject, computed, effect, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, EventSummary, StarredEventDetail, StarredPageData } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
@@ -19,7 +20,7 @@ declare var bootstrap: any;
 @Component({
   selector: 'app-starred',
   standalone: true,
-  imports: [CommonModule, RouterModule, FullCalendarModule],
+  imports: [CommonModule, RouterModule, FullCalendarModule, FormsModule],
   templateUrl: './starred.component.html',
   styleUrl: './starred.component.css'
 })
@@ -36,7 +37,8 @@ export class StarredComponent implements OnInit {
   year = signal<number>(new Date().getFullYear());
   starredList = signal<StarredEventDetail[]>([]);
   loading = signal<boolean>(true);
-  viewMode = signal<'list' | 'calendar'>('calendar');
+  viewMode = signal<'list' | 'calendar' | 'bulk'>('calendar');
+  bulkInput = signal<string>('');
   email = computed(() => this.auth.user()?.email || null);
 
   // Grouped and sorted starred events for the List view
@@ -177,11 +179,11 @@ export class StarredComponent implements OnInit {
 
   processData(data: StarredPageData): void {
     // Update local state for list and calendar
-    this.starredList.set(data.individualEvents);
+    this.starredList.set(data.individualEvents || []);
     this.metadata = data.metadata;
     
     // Update calendar events
-    const fcEvents = data.calendarEvents.map((e: any) => ({
+    const fcEvents = (data.calendarEvents || []).map((e: any) => ({
       title: e.title,
       start: e.startTime,
       end: e.endTime,
@@ -194,7 +196,7 @@ export class StarredComponent implements OnInit {
       }
     }));
 
-    this.hasWednesday = data.calendarEvents.some((e: any) => {
+    this.hasWednesday = (data.calendarEvents || []).some((e: any) => {
       const d = new Date(e.startTime);
       return d.getDay() === 3;
     });
@@ -254,8 +256,67 @@ export class StarredComponent implements OnInit {
     }
   }
 
-  setViewMode(mode: 'list' | 'calendar'): void {
+  setViewMode(mode: 'list' | 'calendar' | 'bulk'): void {
     this.viewMode.set(mode);
+  }
+
+  onClearAll(): void {
+    const year = this.year();
+    if (confirm(`Are you sure you want to clear all starred events for ${year}?`)) {
+      this.starredService.bulkClear(year).subscribe({
+        next: () => {
+          this.viewMode.set('list');
+        },
+        error: (err) => {
+          alert('Error clearing events: ' + (err.error?.error || err.message));
+        }
+      });
+    }
+  }
+
+  onBulkUpdate(overwrite: boolean): void {
+    const year = this.year();
+    const text = this.bulkInput();
+    const yearLastTwo = (year % 100).toString().padStart(2, '0');
+    
+    // Regex for GenCon IDs: [A-Z]{3,4}YYND\d{6,}
+    const idRegex = new RegExp(`[A-Z]{3,4}${yearLastTwo}ND\\d{6,}`, 'g');
+    const matches: string[] = text.match(idRegex) || [];
+
+    if (matches.length === 0) {
+      alert(`No valid event IDs found for the year ${year}.`);
+      return;
+    }
+
+    // Check for any IDs that match the general pattern but have a DIFFERENT year
+    const generalIdRegex = /[A-Z]{3,4}\d{2}ND\d{6,}/g;
+    const allMatches: string[] = text.match(generalIdRegex) || [];
+    const wrongYearMatches = allMatches.filter(id => !matches.includes(id));
+
+    if (wrongYearMatches.length > 0) {
+      alert(`Input contains event IDs from a different year: ${wrongYearMatches.join(', ')}. Please only include IDs for ${year}.`);
+      return;
+    }
+
+    const uniqueIds = [...new Set(matches)];
+    let confirmMsg = `Identify ${uniqueIds.length} unique events for ${year}. `;
+    if (overwrite) {
+      confirmMsg += "This will FULLY REPLACE your current starred events. Are you sure?";
+    } else {
+      confirmMsg += "This will add these events to your current starred events. Proceed?";
+    }
+
+    if (confirm(confirmMsg)) {
+      this.starredService.bulkReplace(year, text, overwrite).subscribe({
+        next: () => {
+          this.bulkInput.set('');
+          this.viewMode.set('list');
+        },
+        error: (err) => {
+          alert('Error updating events: ' + (err.error?.error || err.message));
+        }
+      });
+    }
   }
 
   toggleGroup(code: string): void {

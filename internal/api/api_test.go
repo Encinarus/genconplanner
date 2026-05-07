@@ -553,3 +553,167 @@ func TestGetStarredEvents(t *testing.T) {
 		})
 	}
 }
+
+func TestBulkClearStarredEvents(t *testing.T) {
+	server, stub, auth, _, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	tests := []struct {
+		name         string
+		year         string
+		cookieValue  string
+		setupStub    func()
+		expectedCode int
+	}{
+		{
+			name:        "Success",
+			year:        "2024",
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+				stub.ClearStarredEventsFn = func(email string, year int) error {
+					return nil
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Unauthorized",
+			year:         "2024",
+			cookieValue:  "",
+			expectedCode: http.StatusUnauthorized,
+		},
+		{
+			name:        "Invalid Year",
+			year:        "abc",
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("POST", "/api/v1/user/starred/clear/"+tt.year, nil)
+			if tt.cookieValue != "" {
+				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+			}
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedCode {
+				t.Errorf("%s: Expected status code %d, got %d", tt.name, tt.expectedCode, w.Code)
+			}
+		})
+	}
+}
+
+func TestBulkReplaceStarredEvents(t *testing.T) {
+	server, stub, auth, _, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	tests := []struct {
+		name         string
+		year         string
+		cookieValue  string
+		body         string
+		setupStub    func()
+		expectedCode int
+	}{
+		{
+			name:        "Success - Raw IDs",
+			year:        "2026",
+			cookieValue: "valid-token",
+			body:        `{"text":"BGM26ND306562\nRPG26ND123456"}`,
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+				stub.BulkStarEventsFn = func(email string, year int, ids []string, overwrite bool) error {
+					if len(ids) == 2 && ids[0] == "BGM26ND306562" && ids[1] == "RPG26ND123456" {
+						return nil
+					}
+					return fmt.Errorf("unexpected ids: %v", ids)
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:        "Success - URLs",
+			year:        "2026",
+			cookieValue: "valid-token",
+			body:        `{"text":"Check out https://www.genconplanner.com/event/BGM26ND306562 and https://www.genconplanner.com/event/RPG26ND123456"}`,
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+				stub.BulkStarEventsFn = func(email string, year int, ids []string, overwrite bool) error {
+					if len(ids) == 2 && ids[0] == "BGM26ND306562" && ids[1] == "RPG26ND123456" {
+						return nil
+					}
+					return fmt.Errorf("unexpected ids: %v", ids)
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:        "Year Mismatch",
+			year:        "2026",
+			cookieValue: "valid-token",
+			body:        `{"text":"BGM25ND306562"}`, // 25 instead of 26
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name:        "No Valid IDs",
+			year:        "2026",
+			cookieValue: "valid-token",
+			body:        `{"text":"Hello world"}`,
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name:         "Unauthorized",
+			year:         "2026",
+			cookieValue:  "",
+			body:         `{"text":"BGM26ND306562"}`,
+			expectedCode: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("POST", "/api/v1/user/starred/bulk/"+tt.year, strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			if tt.cookieValue != "" {
+				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+			}
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedCode {
+				t.Errorf("%s: Expected status code %d, got %d", tt.name, tt.expectedCode, w.Code)
+			}
+		})
+	}
+}

@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, effect } from '@angular/core';
 import { ApiService, StarredPageData } from './api.service';
 import { AuthService } from './auth.service';
+import { tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -157,5 +158,17 @@ export class StarredService {
         this.fetchStarred(year, true);
       }
     });
+  }
+
+  bulkClear(year: number) {
+    return this.api.bulkClearStarred(year).pipe(
+      tap(() => this.fetchStarred(year, true))
+    );
+  }
+
+  bulkReplace(year: number, text: string, overwrite: boolean) {
+    return this.api.bulkReplaceStarred(year, text, overwrite).pipe(
+      tap(() => this.fetchStarred(year, true))
+    );
   }
 }

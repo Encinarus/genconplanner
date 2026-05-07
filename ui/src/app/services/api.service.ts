@@ -195,4 +195,12 @@ export class ApiService {
   getStarredPageData(year: number): Observable<StarredPageData> {
     return this.http.get<StarredPageData>(`/api/v1/user/starred/page/${year}`);
   }
+
+  bulkClearStarred(year: number): Observable<any> {
+    return this.http.post<any>(`/api/v1/user/starred/clear/${year}`, {});
+  }
+
+  bulkReplaceStarred(year: number, text: string, overwrite: boolean): Observable<any> {
+    return this.http.post<any>(`/api/v1/user/starred/bulk/${year}`, { text, overwrite });
+  }
 }
