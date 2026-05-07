@@ -60,6 +60,8 @@ export class SearchComponent implements OnInit {
   loading = signal<boolean>(true);
   hideSoldOut = signal<boolean>(false);
   scrolled = signal<boolean>(false);
+  isScrollingToAnchor = signal<boolean>(false);
+  private scrollTimeout: any;
   collapsedGroups = signal<Set<string>>(new Set());
   groupingMethod = signal<'system' | 'year' | 'rating'>('system');
   private router = inject(Router);
@@ -222,10 +224,38 @@ export class SearchComponent implements OnInit {
     return (major + '_' + minor).replace(/[^a-zA-Z0-9]/g, '_');
   }
 
+  private getScrollOffset(): number {
+    const offset = getComputedStyle(document.documentElement).getPropertyValue('--total-scroll-offset');
+    return parseInt(offset, 10) || 115;
+  }
+
   scrollToAnchor(id: string): void {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      this.isScrollingToAnchor.set(true);
+      this.scrolled.set(true); 
+      
+      setTimeout(() => {
+        const offset = this.getScrollOffset();
+        const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+        
+        if (id !== 'top') {
+          history.pushState(null, '', window.location.pathname + window.location.search + '#' + id);
+        } else {
+          history.pushState(null, '', window.location.pathname + window.location.search);
+        }
+
+        if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
+        this.scrollTimeout = setTimeout(() => {
+          this.isScrollingToAnchor.set(false);
+        }, 1500);
+      }, 0);
     }
   }
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 
 export interface Category {
   name: string;
@@ -128,22 +128,44 @@ export interface Event {
   providedIn: 'root'
 })
 export class ApiService {
+  private categoriesCache = new Map<number, Category[]>();
+  private eventSummariesCache = new Map<string, EventSummary[]>();
+  private eventDetailsCache = new Map<string, Event>();
+
   constructor(private http: HttpClient) { }
 
   getCategories(year: number): Observable<Category[]> {
-    return this.http.get<Category[]>(`/api/v1/category/${year}`);
+    if (this.categoriesCache.has(year)) {
+      return of(this.categoriesCache.get(year)!);
+    }
+    return this.http.get<Category[]>(`/api/v1/category/${year}`).pipe(
+      tap(data => this.categoriesCache.set(year, data))
+    );
   }
 
   searchEvents(params: SearchParams): Observable<EventSummary[]> {
+    const cacheKey = JSON.stringify(params);
+    if (this.eventSummariesCache.has(cacheKey)) {
+      return of(this.eventSummariesCache.get(cacheKey)!);
+    }
+
     let httpParams = new HttpParams().set('year', params.year.toString());
     if (params.search) httpParams = httpParams.set('search', params.search);
     if (params.cat) httpParams = httpParams.set('cat', params.cat);
     if (params.org_id) httpParams = httpParams.set('org_id', params.org_id.toString());
-    return this.http.get<EventSummary[]>(`/api/v1/events`, { params: httpParams });
+    
+    return this.http.get<EventSummary[]>(`/api/v1/events`, { params: httpParams }).pipe(
+      tap(data => this.eventSummariesCache.set(cacheKey, data))
+    );
   }
 
   getEvent(eventId: string): Observable<Event> {
-    return this.http.get<Event>(`/api/v1/event/${eventId}`);
+    if (this.eventDetailsCache.has(eventId)) {
+      return of(this.eventDetailsCache.get(eventId)!);
+    }
+    return this.http.get<Event>(`/api/v1/event/${eventId}`).pipe(
+      tap(data => this.eventDetailsCache.set(eventId, data))
+    );
   }
 
   getUserEvents(email: string, year: number): Observable<any> {

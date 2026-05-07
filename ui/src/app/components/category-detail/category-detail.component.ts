@@ -49,7 +49,7 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   private observer: IntersectionObserver | null = null;
-  private isScrollingToAnchor = false;
+  public isScrollingToAnchor = signal<boolean>(false);
   private scrollTimeout: any;
   private intersectingIds = new Set<string>();
 
@@ -231,27 +231,35 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
   scrollToAnchor(id: string): void {
     const element = document.getElementById(id);
     if (element) {
-      this.isScrollingToAnchor = true;
+      this.isScrollingToAnchor.set(true);
       
       // Force the header to its shrunken state immediately.
-      // This ensures the browser's scroll calculation (which accounts for scroll-padding-top)
-      // aligns correctly with the final header height after the transition.
       this.scrolled.set(true); 
 
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      
-      // Update hash immediately
-      if (id === 'top') {
-        history.pushState(null, '', window.location.pathname + window.location.search);
-      } else {
-        history.pushState(null, '', window.location.pathname + window.location.search + '#' + id);
-      }
+      // Wait for next tick so that the scrolled class is applied (without transition) and layout settles
+      setTimeout(() => {
+        const offset = this.getScrollOffset();
+        const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+        const offsetPosition = elementPosition - offset;
 
-      // Reset the flag after animation finishes
-      if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
-      this.scrollTimeout = setTimeout(() => {
-        this.isScrollingToAnchor = false;
-      }, 1500); // Increased timeout to ensure smooth scroll completes
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+        
+        // Update hash immediately
+        if (id === 'top') {
+          history.pushState(null, '', window.location.pathname + window.location.search);
+        } else {
+          history.pushState(null, '', window.location.pathname + window.location.search + '#' + id);
+        }
+
+        // Reset the flag after animation finishes
+        if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
+        this.scrollTimeout = setTimeout(() => {
+          this.isScrollingToAnchor.set(false);
+        }, 1500); 
+      }, 0);
     }
   }
 
@@ -365,7 +373,7 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
       });
 
       // Skip URL updates while we are programmatically scrolling
-      if (this.isScrollingToAnchor) return;
+      if (this.isScrollingToAnchor()) return;
 
       if (this.intersectingIds.size > 0) {
         // Find all headers and pick the first one that is currently intersecting our zone.

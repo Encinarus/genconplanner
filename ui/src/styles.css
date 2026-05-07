@@ -111,3 +111,7 @@ h5 {
 .fw-medium {
     font-weight: 500 !important;
 }
+
+.no-transition, .no-transition * {
+    transition: none !important;
+}

@@ -1,7 +1,13 @@
 <div id="top" class="top-anchor"></div>
-<div class="sticky-top bg-white border-bottom shadow-sm transition-all" [class.py-2]="scrolled()" [class.py-4]="!scrolled()" style="z-index: 1020; top: 50px;">
+<div class="sticky-top bg-white border-bottom shadow-sm transition-all" 
+     [class.py-2]="scrolled()" 
+     [class.py-4]="!scrolled()" 
+     [class.no-transition]="isScrollingToAnchor()"
+     style="z-index: 1020; top: 50px;">
     <div class="container-fluid d-flex justify-content-between align-items-center">
-        <h1 class="mb-0 transition-all" [style.font-size]="scrolled() ? '1.5rem' : '2.5rem'">
+        <h1 class="mb-0 transition-all" 
+            [class.no-transition]="isScrollingToAnchor()"
+            [style.font-size]="scrolled() ? '1.5rem' : '2.5rem'">
             {{ categoryCode() }}: {{ categoryName() }}
             <small class="text-muted d-none d-sm-inline" [style.font-size]="scrolled() ? '1rem' : '1.4rem'">
                 {{ totalSessionsCount() }} events / {{ filteredGroupsCount() }} groups
