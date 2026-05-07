@@ -105,6 +105,7 @@ export interface Event {
   tableNumber: string;
   ticketsAvailable: number;
   lastModified: string;
+  genconUrl: string;
   relatedEvents?: {
     eventId: string;
     ticketsAvailable: number;

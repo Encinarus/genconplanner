@@ -143,12 +143,16 @@ WHERE
   AND ( 
     e1.event_id IN (SELECT event_id FROM starred_events WHERE email = $1)
     OR
-    e1.cluster_key IN (
-      SELECT e.cluster_key
-      FROM 
-        events e
-        JOIN (SELECT event_id FROM starred_events WHERE email = $1 AND level = 'group') s
-        ON e.event_id = s.event_id
+    EXISTS (
+        SELECT 1 
+        FROM starred_events se
+        JOIN events e_group ON se.event_id = e_group.event_id
+        WHERE se.email = $1 
+          AND se.level = 'group'
+          AND e_group.year = e1.year
+          AND e_group.short_category = e1.short_category
+          AND e_group.title = e1.title
+          AND e_group.cluster_key = e1.cluster_key
     )
   )
 GROUP BY
@@ -182,12 +186,16 @@ WHERE
   AND ( 
     e1.event_id IN (SELECT event_id FROM starred_events WHERE email = $1)
     OR
-    e1.cluster_key IN (
-      SELECT e.cluster_key
-      FROM 
-        events e
-        JOIN (SELECT event_id FROM starred_events WHERE email = $1 AND level = 'group') s
-        ON e.event_id = s.event_id
+    EXISTS (
+        SELECT 1 
+        FROM starred_events se
+        JOIN events e_group ON se.event_id = e_group.event_id
+        WHERE se.email = $1 
+          AND se.level = 'group'
+          AND e_group.year = e1.year
+          AND e_group.short_category = e1.short_category
+          AND e_group.title = e1.title
+          AND e_group.cluster_key = e1.cluster_key
     )
   )
 ORDER BY e1.start_time`, fields), userEmail, year)
@@ -209,6 +217,14 @@ ORDER BY e1.start_time`, fields), userEmail, year)
 }
 
 func UpdateStarredEvent(db *sql.DB, email string, eventId string, starGroup bool, add bool) (*UserStarredEvents, error) {
+	return updateStarredEventInternal(db, email, eventId, starGroup, add, true)
+}
+
+func UpdateStarredEventMinimal(db *sql.DB, email string, eventId string, starGroup bool, add bool) (*UserStarredEvents, error) {
+	return updateStarredEventInternal(db, email, eventId, starGroup, add, false)
+}
+
+func updateStarredEventInternal(db *sql.DB, email string, eventId string, starGroup bool, add bool, fullResponse bool) (*UserStarredEvents, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -250,7 +266,28 @@ VALUES ($1, $2, 'event')
 ON CONFLICT DO NOTHING
 `, email, eventId)
 	} else {
-		// delete record
+		// unstar individual session
+		// 1. Demote any group star for this cluster to individual stars
+		_, err = tx.Exec(`
+UPDATE starred_events
+SET level = 'event'
+WHERE email = $1
+  AND level = 'group'
+  AND event_id IN (
+    SELECT e2.event_id
+    FROM events e1 JOIN events e2 ON e1.year = e2.year
+          AND e1.short_category = e2.short_category
+          AND e1.title = e2.title
+          AND e1.cluster_key = e2.cluster_key
+    WHERE e1.event_id = $2
+  )
+`, email, eventId)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// 2. Delete the specific one
 		_, err = tx.Exec(`
 DELETE FROM starred_events s
 WHERE s.email = $1
@@ -261,101 +298,82 @@ WHERE s.email = $1
 	if err != nil {
 		tx.Rollback()
 		return nil, err
-	} else {
-		starredEvents := UserStarredEvents{
-			Email: email,
-		}
-
-		rows, err := tx.Query(`
-SELECT e2.event_id, se.level
-FROM starred_events se
-JOIN events e1 ON se.event_id = e1.event_id
-JOIN events e2 ON (
-    (se.level = 'event' AND e1.event_id = e2.event_id)
-    OR
-    (se.level = 'group' AND e1.cluster_key = e2.cluster_key AND e1.year = e2.year)
-)
-WHERE se.email = $1 AND e2.active;
-`, email)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-		defer rows.Close()
-
-		// Load all the events
-		for rows.Next() {
-			var starred StarredEvent
-			err := rows.Scan(&starred.EventId, &starred.Level)
-			if err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-
-			starredEvents.StarredEvents = append(starredEvents.StarredEvents, starred)
-		}
-
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		} else {
-			tx.Commit()
-			return &starredEvents, nil
-		}
 	}
+
+	if !fullResponse {
+		err = tx.Commit()
+		if err != nil {
+			return nil, err
+		}
+		level := "event"
+		if starGroup {
+			level = "group"
+		}
+		return &UserStarredEvents{
+			Email: email,
+			StarredEvents: []StarredEvent{{
+				EventId: eventId,
+				Level:   level,
+			}},
+		}, nil
+	}
+
+	starredEvents, err := fetchStarredInternal(tx, email, 0) // 0 means all years
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	tx.Commit()
+	return starredEvents, nil
 }
 
 func GetStarredIds(db *sql.DB, email string, year int) (*UserStarredEvents, error) {
-	starredEvents := UserStarredEvents{
-		Email: email,
-	}
-
-	query := `
-SELECT e2.event_id, se.level
-FROM starred_events se
-JOIN events e1 ON se.event_id = e1.event_id
-JOIN events e2 ON (
-    (se.level = 'event' AND e1.event_id = e2.event_id)
-    OR
-    (se.level = 'group' AND e1.cluster_key = e2.cluster_key AND e1.year = e2.year)
-)
-WHERE se.email = $1 AND e1.year = $2 AND e2.active;`
-
-	rows, err := db.Query(query, email, year)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var starred StarredEvent
-		err = rows.Scan(&starred.EventId, &starred.Level)
-
-		if err != nil {
-			return nil, err
-		}
-		starredEvents.StarredEvents = append(starredEvents.StarredEvents, starred)
-	}
-
-	return &starredEvents, nil
+	return fetchStarredInternal(db, email, year)
 }
 
 func GetAllStarredIds(db *sql.DB, email string) (*UserStarredEvents, error) {
+	return fetchStarredInternal(db, email, 0)
+}
+
+type queryable interface {
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+}
+
+func fetchStarredInternal(q queryable, email string, year int) (*UserStarredEvents, error) {
 	starredEvents := UserStarredEvents{
 		Email: email,
 	}
 
-	rows, err := db.Query(`
-SELECT e2.event_id, se.level
-FROM starred_events se
-JOIN events e1 ON se.event_id = e1.event_id
-JOIN events e2 ON (
-    (se.level = 'event' AND e1.event_id = e2.event_id)
+	yearFilter := ""
+	args := []interface{}{email}
+	if year > 0 {
+		yearFilter = " AND e.year = $2"
+		args = append(args, year)
+	}
+
+	query := fmt.Sprintf(`
+SELECT DISTINCT e.event_id, 
+       CASE WHEN s.event_id IS NOT NULL THEN s.level ELSE 'group' END as level
+FROM events e
+LEFT JOIN starred_events s ON e.event_id = s.event_id AND s.email = $1
+WHERE e.active %s AND (
+    s.event_id IS NOT NULL
     OR
-    (se.level = 'group' AND e1.cluster_key = e2.cluster_key AND e1.year = e2.year)
-)
-WHERE se.email = $1 AND e2.active;
-`, email)
+    EXISTS (
+        SELECT 1 
+        FROM starred_events se
+        JOIN events e_group ON se.event_id = e_group.event_id
+        WHERE se.email = $1 
+          AND se.level = 'group'
+          AND e_group.year = e.year
+          AND e_group.short_category = e.short_category
+          AND e_group.title = e.title
+          AND e_group.cluster_key = e.cluster_key
+    )
+)`, yearFilter)
+
+	rows, err := q.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +382,6 @@ WHERE se.email = $1 AND e2.active;
 	for rows.Next() {
 		var starred StarredEvent
 		err = rows.Scan(&starred.EventId, &starred.Level)
-
 		if err != nil {
 			return nil, err
 		}

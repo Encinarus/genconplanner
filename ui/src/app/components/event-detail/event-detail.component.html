@@ -1,19 +1,23 @@
 <ng-container *ngIf="event() as e">
-    <h1 class="pb-2 pt-3 mb-3 border-bottom">
-        <div style="display:inline-block; vertical-align: middle;">
-            <app-star-button [eventId]="e.eventId" [year]="e.year" [iconSize]="'1.2rem'"></app-star-button>
+    <h1 class="pb-2 pt-3 mb-3 border-bottom d-flex align-items-center flex-wrap">
+        <div class="me-2">
+            <app-star-button [eventId]="e.eventId" [year]="e.year" [iconSize]="'1.5rem'" [relatedEventIds]="allSessionIds()" [isGroupMode]="true"></app-star-button>
         </div>
-        {{ e.title }}
-        <small class="text-muted" style="font-size: 1.4rem; font-weight: normal; line-height: 1.2">
-            <br>{{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}: {{ e.ticketsAvailable }} tickets, ${{ e.cost }} each
-            (<a [href]="'https://www.gencon.com/events/' + e.eventId" target="_blank">Official Listing</a>)
+        <span class="flex-grow-1">{{ e.title }}</span>
+        <small class="text-muted w-100 mt-2" style="font-size: 1.2rem; font-weight: normal; line-height: 1.2">
+            {{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}: {{ e.ticketsAvailable }} tickets, ${{ e.cost }} each
         </small>
     </h1>
 
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb bg-light py-2 px-3">
             <li class="breadcrumb-item"><a [routerLink]="['/cat', e.year, e.categoryCode]">{{ e.categoryCode }}</a></li>
-            <li class="breadcrumb-item active">{{ e.eventId }}</li>
+            <li class="breadcrumb-item active d-flex align-items-center">
+                {{ e.eventId }}
+                <a [href]="e.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 ms-2" style="font-size: 0.75rem; height: 1.4rem; line-height: 1.3rem;">
+                    GenCon <i class="bi bi-box-arrow-up-right small"></i>
+                </a>
+            </li>
         </ol>
     </nav>
 
@@ -26,10 +30,6 @@
                 <div class="row">
                     <div class="col-md-2"><strong>Timing:</strong></div>
                     <div class="col-md-10">{{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}</div>
-                </div>
-                <div class="row">
-                    <div class="col-md-2"><strong>Gencon URL:</strong></div>
-                    <div class="col-md-10"><a [href]="'https://www.gencon.com/events/' + e.eventId" target="_blank">https://www.gencon.com/events/{{ e.eventId }}</a></div>
                 </div>
                 <div class="row">
                     <div class="col-md-2"><strong>Location:</strong></div>
@@ -112,14 +112,8 @@
                         <li *ngFor="let session of dayGroup.events" 
                             [class.thisSession]="session.eventId === e.eventId"
                             class="otherSession py-2">
-                            <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.3rem">
-                                <button type="button"
-                                        class="btn btn-light btn-sm sm-star border"
-                                        [class.active]="isSessionStarred(session.eventId)">
-                                    <span class="material-icons" style="font-size: 1rem">
-                                        {{ isSessionStarred(session.eventId) ? 'star' : 'star_outline' }}
-                                    </span>
-                                </button>
+                            <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.1rem">
+                                <app-star-button [eventId]="session.eventId" [year]="e.year" [isGroup]="false" [iconSize]="'1.2rem'" [relatedEventIds]="allSessionIds()"></app-star-button>
                             </div>
                             <div style="display:inline-block;">
                                 <span *ngIf="session.eventId === e.eventId">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }} (This session)</span>

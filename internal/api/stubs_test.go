@@ -18,6 +18,7 @@ type StubRepository struct {
 	GetStarredIdsFn       func(string, int) (*postgres.UserStarredEvents, error)
 	GetAllStarredIdsFn    func(string) (*postgres.UserStarredEvents, error)
 	UpdateStarredEventFn  func(string, string, bool, bool) (*postgres.UserStarredEvents, error)
+	UpdateStarredEventMinimalFn  func(string, string, bool, bool) (*postgres.UserStarredEvents, error)
 	LoadStarredEventsFn   func(string, int) ([]*events.GenconEvent, error)
 	LoadStarredEventGroupsFn func(string, int) ([]*postgres.EventGroup, error)
 	LoadStarredEventClustersFn func(string, int, []*events.GenconEvent) ([]*postgres.CalendarEventCluster, error)
@@ -46,6 +47,9 @@ func (s *StubRepository) GetAllStarredIds(email string) (*postgres.UserStarredEv
 }
 func (s *StubRepository) UpdateStarredEvent(email string, eventId string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
 	return s.UpdateStarredEventFn(email, eventId, starGroup, add)
+}
+func (s *StubRepository) UpdateStarredEventMinimal(email string, eventId string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
+	return s.UpdateStarredEventMinimalFn(email, eventId, starGroup, add)
 }
 func (s *StubRepository) LoadStarredEvents(email string, year int) ([]*events.GenconEvent, error) {
 	return s.LoadStarredEventsFn(email, year)

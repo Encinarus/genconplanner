@@ -87,7 +87,11 @@ export class NavbarComponent implements OnInit {
     this.authService.signIn();
   }
 
-  signOut() {
-    this.authService.signOut();
+  async signOut() {
+    await this.authService.signOut();
+    // If on a protected route like /starred, redirect to home/categories
+    if (this.router.url.includes('/starred/')) {
+      this.router.navigate(['/cat', this.year()]);
+    }
   }
 }

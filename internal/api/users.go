@@ -108,7 +108,7 @@ func (s *Server) StarEvent(c *gin.Context) {
 		return
 	}
 
-	starred, err := s.Repo.UpdateStarredEvent(email, req.EventId, req.Related, req.Add)
+	starred, err := s.Repo.UpdateStarredEventMinimal(email, req.EventId, req.Related, req.Add)
 	if err != nil {
 		log.Printf("error updating starred event: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})

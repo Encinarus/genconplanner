@@ -5,6 +5,7 @@ import { CategoryDetailComponent } from './components/category-detail/category-d
 import { EventDetailComponent } from './components/event-detail/event-detail.component';
 import { SearchComponent } from './components/search/search.component';
 import { StarredComponent } from './components/starred/starred.component';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'cat/2026', pathMatch: 'full' },
@@ -14,7 +15,7 @@ export const routes: Routes = [
   { path: 'event/:eid', component: EventDetailComponent },
   { path: 'search', redirectTo: 'search/by_system', pathMatch: 'full' },
   { path: 'search/:grouping', component: SearchComponent },
-  { path: 'starred/:year', component: StarredComponent },
+  { path: 'starred/:year', component: StarredComponent, canActivate: [authGuard] },
   { path: 'about', component: AboutComponent },
   // Redirect any other routes to home for now
   { path: '**', redirectTo: '' }

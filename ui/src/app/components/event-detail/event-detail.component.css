@@ -30,31 +30,16 @@ h4 {
 .thisSession {
     background-color: #e7f1ff;
     font-style: italic;
-    border-left: 4px solid #0d6efd;
+    border-left-color: #0d6efd !important;
 }
 
 .otherSession {
     padding: 2px 0.2rem !important;
+    border-left: 4px solid transparent;
 }
 
 .otherSessions {
+    list-style: none;
+    padding-left: 0;
     margin-bottom: 0;
-}
-
-.sm-star {
-    padding: 0.1rem 0.4rem;
-    color: #6c757d;
-    background: white;
-    transition: all 0.2s;
-    cursor: pointer;
-}
-
-.sm-star:hover {
-    color: #ffc107;
-    background: #fff9e6;
-}
-
-.sm-star.active {
-    color: #ffc107;
-    border-color: #ffc107 !important;
 }

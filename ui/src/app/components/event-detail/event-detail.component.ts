@@ -63,6 +63,12 @@ export class EventDetailComponent implements OnInit {
       }));
   });
 
+  allSessionIds = computed(() => {
+    const e = this.event();
+    if (!e || !e.relatedEvents) return [];
+    return e.relatedEvents.map(rel => rel.eventId);
+  });
+
   private auth = inject(AuthService);
 
   ngOnInit(): void {

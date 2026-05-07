@@ -107,6 +107,7 @@ type Event struct {
 	TicketsAvailable     int        `json:"ticketsAvailable"`
 	LastModified         time.Time  `json:"lastModified"`
 	RelatedEvents        []EventRef `json:"relatedEvents"`
+	GenconUrl            string     `json:"genconUrl"`
 }
 
 func convertEvent(apiEvent *Event, dbEvent *events.GenconEvent) {
@@ -145,6 +146,7 @@ func convertEvent(apiEvent *Event, dbEvent *events.GenconEvent) {
 	apiEvent.TableNumber = dbEvent.TableNumber
 	apiEvent.TicketsAvailable = dbEvent.TicketsAvailable
 	apiEvent.LastModified = dbEvent.LastModified
+	apiEvent.GenconUrl = dbEvent.GenconLink()
 }
 
 func (s *Server) lookupGame(gameSystem string) GameSystem {
