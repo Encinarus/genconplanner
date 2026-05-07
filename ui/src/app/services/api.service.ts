@@ -74,6 +74,18 @@ export interface StarredPageData {
   starredEvents: string[];
 }
 
+export interface PartyMember {
+  displayName: string;
+  email: string;
+}
+
+export interface Party {
+  id: number;
+  name: string;
+  year: number;
+  members: PartyMember[];
+}
+
 export interface Event {
   eventId: string;
   year: number;
@@ -202,5 +214,17 @@ export class ApiService {
 
   bulkReplaceStarred(year: number, text: string, overwrite: boolean): Observable<any> {
     return this.http.post<any>(`/api/v1/user/starred/bulk/${year}`, { text, overwrite });
+  }
+
+  getParties(): Observable<Party[]> {
+    return this.http.get<Party[]>(`/api/v1/user/parties`);
+  }
+
+  createParty(name: string, year: number): Observable<Party> {
+    return this.http.post<Party>(`/api/v1/user/parties`, { name, year });
+  }
+
+  renameUser(displayName: string): Observable<any> {
+    return this.http.post<any>(`/api/v1/user/rename`, { displayName });
   }
 }

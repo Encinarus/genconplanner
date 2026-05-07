@@ -26,18 +26,10 @@ type UserStarredEvents struct {
 	StarredEvents []StarredEvent
 }
 
-func (u *User) UpdateInfo(db *sql.DB, displayName string) error {
-	u.DisplayName = displayName
-
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-
-	// Cleanup transaction!
-	defer func() { CleanupTransaction(err, tx) }()
-
-	return nil
+func UpdateDisplayName(db *sql.DB, email string, displayName string) error {
+	email = strings.ToLower(email)
+	_, err := db.Exec("UPDATE users SET display_name = $1 WHERE email = $2", displayName, email)
+	return err
 }
 
 func LoadStarredEventClusters(db *sql.DB, userEmail string, year int, starredEvents []*events.GenconEvent) ([]*CalendarEventCluster, error) {
@@ -434,6 +426,7 @@ WHERE se.email = $1 %s AND e2.active`, yearFilter)
 }
 
 func LoadOrCreateUser(db *sql.DB, email string) (*User, error) {
+	email = strings.ToLower(email)
 	rows, err := db.Query(`
 SELECT 
 		email, 

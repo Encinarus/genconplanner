@@ -45,6 +45,18 @@ type StarredPageData struct {
 	StarredEvents    []string               `json:"starredEvents"`
 }
 
+type Party struct {
+	Id      int64         `json:"id"`
+	Name    string        `json:"name"`
+	Year    int64         `json:"year"`
+	Members []PartyMember `json:"members"`
+}
+
+type PartyMember struct {
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
+}
+
 func (s *Server) GetUser(c *gin.Context) {
 	email := GetUserEmail(c)
 	if email == "" {
@@ -461,9 +473,131 @@ func (s *Server) BulkReplaceStarredEvents(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (s *Server) GetParties(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	user, err := s.Repo.LoadOrCreateUser(email)
+	if err != nil {
+		log.Printf("error loading user for parties: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	dbParties, err := s.Repo.LoadParties(user)
+	if err != nil {
+		log.Printf("error loading parties: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	apiParties := make([]Party, 0, len(dbParties))
+	for _, p := range dbParties {
+		members := make([]PartyMember, 0, len(p.Members))
+		for _, m := range p.Members {
+			members = append(members, PartyMember{
+				DisplayName: m.DisplayName,
+				Email:       m.Email,
+			})
+		}
+		apiParties = append(apiParties, Party{
+			Id:      p.Id,
+			Name:    p.Name,
+			Year:    p.Year,
+			Members: members,
+		})
+	}
+
+	c.JSON(http.StatusOK, apiParties)
+}
+
+type CreatePartyRequest struct {
+	Name string `json:"name"`
+	Year int64  `json:"year"`
+}
+
+func (s *Server) CreateParty(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	var req CreatePartyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
+		return
+	}
+
+	if req.Name == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Party name is required"})
+		return
+	}
+
+	dbParty, err := s.Repo.NewParty(req.Name, req.Year, email)
+	if err != nil {
+		log.Printf("error creating party: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	members := make([]PartyMember, 0, len(dbParty.Members))
+	for _, m := range dbParty.Members {
+		members = append(members, PartyMember{
+			DisplayName: m.DisplayName,
+			Email:       m.Email,
+		})
+	}
+
+	c.JSON(http.StatusOK, Party{
+		Id:      dbParty.Id,
+		Name:    dbParty.Name,
+		Year:    dbParty.Year,
+		Members: members,
+	})
+}
+
+type RenameUserRequest struct {
+	DisplayName string `json:"displayName"`
+}
+
+func (s *Server) RenameUser(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	var req RenameUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
+		return
+	}
+
+	if req.DisplayName == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Display name cannot be empty"})
+		return
+	}
+
+	err := s.Repo.UpdateDisplayName(email, req.DisplayName)
+	if err != nil {
+		log.Printf("error renaming user: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
 func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.GET("/user", s.GetUser)
 	group.GET("/user/events/:email/:year", s.LoadUserEvents)
+	group.GET("/user/parties", s.GetParties)
+	group.POST("/user/parties", s.CreateParty)
+	group.POST("/user/rename", s.RenameUser)
 	group.GET("/user/starred/:year", s.GetStarredEvents)
 	group.GET("/user/starred/list/:year", s.GetStarredIndividualEvents)
 	group.GET("/user/starred/calendar/:year", s.GetStarredCalendarEvents)

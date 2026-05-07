@@ -246,7 +246,7 @@ func BootstrapContext(app *firebase.App, db *sql.DB, bggCache *background.GameCa
 					log.Printf("error verifying ID token: %v\n", err)
 				}
 				if token != nil {
-					email := token.Claims["email"].(string)
+					email := strings.ToLower(token.Claims["email"].(string))
 
 					appContext.Email = email
 					user, err := postgres.LoadOrCreateUser(db, email)

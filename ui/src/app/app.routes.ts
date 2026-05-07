@@ -30,6 +30,11 @@ export const routes: Routes = [
     path: 'about', 
     loadComponent: () => import('./components/about/about.component').then(m => m.AboutComponent) 
   },
+  { 
+    path: 'user', 
+    loadComponent: () => import('./components/user/user.component').then(m => m.UserComponent),
+    canActivate: [authGuard]
+  },
   // Redirect any other routes to home for now
   { path: '**', redirectTo: '' }
 ];

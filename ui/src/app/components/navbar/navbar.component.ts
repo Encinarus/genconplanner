@@ -27,7 +27,7 @@ export class NavbarComponent implements OnInit {
     }
     return years;
   });
-  displayName = computed(() => this.authService.user()?.displayName || null);
+  displayName = this.authService.displayName;
   searchQuery = signal<string>('');
 
   ngOnInit() {

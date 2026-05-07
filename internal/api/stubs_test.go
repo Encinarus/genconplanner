@@ -24,6 +24,9 @@ type StubRepository struct {
 	LoadStarredEventClustersFn func(string, int, []*events.GenconEvent) ([]*postgres.CalendarEventCluster, error)
 	ClearStarredEventsFn   func(string, int) error
 	BulkStarEventsFn       func(string, int, []string, bool) error
+	LoadPartiesFn          func(*postgres.User) ([]*postgres.Party, error)
+	NewPartyFn             func(string, int64, string) (*postgres.Party, error)
+	UpdateDisplayNameFn    func(string, string) error
 }
 
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
@@ -67,6 +70,15 @@ func (s *StubRepository) ClearStarredEvents(email string, year int) error {
 }
 func (s *StubRepository) BulkStarEvents(email string, year int, eventIds []string, overwrite bool) error {
 	return s.BulkStarEventsFn(email, year, eventIds, overwrite)
+}
+func (s *StubRepository) LoadParties(user *postgres.User) ([]*postgres.Party, error) {
+	return s.LoadPartiesFn(user)
+}
+func (s *StubRepository) NewParty(name string, year int64, founderEmail string) (*postgres.Party, error) {
+	return s.NewPartyFn(name, year, founderEmail)
+}
+func (s *StubRepository) UpdateDisplayName(email string, name string) error {
+	return s.UpdateDisplayNameFn(email, name)
 }
 
 // StubAuthService implements AuthService for testing.

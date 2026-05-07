@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/background"
@@ -92,7 +93,7 @@ func (s *Server) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		log.Printf("AuthMiddleware: authenticated user %s\n", email)
-		c.Set(userEmailKey, email)
+		c.Set(userEmailKey, strings.ToLower(email))
 		c.Next()
 	}
 }
@@ -115,7 +116,7 @@ func (s *Server) OptionalAuth() gin.HandlerFunc {
 
 		email, err := s.Auth.VerifyIDToken(c.Request.Context(), idToken)
 		if err == nil && email != "" {
-			c.Set(userEmailKey, email)
+			c.Set(userEmailKey, strings.ToLower(email))
 		}
 		c.Next()
 	}

@@ -22,6 +22,13 @@ type EventRepository interface {
 	LoadStarredEventClusters(email string, year int, starredEvents []*events.GenconEvent) ([]*postgres.CalendarEventCluster, error)
 	ClearStarredEvents(email string, year int) error
 	BulkStarEvents(email string, year int, eventIds []string, overwrite bool) error
+
+	// Party related
+	LoadParties(user *postgres.User) ([]*postgres.Party, error)
+	NewParty(name string, year int64, founderEmail string) (*postgres.Party, error)
+
+	// User related
+	UpdateDisplayName(email string, name string) error
 }
 
 type PostgresRepository struct {
@@ -82,3 +89,16 @@ func (r *PostgresRepository) ClearStarredEvents(email string, year int) error {
 func (r *PostgresRepository) BulkStarEvents(email string, year int, eventIds []string, overwrite bool) error {
 	return postgres.BulkStarEvents(r.DB, email, year, eventIds, overwrite)
 }
+
+func (r *PostgresRepository) LoadParties(user *postgres.User) ([]*postgres.Party, error) {
+	return postgres.LoadParties(r.DB, user)
+}
+
+func (r *PostgresRepository) NewParty(name string, year int64, founderEmail string) (*postgres.Party, error) {
+	return postgres.NewParty(r.DB, name, year, founderEmail)
+}
+
+func (r *PostgresRepository) UpdateDisplayName(email string, name string) error {
+	return postgres.UpdateDisplayName(r.DB, email, name)
+}
+
