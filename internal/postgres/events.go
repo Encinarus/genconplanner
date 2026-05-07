@@ -158,7 +158,7 @@ JOIN (
       AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
       AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
       AND (LENGTH($8) = 0 OR (search_key @@ websearch_to_tsquery('english', $8)))
-    GROUP BY e.short_description, short_category, title
+    GROUP BY short_description, short_category, title
 ) c ON e.event_id = c.event_id
 JOIN (
     SELECT alias, MAX(id) as id
@@ -209,7 +209,7 @@ FROM events e
 JOIN (
     SELECT 
         min(event_id) as event_id,
-        cluster_key,
+        short_description,
         short_category,
         title,
         count(active or null) as num_events,
@@ -221,7 +221,7 @@ JOIN (
         sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
     FROM events
     WHERE active and year=$1 and short_category=$2
-    GROUP BY e.short_description, short_category, title
+    GROUP BY short_description, short_category, title
 ) as c ON e.event_id = c.event_id
 JOIN (
     SELECT alias, MAX(id) as id
@@ -384,7 +384,7 @@ func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 	innerQuery := fmt.Sprintf(`
 SELECT
     min(event_id) as event_id,
-	cluster_key,
+	short_description,
 	short_category,
 	title,
 	min(start_time) as start_time,

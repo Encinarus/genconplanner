@@ -4,7 +4,6 @@ import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { combineLatest } from 'rxjs';
 import { ApiService, EventSummary } from '../../services/api.service';
 import { StarredService } from '../../services/starred.service';
-import { StarButtonComponent } from '../star-button/star-button.component';
 import { Title } from '@angular/platform-browser';
 
 interface EventSubGroup {
@@ -30,7 +29,7 @@ interface MajorGroup {
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, RouterModule, StarButtonComponent],
+  imports: [CommonModule, RouterModule],
   templateUrl: './search.component.html',
   styleUrl: './search.component.css'
 })
@@ -75,7 +74,7 @@ export class SearchComponent implements OnInit {
     }
     this.collapsedGroups.set(set);
   }
-  
+
   isCollapsed(name: string): boolean {
     return this.collapsedGroups().has(name);
   }
@@ -109,7 +108,7 @@ export class SearchComponent implements OnInit {
     if (this.hideSoldOut()) {
       allEvents = allEvents.filter(e => (e.wedTickets + e.thuTickets + e.friTickets + e.satTickets + e.sunTickets) > 0);
     }
-    
+
     if (allEvents.length === 0) return [];
 
     const majorGroupsMap = new Map<string, Map<string, Map<string, EventSummary[]>>>();
@@ -118,7 +117,7 @@ export class SearchComponent implements OnInit {
       let majorKey = this.categoryMap[event.categoryCode] || event.categoryCode;
       let minorKey = 'Unspecified';
       let subKey = event.gameSystem.name || 'Unspecified';
-      
+
       if (this.groupingMethod() === 'system') {
         minorKey = subKey;
       } else if (this.groupingMethod() === 'year') {
@@ -147,7 +146,7 @@ export class SearchComponent implements OnInit {
       minorMap.forEach((subMap, minorName) => {
         const subGroups: EventSubGroup[] = [];
         let minorTotalTickets = 0;
-        
+
         subMap.forEach((events, systemName) => {
           events.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
           const subTotalTickets = events.reduce((sum, e) => sum + e.wedTickets + e.thuTickets + e.friTickets + e.satTickets + e.sunTickets, 0);
@@ -162,7 +161,7 @@ export class SearchComponent implements OnInit {
             bggId: events[0].gameSystem.bggId
           });
         });
-        
+
         subGroups.sort((a, b) => a.systemName.localeCompare(b.systemName, undefined, { numeric: true, sensitivity: 'base' }));
 
         minorGroups.push({
@@ -294,10 +293,10 @@ export class SearchComponent implements OnInit {
       return;
     }
     this.loading.set(true);
-    this.api.searchEvents({ 
-      year: this.year(), 
-      search: this.query(), 
-      org_id: this.orgId() 
+    this.api.searchEvents({
+      year: this.year(),
+      search: this.query(),
+      org_id: this.orgId()
     }).subscribe({
       next: (data) => {
         this.events.set(data);
