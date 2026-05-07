@@ -18,6 +18,7 @@ interface GroupedEvents {
   minorName: string;
   subGroups: EventSubGroup[];
   isSoldOut: boolean;
+  totalEventGroups: number;
 }
 
 interface MajorGroup {
@@ -149,12 +150,14 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
       minorMap.forEach((subMap, minorName) => {
         const subGroups: EventSubGroup[] = [];
         let minorTotalTickets = 0;
+        let totalEventGroups = 0;
         
         subMap.forEach((events, systemName) => {
           events.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
           
           const subTotalTickets = events.reduce((sum, e) => sum + e.wedTickets + e.thuTickets + e.friTickets + e.satTickets + e.sunTickets, 0);
           minorTotalTickets += subTotalTickets;
+          totalEventGroups += events.length;
           
           subGroups.push({
             systemName,
@@ -172,7 +175,8 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
         minorGroups.push({
           minorName,
           subGroups,
-          isSoldOut: minorTotalTickets === 0
+          isSoldOut: minorTotalTickets === 0,
+          totalEventGroups
         });
       });
 
@@ -291,12 +295,20 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
       }
 
       const grouping = params['grouping'];
+      let newGrouping: 'system' | 'year' | 'rating' = 'system';
       if (grouping === 'by_year') {
-        this.groupingMethod.set('year');
+        newGrouping = 'year';
       } else if (grouping === 'by_rating') {
-        this.groupingMethod.set('rating');
-      } else {
-        this.groupingMethod.set('system');
+        newGrouping = 'rating';
+      }
+
+      if (newGrouping !== this.groupingMethod()) {
+        this.groupingMethod.set(newGrouping);
+        // If the grouping changed but the data didn't (needsFetch is false), 
+        // we should still scroll to top for the new view.
+        if (!needsFetch) {
+          this.scrollToAnchor('top');
+        }
       }
 
       if (needsFetch) {

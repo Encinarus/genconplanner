@@ -54,7 +54,7 @@
                             <a class="nav-link groupLink text-decoration-none py-1 ps-0 pointer" 
                                style="font-size: 0.85rem;"
                                (click)="scrollToAnchor(toId(major.name, minor.minorName))">
-                                {{ minor.minorName }} ({{ minor.subGroups.length }})
+                                {{ minor.minorName }} ({{ minor.totalEventGroups }})
                             </a>
                         </div>
                     </div>
@@ -109,34 +109,28 @@
                                     {{ subGroup.systemName }}
                                 </ng-template>
                             </h6>
-                            @defer (on viewport) {
-                                <div class="list-group list-group-flush border rounded shadow-sm">
-                                    <a *ngFor="let event of subGroup.events; let lastEvent = last" 
-                                       [routerLink]="linkService.getEventRouterLink(event.anchorEventId)"
-                                       [class.border-bottom-subtle]="!lastEvent"
-                                       class="list-group-item list-group-item-action eventGroup p-3 border-bottom-0">
-                                       <h6 class="mb-1 fw-medium">
-                                           {{ event.title }}
-                                           <small *ngIf="(event.wedTickets + event.thuTickets + event.friTickets + event.satTickets + event.sunTickets) === 0" 
-                                                  class="text-muted ms-2" style="font-size: 0.75rem; font-weight: normal; opacity: 0.7">
-                                               (Sold Out)
-                                           </small>
-                                       </h6>
-                                        <p class="mb-2 text-dark small" style="opacity: 0.8">{{ event.shortDescription }}</p>
-                                        <ul class="list-inline eventTickets mb-0 small">
-                                            <li class="list-inline-item" [class.noTickets]="event.wedTickets === 0"><strong>Wed</strong> {{ event.wedTickets }}</li>
-                                            <li class="list-inline-item" [class.noTickets]="event.thuTickets === 0"><strong>Thurs</strong> {{ event.thuTickets }}</li>
-                                            <li class="list-inline-item" [class.noTickets]="event.friTickets === 0"><strong>Fri</strong> {{ event.friTickets }}</li>
-                                            <li class="list-inline-item" [class.noTickets]="event.satTickets === 0"><strong>Sat</strong> {{ event.satTickets }}</li>
-                                            <li class="list-inline-item" [class.noTickets]="event.sunTickets === 0"><strong>Sun</strong> {{ event.sunTickets }}</li>
-                                        </ul>
-                                    </a>
-                                </div>
-                            } @placeholder {
-                                <div class="list-group list-group-flush border rounded shadow-sm" style="min-height: 100px; display: flex; align-items: center; justify-content: center; background: #f8f9fa;">
-                                    <div class="text-muted small">Loading {{ subGroup.events.length }} events...</div>
-                                </div>
-                            }
+                            <div class="list-group list-group-flush border rounded shadow-sm">
+                                <a *ngFor="let event of subGroup.events; let lastEvent = last" 
+                                   [routerLink]="linkService.getEventRouterLink(event.anchorEventId)"
+                                   [class.border-bottom-subtle]="!lastEvent"
+                                   class="list-group-item list-group-item-action eventGroup p-3 border-bottom-0">
+                                   <h6 class="mb-1 fw-medium">
+                                       {{ event.title }}
+                                       <small *ngIf="(event.wedTickets + event.thuTickets + event.friTickets + event.satTickets + event.sunTickets) === 0" 
+                                              class="text-muted ms-2" style="font-size: 0.75rem; font-weight: normal; opacity: 0.7">
+                                           (Sold Out)
+                                       </small>
+                                   </h6>
+                                    <p class="mb-2 text-dark small" style="opacity: 0.8">{{ event.shortDescription }}</p>
+                                    <ul class="list-inline eventTickets mb-0 small">
+                                        <li class="list-inline-item" [class.noTickets]="event.wedTickets === 0"><strong>Wed</strong> {{ event.wedTickets }}</li>
+                                        <li class="list-inline-item" [class.noTickets]="event.thuTickets === 0"><strong>Thurs</strong> {{ event.thuTickets }}</li>
+                                        <li class="list-inline-item" [class.noTickets]="event.friTickets === 0"><strong>Fri</strong> {{ event.friTickets }}</li>
+                                        <li class="list-inline-item" [class.noTickets]="event.satTickets === 0"><strong>Sat</strong> {{ event.satTickets }}</li>
+                                        <li class="list-inline-item" [class.noTickets]="event.sunTickets === 0"><strong>Sun</strong> {{ event.sunTickets }}</li>
+                                    </ul>
+                                </a>
+                            </div>
                         </div>
                     </div>
                     </ng-container>

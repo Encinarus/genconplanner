@@ -20,6 +20,7 @@ interface GroupedEvents {
   minorName: string;
   subGroups: EventSubGroup[];
   isSoldOut: boolean;
+  totalEventGroups: number;
 }
 
 interface MajorGroup {
@@ -148,11 +149,13 @@ export class SearchComponent implements OnInit {
       minorMap.forEach((subMap, minorName) => {
         const subGroups: EventSubGroup[] = [];
         let minorTotalTickets = 0;
+        let totalEventGroups = 0;
 
         subMap.forEach((events, systemName) => {
           events.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
-          const subTotalTickets = events.reduce((sum, e) => sum + e.wedTickets + e.thuTickets + e.friTickets + e.satTickets + e.sunTickets, 0);
-          minorTotalTickets += subTotalTickets;
+            const subTotalTickets = events.reduce((sum, e) => sum + e.wedTickets + e.thuTickets + e.friTickets + e.satTickets + e.sunTickets, 0);
+            minorTotalTickets += subTotalTickets;
+            totalEventGroups += events.length;
 
           subGroups.push({
             systemName,
@@ -169,7 +172,8 @@ export class SearchComponent implements OnInit {
         minorGroups.push({
           minorName,
           subGroups,
-          isSoldOut: minorTotalTickets === 0
+          isSoldOut: minorTotalTickets === 0,
+          totalEventGroups
         });
       });
       // Sort minor groups
@@ -260,12 +264,11 @@ export class SearchComponent implements OnInit {
     });
     combineLatest([this.route.params, this.route.queryParams]).subscribe(([params, queryParams]) => {
       const grouping = params['grouping'];
+      let newGrouping: 'system' | 'year' | 'rating' = 'system';
       if (grouping === 'by_year') {
-        this.groupingMethod.set('year');
+        newGrouping = 'year';
       } else if (grouping === 'by_rating') {
-        this.groupingMethod.set('rating');
-      } else {
-        this.groupingMethod.set('system');
+        newGrouping = 'rating';
       }
 
       const newQuery = queryParams['q'] || '';
@@ -274,13 +277,22 @@ export class SearchComponent implements OnInit {
 
       let needsFetch = this.initialLoad;
       if (this.query() !== newQuery || this.year() !== newYear || this.orgId() !== newOrgId) {
-        this.query.set(newQuery);
-        this.year.set(newYear);
-        this.orgId.set(newOrgId);
         needsFetch = true;
       }
 
+      if (newGrouping !== this.groupingMethod()) {
+        this.groupingMethod.set(newGrouping);
+        // If the grouping changed but the data didn't (needsFetch is false), 
+        // we should still scroll to top for the new view.
+        if (!needsFetch) {
+          this.scrollToAnchor('top');
+        }
+      }
+
       if (needsFetch) {
+        this.query.set(newQuery);
+        this.year.set(newYear);
+        this.orgId.set(newOrgId);
         this.initialLoad = false;
         this.fetchResults();
         this.starredService.fetchStarred(this.year());
