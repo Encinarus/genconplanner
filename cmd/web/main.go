@@ -103,7 +103,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.Static("/static/img", "static/img")
 	r.StaticFile("/robots.txt", "static/robots.txt")
 
-	r.Static("/v2", "static/v2")
+	r.GET("/v2/*v2path", web.ServeV2(db, cache))
 	r.NoRoute(web.ServeV2(db, cache))
 
 	r.GET("/event/:eid", web.ViewEvent(db))

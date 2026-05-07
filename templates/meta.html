@@ -1,0 +1,27 @@
+{{ define "meta" }}
+    {{ $e := .event }}
+    <meta property="og:title" content="{{ $e.Title }}" />
+    <meta property="og:description" content="{{ $e.ShortDescription }}" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://www.genconplanner.com/{{ if .isV2 }}v2/{{ end }}event/{{ $e.EventId }}" />
+    <meta property="og:image" content="https://www.genconplanner.com/static/img/favicon.png" />
+    <meta property="og:site_name" content="Gen Con Planner" />
+
+    {{ if $e.GameSystem }}
+        {{ $gameLabel := (print $e.GameSystem) }}
+        {{ $rating := (bggRating $e.GameSystem) }}
+        {{ $numRatings := (bggNumRatings $e.GameSystem) }}
+        {{ $bggYear := (bggYear $e.GameSystem) }}
+        {{ if $bggYear }}{{ $gameLabel = (print $gameLabel " (" $bggYear ")")}}{{ end }}
+        <meta property="twitter:label1" content="Game" />
+        <meta property="twitter:data1" content="{{ $gameLabel }}" />
+
+        {{ if $numRatings }}
+        {{ $ratings := atoi $numRatings }}
+        {{ if ge $ratings 100 }}
+        <meta property="twitter:label2" content="BGG Rating" />
+        <meta property="twitter:data2" content="{{ (print $rating " with " $numRatings " ratings") }}" />
+        {{ end }}
+        {{ end }}
+    {{ end }}
+{{ end }}

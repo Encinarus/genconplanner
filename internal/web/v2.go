@@ -1,9 +1,12 @@
 package web
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
+	"html/template"
 	"net/http"
 	"os"
 	"regexp"
@@ -28,12 +31,20 @@ func ServeV2(db *sql.DB, cache *background.GameCache) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
-		// Only handle /v2 routes
-		if !strings.HasPrefix(path, "/v2") {
-			return
+		// 1. Check if it's a physical file in static/v2
+		// The path will start with /v2/
+		filePath := strings.TrimPrefix(path, "/v2")
+		filePath = strings.TrimPrefix(filePath, "/")
+		
+		if filePath != "" {
+			fullPath := "static/v2/" + filePath
+			if _, err := os.Stat(fullPath); err == nil {
+				c.File(fullPath)
+				return
+			}
 		}
 
-		// Check if it's an event route: /v2/event/:eid
+		// 2. Check if it's an event route for meta tag injection: /v2/event/:eid
 		if strings.HasPrefix(path, "/v2/event/") {
 			eid := strings.TrimPrefix(path, "/v2/event/")
 			eid = strings.TrimSuffix(eid, "/")
@@ -44,7 +55,7 @@ func ServeV2(db *sql.DB, cache *background.GameCache) gin.HandlerFunc {
 			}
 		}
 
-		// Fallback: serve the static index.html
+		// 3. Fallback: serve the static index.html (SPA entry point)
 		serveV2Static(c)
 	}
 }
@@ -57,8 +68,8 @@ func serveV2Static(c *gin.Context) {
 		return
 	}
 
-	html := injectUser(string(content), appContext.User)
-	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+	htmlContent := injectUser(string(content), appContext.User)
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlContent))
 }
 
 func getV2Index() ([]byte, error) {
@@ -103,46 +114,41 @@ func serveV2WithMeta(c *gin.Context, db *sql.DB, cache *background.GameCache, ei
 		return
 	}
 
-	html := string(content)
+	htmlContent := string(content)
 
-	// 3. Construct meta tags
-	var meta strings.Builder
-	title := fmt.Sprintf("Event: %s", e.Title)
-
-	meta.WriteString(fmt.Sprintf("<title>%s</title>\n", title))
-	meta.WriteString(fmt.Sprintf("<meta property=\"og:title\" content=\"%s\" />\n", e.Title))
-	meta.WriteString(fmt.Sprintf("<meta property=\"og:description\" content=\"%s\" />\n", e.ShortDescription))
-	meta.WriteString("<meta property=\"og:type\" content=\"article\" />\n")
-
-	if e.GameSystem != "" {
-		gameLabel := e.GameSystem
-		year := bggYear(e.GameSystem, cache)
-		if year != "" {
-			gameLabel = fmt.Sprintf("%s (%s)", gameLabel, year)
-		}
-		meta.WriteString(fmt.Sprintf("<meta property=\"twitter:label1\" content=\"Game\" />\n"))
-		meta.WriteString(fmt.Sprintf("<meta property=\"twitter:data1\" content=\"%s\" />\n", gameLabel))
-
-		rating := bggRating(e.GameSystem, cache)
-		numRatings := bggNumRatings(e.GameSystem, cache)
-		if rating != "" && numRatings != "" {
-			meta.WriteString(fmt.Sprintf("<meta property=\"twitter:label2\" content=\"BGG Rating\" />\n"))
-			meta.WriteString(fmt.Sprintf("<meta property=\"twitter:data2\" content=\"%s with %s ratings\" />\n", rating, numRatings))
-		}
+	// 3. Render meta tags using the shared Go template
+	var metaBuf bytes.Buffer
+	t, err := template.New("").Funcs(GetTemplateFunctions(cache)).ParseGlob("templates/*")
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
 	}
+	
+	err = t.ExecuteTemplate(&metaBuf, "meta", gin.H{
+		"event": e,
+		"isV2":  true,
+	})
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	// Also handle the title tag replacement
+	titleTag := fmt.Sprintf("<title>Event: %s</title>\n", html.EscapeString(e.Title))
+	metaTags := titleTag + metaBuf.String()
 
 	// 4. Inject tags into <head>
 	// We replace the existing title tag and prepend other meta tags before </head>
-	if titleRegex.MatchString(html) {
-		html = titleRegex.ReplaceAllString(html, meta.String())
+	if titleRegex.MatchString(htmlContent) {
+		htmlContent = titleRegex.ReplaceAllString(htmlContent, metaTags)
 	} else {
-		html = strings.Replace(html, "</head>", meta.String()+"</head>", 1)
+		htmlContent = strings.Replace(htmlContent, "</head>", metaTags+"</head>", 1)
 	}
 
 	// 5. Inject user info
-	html = injectUser(html, appContext.User)
+	htmlContent = injectUser(htmlContent, appContext.User)
 
-	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlContent))
 }
 
 func injectUser(html string, user *postgres.User) string {

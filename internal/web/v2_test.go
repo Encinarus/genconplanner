@@ -42,6 +42,21 @@ func TestServeV2(t *testing.T) {
 		t.Fatalf("failed to write index.html: %s", err)
 	}
 
+	err = os.MkdirAll("templates", 0755)
+	if err != nil {
+		t.Fatalf("failed to create templates: %s", err)
+	}
+	metaContent := `{{ define "meta" }}
+<meta property="og:title" content="{{ .event.Title }}" />
+<meta property="og:description" content="{{ .event.ShortDescription }}" />
+<meta property="twitter:label1" content="Game" />
+<meta property="twitter:data1" content="{{ .event.GameSystem }}" />
+{{ end }}`
+	err = os.WriteFile("templates/meta.html", []byte(metaContent), 0644)
+	if err != nil {
+		t.Fatalf("failed to write meta.html: %s", err)
+	}
+
 	// 3. Setup Gin
 	gin.SetMode(gin.TestMode)
 	
