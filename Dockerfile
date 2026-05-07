@@ -1,6 +1,7 @@
 FROM node:22 AS frontend-build
 WORKDIR /ui
 COPY ui/package*.json ./
+RUN npm install -g npm@latest
 RUN npm install
 COPY ui/ ./
 RUN npm test -- --watch=false
