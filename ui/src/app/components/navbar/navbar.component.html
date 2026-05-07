@@ -14,8 +14,9 @@
                         {{ year() }}
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="yearDropdown">
-                        <li><a class="dropdown-item" href="javascript:void(0)" (click)="setYear(2025)">2025</a></li>
-                        <li><a class="dropdown-item" href="javascript:void(0)" (click)="setYear(2026)">2026</a></li>
+                        <li *ngFor="let y of supportedYears()">
+                            <a class="dropdown-item" href="javascript:void(0)" (click)="setYear(y)">{{ y }}</a>
+                        </li>
                     </ul>
                 </li>
                 <li *ngIf="!displayName()" class="nav-link"><a href="javascript:void(0)" (click)="popupSignIn()">Signin</a></li>

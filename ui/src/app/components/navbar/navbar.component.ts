@@ -19,6 +19,14 @@ export class NavbarComponent implements OnInit {
   public linkService = inject(LinkService);
   
   year = signal<number>(new Date().getFullYear());
+  supportedYears = computed(() => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = currentYear; y >= 2021; y--) {
+      years.push(y);
+    }
+    return years;
+  });
   displayName = computed(() => this.authService.user()?.displayName || null);
   searchQuery = signal<string>('');
 
