@@ -2,8 +2,8 @@
 latest.dump
 
 # Go binaries
-web
-update
+/web
+/update
 *.exe
 *.test
 

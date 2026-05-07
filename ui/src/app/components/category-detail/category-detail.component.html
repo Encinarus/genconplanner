@@ -72,21 +72,26 @@
                     </h4>
                     <ng-container *ngIf="!isCollapsed(major.name)">
                     <div *ngFor="let minor of major.minorGroups" class="mb-4">
-                        <h5 [id]="toId(major.name, minor.minorName)" class="mb-3">
-                            <ng-container *ngIf="groupingMethod() === 'system' && minor.subGroups[0].bggId; else noBgg">
-                                <a [href]="'https://boardgamegeek.com/boardgame/' + minor.subGroups[0].bggId" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-dark d-flex align-items-center">
+                        <h5 [id]="toId(major.name, minor.minorName)" class="mb-3 d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center">
+                                <ng-container *ngIf="groupingMethod() === 'system' && minor.subGroups[0].bggId; else noBgg">
+                                    <a [href]="'https://boardgamegeek.com/boardgame/' + minor.subGroups[0].bggId" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-dark d-flex align-items-center">
+                                        {{ minor.minorName }}
+                                        <small class="text-muted" style="font-size: 0.9rem; margin-left: 0.25rem">
+                                            <i class="bi bi-link-45deg"></i> BGG<ng-container *ngIf="(minor.subGroups[0].numBggRatings || 0) >= 100"> {{ minor.subGroups[0].bggRating!.toFixed(1) }}, {{ minor.subGroups[0].numBggRatings }} ratings</ng-container><ng-container *ngIf="groupingMethod() !== 'year' && minor.subGroups[0].yearPublished"> ({{ minor.subGroups[0].yearPublished }})</ng-container>
+                                        </small>
+                                    </a>
+                                </ng-container>
+                                <ng-template #noBgg>
                                     {{ minor.minorName }}
-                                    <small class="text-muted" style="font-size: 0.9rem; margin-left: 0.25rem">
-                                        <i class="bi bi-link-45deg"></i> BGG<ng-container *ngIf="(minor.subGroups[0].numBggRatings || 0) >= 100"> {{ minor.subGroups[0].bggRating!.toFixed(1) }}, {{ minor.subGroups[0].numBggRatings }} ratings</ng-container><ng-container *ngIf="groupingMethod() !== 'year' && minor.subGroups[0].yearPublished"> ({{ minor.subGroups[0].yearPublished }})</ng-container>
-                                    </small>
-                                </a>
-                            </ng-container>
-                            <ng-template #noBgg>
-                                {{ minor.minorName }}
-                            </ng-template>
-                            <small *ngIf="minor.isSoldOut" class="text-muted ms-2" style="font-size: 0.9rem; font-weight: normal; opacity: 0.7">
-                                (Sold Out)
-                            </small>
+                                </ng-template>
+                                <small *ngIf="minor.isSoldOut" class="text-muted ms-2" style="font-size: 0.9rem; font-weight: normal; opacity: 0.7">
+                                    (Sold Out)
+                                </small>
+                            </div>
+                            <a href="javascript:void(0)" (click)="scrollToAnchor('top')" class="text-muted small text-decoration-none ms-1" style="font-weight: normal; opacity: 0.6;">
+                                <i class="bi bi-arrow-up-circle"></i> Top
+                            </a>
                         </h5>
 
                         <div *ngFor="let subGroup of minor.subGroups; let lastSubGroup = last" class="mb-3">

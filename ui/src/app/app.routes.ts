@@ -1,22 +1,35 @@
 import { Routes } from '@angular/router';
-import { CategoryListComponent } from './components/category-list/category-list.component';
-import { AboutComponent } from './components/about/about.component';
-import { CategoryDetailComponent } from './components/category-detail/category-detail.component';
-import { EventDetailComponent } from './components/event-detail/event-detail.component';
-import { SearchComponent } from './components/search/search.component';
-import { StarredComponent } from './components/starred/starred.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'cat/2026', pathMatch: 'full' },
-  { path: 'cat/:year', component: CategoryListComponent },
+  { 
+    path: 'cat/:year', 
+    loadComponent: () => import('./components/category-list/category-list.component').then(m => m.CategoryListComponent) 
+  },
   { path: 'cat/:year/:cat', redirectTo: 'cat/:year/:cat/by_system', pathMatch: 'full' },
-  { path: 'cat/:year/:cat/:grouping', component: CategoryDetailComponent },
-  { path: 'event/:eid', component: EventDetailComponent },
+  { 
+    path: 'cat/:year/:cat/:grouping', 
+    loadComponent: () => import('./components/category-detail/category-detail.component').then(m => m.CategoryDetailComponent) 
+  },
+  { 
+    path: 'event/:eid', 
+    loadComponent: () => import('./components/event-detail/event-detail.component').then(m => m.EventDetailComponent) 
+  },
   { path: 'search', redirectTo: 'search/by_system', pathMatch: 'full' },
-  { path: 'search/:grouping', component: SearchComponent },
-  { path: 'starred/:year', component: StarredComponent, canActivate: [authGuard] },
-  { path: 'about', component: AboutComponent },
+  { 
+    path: 'search/:grouping', 
+    loadComponent: () => import('./components/search/search.component').then(m => m.SearchComponent) 
+  },
+  { 
+    path: 'starred/:year', 
+    loadComponent: () => import('./components/starred/starred.component').then(m => m.StarredComponent),
+    canActivate: [authGuard] 
+  },
+  { 
+    path: 'about', 
+    loadComponent: () => import('./components/about/about.component').then(m => m.AboutComponent) 
+  },
   // Redirect any other routes to home for now
   { path: '**', redirectTo: '' }
 ];

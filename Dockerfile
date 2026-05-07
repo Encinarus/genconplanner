@@ -1,10 +1,10 @@
 FROM node:22 AS frontend-build
 WORKDIR /ui
 COPY ui/package*.json ./
-RUN npm install
+RUN npm ci
 COPY ui/ ./
 RUN npm test -- --watch=false
-RUN npm run build -- --output-path=dist/v2
+RUN npm run build -- --configuration production --output-path=dist/v2
 
 FROM golang:1.26 AS genconplanner-base
 
