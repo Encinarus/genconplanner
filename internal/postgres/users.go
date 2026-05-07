@@ -119,45 +119,38 @@ GROUP BY e.cluster_key, day_of_week
 func LoadStarredEventGroups(db *sql.DB, userEmail string, year int) ([]*EventGroup, error) {
 	rows, err := db.Query(`
 SELECT
-	MIN(e1.event_id) AS anchor_event,
-	e1.title, 
-	e1.short_description AS short_description,
-	e1.short_category AS short_category,
-	e1.game_system AS game_system,
-	e1.org_group AS org_group,
+	MIN(e2.event_id) AS anchor_event,
+	e2.title, 
+	e2.short_description AS short_description,
+	e2.short_category AS short_category,
+	e2.game_system AS game_system,
+	e2.org_group AS org_group,
 	MAX(o.id) AS org_id,
 	COUNT(*) AS num_events,
-	SUM(e1.tickets_available) AS tickets_available,
-	sum(CASE WHEN e1.day_of_week = 3 THEN e1.tickets_available ELSE 0 END) as wednesday_tickets,
-	sum(CASE WHEN e1.day_of_week = 4 THEN e1.tickets_available ELSE 0 END) as thursday_tickets,
-	sum(CASE WHEN e1.day_of_week = 5 THEN e1.tickets_available ELSE 0 END) as friday_tickets,
-	sum(CASE WHEN e1.day_of_week = 6 THEN e1.tickets_available ELSE 0 END) as saturday_tickets,
-	sum(CASE WHEN e1.day_of_week = 0 THEN e1.tickets_available ELSE 0 END) as sunday_tickets,
+	SUM(e2.tickets_available) AS tickets_available,
+	sum(CASE WHEN e2.day_of_week = 3 THEN e2.tickets_available ELSE 0 END) as wednesday_tickets,
+	sum(CASE WHEN e2.day_of_week = 4 THEN e2.tickets_available ELSE 0 END) as thursday_tickets,
+	sum(CASE WHEN e2.day_of_week = 5 THEN e2.tickets_available ELSE 0 END) as friday_tickets,
+	sum(CASE WHEN e2.day_of_week = 6 THEN e2.tickets_available ELSE 0 END) as saturday_tickets,
+	sum(CASE WHEN e2.day_of_week = 0 THEN e2.tickets_available ELSE 0 END) as sunday_tickets,
 	0 as title_rank,
 	0 as search_rank
-FROM events e1
-JOIN orgs o ON lower(o.alias) = lower(e1.org_group)
-WHERE
-  e1.year = $2
-  AND e1.active
-  AND ( 
-    e1.event_id IN (SELECT event_id FROM starred_events WHERE email = $1)
-    OR
-    EXISTS (
-        SELECT 1 
-        FROM starred_events se
-        JOIN events e_group ON se.event_id = e_group.event_id
-        WHERE se.email = $1 
-          AND se.level = 'group'
-          AND e_group.year = e1.year
-          AND e_group.short_category = e1.short_category
-          AND e_group.title = e1.title
-          AND e_group.cluster_key = e1.cluster_key
-    )
+FROM events e2
+LEFT JOIN orgs o ON lower(o.alias) = lower(e2.org_group)
+WHERE e2.active AND e2.year = $2
+  AND EXISTS (
+      SELECT 1 FROM starred_events se
+      JOIN events e1 ON se.event_id = e1.event_id
+      WHERE se.email = $1
+        AND (
+          (se.level = 'event' AND e1.event_id = e2.event_id)
+          OR
+          (se.level = 'group' AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description)
+        )
   )
 GROUP BY
-  e1.cluster_key, e1.short_description, e1.short_category, e1.game_system, e1.org_group, e1.title
-ORDER BY e1.title`, userEmail, year)
+  e2.year, e2.short_category, e2.title, e2.short_description, e2.game_system, e2.org_group
+ORDER BY e2.title`, userEmail, year)
 
 	if err != nil {
 		return nil, err
@@ -176,29 +169,23 @@ ORDER BY e1.title`, userEmail, year)
 }
 
 func LoadStarredEvents(db *sql.DB, userEmail string, year int) ([]*events.GenconEvent, error) {
-	fields := "e1." + strings.Join(eventFields(), ", e1.")
+	fields := "e2." + strings.Join(eventFields(), ", e2.")
 	rows, err := db.Query(fmt.Sprintf(`
 SELECT %s, true, o.id
-FROM events e1 LEFT JOIN orgs o ON (lower(o.alias) = lower(e1.org_group))
-WHERE
-  e1.year = $2
-  AND e1.active
-  AND ( 
-    e1.event_id IN (SELECT event_id FROM starred_events WHERE email = $1)
-    OR
-    EXISTS (
-        SELECT 1 
-        FROM starred_events se
-        JOIN events e_group ON se.event_id = e_group.event_id
-        WHERE se.email = $1 
-          AND se.level = 'group'
-          AND e_group.year = e1.year
-          AND e_group.short_category = e1.short_category
-          AND e_group.title = e1.title
-          AND e_group.cluster_key = e1.cluster_key
-    )
+FROM events e2
+LEFT JOIN orgs o ON (lower(o.alias) = lower(e2.org_group))
+WHERE e2.active AND e2.year = $2
+  AND EXISTS (
+      SELECT 1 FROM starred_events se
+      JOIN events e1 ON se.event_id = e1.event_id
+      WHERE se.email = $1
+        AND (
+          (se.level = 'event' AND e1.event_id = e2.event_id)
+          OR
+          (se.level = 'group' AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description)
+        )
   )
-ORDER BY e1.start_time`, fields), userEmail, year)
+ORDER BY e2.start_time`, fields), userEmail, year)
 
 	if err != nil {
 		return nil, err
@@ -240,7 +227,7 @@ WHERE s.email = $1
 	  FROM events e1 join events e2 on e1.year = e2.year
           AND e1.short_category = e2.short_category
 	      AND e1.title = e2.title
-          AND e1.cluster_key = e2.cluster_key
+          AND e1.short_description = e2.short_description
 	  WHERE e1.event_id = $2
   )
 `, email, eventId)
@@ -253,7 +240,7 @@ SELECT $1, e2.event_id, 'group'
 FROM events e1 join events e2 on e1.year = e2.year
     AND e1.short_category = e2.short_category
     AND e1.title = e2.title   
-    AND e1.cluster_key = e2.cluster_key
+    AND e1.short_description = e2.short_description
 WHERE e1.event_id = $2
 ON CONFLICT DO NOTHING
 `, email, eventId)
@@ -278,7 +265,7 @@ WHERE email = $1
     FROM events e1 JOIN events e2 ON e1.year = e2.year
           AND e1.short_category = e2.short_category
           AND e1.title = e2.title
-          AND e1.cluster_key = e2.cluster_key
+          AND e1.short_description = e2.short_description
     WHERE e1.event_id = $2
   )
 `, email, eventId)
@@ -348,30 +335,21 @@ func fetchStarredInternal(q queryable, email string, year int) (*UserStarredEven
 	yearFilter := ""
 	args := []interface{}{email}
 	if year > 0 {
-		yearFilter = " AND e.year = $2"
+		yearFilter = " AND e1.year = $2"
 		args = append(args, year)
 	}
 
 	query := fmt.Sprintf(`
-SELECT DISTINCT e.event_id, 
-       CASE WHEN s.event_id IS NOT NULL THEN s.level ELSE 'group' END as level
-FROM events e
-LEFT JOIN starred_events s ON e.event_id = s.event_id AND s.email = $1
-WHERE e.active %s AND (
-    s.event_id IS NOT NULL
+SELECT DISTINCT e2.event_id, 
+       CASE WHEN se.level = 'group' THEN 'group' ELSE 'event' END as level
+FROM starred_events se
+JOIN events e1 ON se.event_id = e1.event_id
+JOIN events e2 ON (
+    (se.level = 'event' AND e1.event_id = e2.event_id)
     OR
-    EXISTS (
-        SELECT 1 
-        FROM starred_events se
-        JOIN events e_group ON se.event_id = e_group.event_id
-        WHERE se.email = $1 
-          AND se.level = 'group'
-          AND e_group.year = e.year
-          AND e_group.short_category = e.short_category
-          AND e_group.title = e.title
-          AND e_group.cluster_key = e.cluster_key
-    )
-)`, yearFilter)
+    (se.level = 'group' AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description)
+)
+WHERE se.email = $1 %s AND e2.active`, yearFilter)
 
 	rows, err := q.Query(query, args...)
 	if err != nil {

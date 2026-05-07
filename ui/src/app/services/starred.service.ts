@@ -47,11 +47,13 @@ export class StarredService {
 
     this.loadedYear.set(year);
     this.api.getUserEvents(user.email, year).subscribe(data => {
-      const groupIds = data.starredClusters || [];
-      const eventIds = data.starredEvents || [];
-      this.groupStarredIds.set(groupIds);
-      this.starredIds.set([...new Set([...groupIds, ...eventIds])]);
+      this.updateState(data.starredClusters || [], data.starredEvents || []);
     });
+  }
+
+  updateState(starredClusters: string[], starredEvents: string[]): void {
+    this.groupStarredIds.set(starredClusters);
+    this.starredIds.set([...new Set([...starredClusters, ...starredEvents])]);
   }
 
   isStarred(eventId: string): boolean {

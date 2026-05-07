@@ -32,7 +32,6 @@ export class StarredComponent implements OnInit {
   private titleService = inject(Title);
 
   year = signal<number>(new Date().getFullYear());
-  events = signal<EventSummary[]>([]);
   starredList = signal<StarredEventDetail[]>([]);
   loading = signal<boolean>(true);
   viewMode = signal<'list' | 'calendar'>('calendar');
@@ -168,8 +167,70 @@ export class StarredComponent implements OnInit {
   }
 
   fetchData(): void {
-    this.fetchStarred();
-    this.fetchCalendarData();
+    const year = this.year();
+    this.loading.set(true);
+
+    this.api.getStarredPageData(year).subscribe({
+      next: (data) => {
+        // Update local state for list and calendar
+        this.starredList.set(data.individualEvents);
+        this.metadata = data.metadata;
+        
+        // Update calendar events
+        const fcEvents = data.calendarEvents.map(e => ({
+          title: e.title,
+          start: e.startTime,
+          end: e.endTime,
+          url: e.plannerUrl,
+          backgroundColor: this.categoryColors[e.shortCategory] || '#888888',
+          borderColor: this.categoryColors[e.shortCategory] || '#888888',
+          extendedProps: {
+            description: e.shortDescription,
+            similarCount: e.similarCount
+          }
+        }));
+
+        this.hasWednesday = data.calendarEvents.some(e => {
+          const d = new Date(e.startTime);
+          return d.getDay() === 3;
+        });
+
+        const hiddenDays = this.hasWednesday ? [] : [3];
+        let initialDate = this.getDesiredWeekStart();
+        let duration = this.hasWednesday ? 5 : 4;
+
+        const end = new Date(data.metadata.endDate);
+        end.setDate(end.getDate() + 1);
+        const inclusiveEndDate = end.toISOString().split('T')[0];
+
+        this.calendarOptions.update(options => ({
+          ...options,
+          initialDate: initialDate,
+          validRange: {
+            start: data.metadata.startDate,
+            end: inclusiveEndDate
+          },
+          hiddenDays: hiddenDays,
+          views: {
+            ...options.views,
+            genconWeek: {
+              ...options.views?.['genconWeek'],
+              duration: { days: duration }
+            }
+          },
+          events: fcEvents
+        }));
+
+        // Sync global starred service state
+        this.starredService.updateState(data.starredClusters || [], data.starredEvents || []);
+        
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('Error fetching starred page data', err);
+        this.loading.set(false);
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -178,25 +239,8 @@ export class StarredComponent implements OnInit {
       if (this.year() !== newYear) {
         this.year.set(newYear);
       }
-      this.starredService.fetchStarred(this.year());
-    });
-  }
-
-  fetchStarred(): void {
-    this.loading.set(true);
-    forkJoin({
-      summary: this.api.getStarredEvents(this.year()),
-      details: this.api.getStarredIndividualEvents(this.year())
-    }).subscribe({
-      next: (data) => {
-        this.events.set(data.summary);
-        this.starredList.set(data.details);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Error fetching starred events', err);
-        this.loading.set(false);
-      }
+      // No need to call starredService.fetchStarred here, 
+      // as fetchData() will do it more efficiently
     });
   }
 
@@ -209,61 +253,6 @@ export class StarredComponent implements OnInit {
       start.setDate(start.getDate() + 1);
       return start.toISOString().split('T')[0];
     }
-  }
-
-  fetchCalendarData(): void {
-    const year = this.year();
-    
-    forkJoin({
-      metadata: this.api.getCalendarMetadata(year),
-      events: this.api.getStarredCalendarEvents(year)
-    }).subscribe(({ metadata, events }) => {
-      this.metadata = metadata;
-      
-      const fcEvents = events.map(e => ({
-        title: e.title,
-        start: e.startTime,
-        end: e.endTime,
-        url: e.plannerUrl,
-        backgroundColor: this.categoryColors[e.shortCategory] || '#888888',
-        borderColor: this.categoryColors[e.shortCategory] || '#888888',
-        extendedProps: {
-          description: e.shortDescription,
-          similarCount: e.similarCount
-        }
-      }));
-
-      this.hasWednesday = events.some(e => {
-        const d = new Date(e.startTime);
-        return d.getDay() === 3;
-      });
-
-      const hiddenDays = this.hasWednesday ? [] : [3];
-      let initialDate = this.getDesiredWeekStart();
-      let duration = this.hasWednesday ? 5 : 4;
-
-      const end = new Date(metadata.endDate);
-      end.setDate(end.getDate() + 1);
-      const inclusiveEndDate = end.toISOString().split('T')[0];
-
-      this.calendarOptions.update(options => ({
-        ...options,
-        initialDate: initialDate,
-        validRange: {
-          start: metadata.startDate,
-          end: inclusiveEndDate
-        },
-        hiddenDays: hiddenDays,
-        views: {
-          ...options.views,
-          genconWeek: {
-            ...options.views?.['genconWeek'],
-            duration: { days: duration }
-          }
-        },
-        events: fcEvents
-      }));
-    });
   }
 
   setViewMode(mode: 'list' | 'calendar'): void {

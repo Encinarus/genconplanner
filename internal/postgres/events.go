@@ -158,7 +158,7 @@ JOIN (
       AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
       AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
       AND (LENGTH($8) = 0 OR (search_key @@ websearch_to_tsquery('english', $8)))
-    GROUP BY cluster_key, short_category, title
+    GROUP BY e.short_description, short_category, title
 ) c ON e.event_id = c.event_id
 JOIN (
     SELECT alias, MAX(id) as id
@@ -221,7 +221,7 @@ JOIN (
         sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
     FROM events
     WHERE active and year=$1 and short_category=$2
-    GROUP BY cluster_key, short_category, title
+    GROUP BY e.short_description, short_category, title
 ) as c ON e.event_id = c.event_id
 JOIN (
     SELECT alias, MAX(id) as id
@@ -329,7 +329,7 @@ func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.
 		 JOIN events e2 on e1.year = e2.year
 			  AND e1.short_category = e2.short_category
 			  AND e1.title = e2.title
-			  AND e1.cluster_key = e2.cluster_key
+			  AND e1.short_description = e2.short_description
 		 LEFT JOIN starred_events se ON se.event_id = e1.event_id AND se.email = $3
 		 LEFT JOIN orgs o ON lower(o.alias) = lower(e1.org_group)
 	WHERE e2.event_id = $1
@@ -399,7 +399,7 @@ SELECT
     %v as search_rank
 FROM %v
 WHERE %v
-GROUP BY cluster_key, short_category, title
+GROUP BY short_description, short_category, title
 `, titleRank, searchRank, innerFrom, innerWhere)
 
 	// Default to true so we don't filter anything out

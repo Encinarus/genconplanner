@@ -64,6 +64,16 @@ export interface CalendarMetadata {
   endDate: string;
 }
 
+export interface StarredPageData {
+  email: string;
+  year: number;
+  calendarEvents: CalendarEvent[];
+  individualEvents: StarredEventDetail[];
+  metadata: CalendarMetadata;
+  starredClusters: string[];
+  starredEvents: string[];
+}
+
 export interface Event {
   eventId: string;
   year: number;
@@ -158,5 +168,9 @@ export class ApiService {
 
   getCalendarMetadata(year: number): Observable<CalendarMetadata> {
     return this.http.get<CalendarMetadata>(`/api/v1/calendar/metadata/${year}`);
+  }
+
+  getStarredPageData(year: number): Observable<StarredPageData> {
+    return this.http.get<StarredPageData>(`/api/v1/user/starred/page/${year}`);
   }
 }
