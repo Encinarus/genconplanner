@@ -9,9 +9,7 @@ services:
     links:
     - db
     environment:
-    - POSTGRES_DB=genconplanner
-    - POSTGRES_USER=postgres
-    - POSTGRES_PASSWORD=g3nc0n
+    - DATABASE_URL=postgres://postgres:g3nc0n@db:5432/genconplanner?sslmode=disable
 
   web:
     build:
@@ -25,9 +23,7 @@ services:
     depends_on:
     - update
     environment:
-    - POSTGRES_DB=genconplanner
-    - POSTGRES_USER=postgres
-    - POSTGRES_PASSWORD=g3nc0n
+    - DATABASE_URL=postgres://postgres:g3nc0n@db:5432/genconplanner?sslmode=disable
     - FIREBASE_CONFIG=${FIREBASE_CONFIG}
     - FIREBASE_API_KEY=${FIREBASE_API_KEY}
     - FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN}

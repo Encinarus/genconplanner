@@ -138,5 +138,9 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	repo := &api.PostgresRepository{DB: db}
 	api.BuildAPIRoutes(r.Group("/api"), repo, cache, app)
 
-	r.Run(fmt.Sprintf(":%d", *port))
+	p := *port
+	if os.Getenv("PORT") != "" {
+		fmt.Sscanf(os.Getenv("PORT"), "%d", &p)
+	}
+	r.Run(fmt.Sprintf(":%d", p))
 }
