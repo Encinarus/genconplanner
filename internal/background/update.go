@@ -79,12 +79,18 @@ func UpdateEventsFromGencon(db *sql.DB, sourceFile string) {
 		// Recover any panic, log error, and save failure state before re-panicking
 		if r := recover(); r != nil {
 			err = r.(error)
-			postgres.LogUpdate(db, stats, false, err.Error())
+			if logErr := postgres.LogUpdate(db, stats, false, err.Error()); logErr != nil {
+				logging.LogWithError(logErr, "Failed to record update log (panic path)")
+			}
 			panic(r)
 		} else if err != nil {
-			postgres.LogUpdate(db, stats, false, err.Error())
+			if logErr := postgres.LogUpdate(db, stats, false, err.Error()); logErr != nil {
+				logging.LogWithError(logErr, "Failed to record update log (error path)")
+			}
 		} else {
-			postgres.LogUpdate(db, stats, true, "")
+			if logErr := postgres.LogUpdate(db, stats, true, ""); logErr != nil {
+				logging.LogWithError(logErr, "Failed to record update log (success path)")
+			}
 		}
 	}()
 
