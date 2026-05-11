@@ -46,10 +46,11 @@ type StarredPageData struct {
 }
 
 type Party struct {
-	Id      int64         `json:"id"`
-	Name    string        `json:"name"`
-	Year    int64         `json:"year"`
-	Members []PartyMember `json:"members"`
+	Id          int64         `json:"id"`
+	Name        string        `json:"name"`
+	Year        int64         `json:"year"`
+	LeaderEmail string        `json:"leaderEmail"`
+	Members     []PartyMember `json:"members"`
 }
 
 type PartyMember struct {
@@ -552,12 +553,256 @@ func (s *Server) CreateParty(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, Party{
-		Id:      dbParty.Id,
-		Name:    dbParty.Name,
-		Year:    dbParty.Year,
-		Members: members,
-	})
+	apiParty := Party{
+		Id:          dbParty.Id,
+		Name:        dbParty.Name,
+		Year:        dbParty.Year,
+		LeaderEmail: dbParty.LeaderEmail,
+		Members:     members,
+	}
+
+	c.JSON(http.StatusOK, apiParty)
+}
+
+func (s *Server) GetParty(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("party_id"), 10, 64)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid party ID"})
+		return
+	}
+
+	dbParty, err := s.Repo.LoadParty(id)
+	if err != nil {
+		log.Printf("error loading party: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+		return
+	}
+
+	members := make([]PartyMember, 0, len(dbParty.Members))
+	for _, m := range dbParty.Members {
+		members = append(members, PartyMember{
+			DisplayName: m.DisplayName,
+			Email:       m.Email,
+		})
+	}
+
+	apiParty := Party{
+		Id:          dbParty.Id,
+		Name:        dbParty.Name,
+		Year:        dbParty.Year,
+		LeaderEmail: dbParty.LeaderEmail,
+		Members:     members,
+	}
+
+	c.JSON(http.StatusOK, apiParty)
+}
+
+type RenamePartyRequest struct {
+	Name string `json:"name"`
+}
+
+func (s *Server) RenameParty(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	id, err := strconv.ParseInt(c.Param("party_id"), 10, 64)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid party ID"})
+		return
+	}
+
+	var req RenamePartyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
+		return
+	}
+
+	// Auth check: must be leader
+	party, err := s.Repo.LoadParty(id)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+		return
+	}
+
+	if party.LeaderEmail != email {
+		c.AbortWithStatusJSON(http.StatusForbidden, ErrorResponse{Error: "Only the Party Leader can rename the party"})
+		return
+	}
+
+	err = s.Repo.RenameParty(id, req.Name)
+	if err != nil {
+		log.Printf("error renaming party: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+type TransferLeadershipRequest struct {
+	NewLeaderEmail string `json:"newLeaderEmail"`
+}
+
+func (s *Server) TransferLeadership(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	id, err := strconv.ParseInt(c.Param("party_id"), 10, 64)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid party ID"})
+		return
+	}
+
+	var req TransferLeadershipRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
+		return
+	}
+
+	// Auth check: must be leader
+	party, err := s.Repo.LoadParty(id)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+		return
+	}
+
+	if party.LeaderEmail != email {
+		c.AbortWithStatusJSON(http.StatusForbidden, ErrorResponse{Error: "Only the Party Leader can transfer leadership"})
+		return
+	}
+
+	// Verify new leader is a member
+	isMember := false
+	for _, m := range party.Members {
+		if m.Email == req.NewLeaderEmail {
+			isMember = true
+			break
+		}
+	}
+
+	if !isMember {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "New leader must be a member of the party"})
+		return
+	}
+
+	err = s.Repo.UpdatePartyLeader(id, req.NewLeaderEmail)
+	if err != nil {
+		log.Printf("error transferring leadership: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+func (s *Server) JoinParty(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	id, err := strconv.ParseInt(c.Param("party_id"), 10, 64)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid party ID"})
+		return
+	}
+
+	err = s.Repo.JoinParty(id, email)
+	if err != nil {
+		log.Printf("error joining party: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+func (s *Server) LeaveParty(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	id, err := strconv.ParseInt(c.Param("party_id"), 10, 64)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid party ID"})
+		return
+	}
+
+	party, err := s.Repo.LoadParty(id)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+		return
+	}
+
+	if party.LeaderEmail == email && len(party.Members) > 1 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Party Leader cannot leave unless they transfer leadership or are the last member"})
+		return
+	}
+
+	err = s.Repo.RemoveMember(id, email)
+	if err != nil {
+		log.Printf("error leaving party: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	// If last member leaves, delete the party
+	if len(party.Members) == 1 {
+		err = s.Repo.DeleteParty(id)
+		if err != nil {
+			log.Printf("error deleting empty party: %v\n", err)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+func (s *Server) DeleteParty(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	id, err := strconv.ParseInt(c.Param("party_id"), 10, 64)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid party ID"})
+		return
+	}
+
+	party, err := s.Repo.LoadParty(id)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+		return
+	}
+
+	if party.LeaderEmail != email {
+		c.AbortWithStatusJSON(http.StatusForbidden, ErrorResponse{Error: "Only the Party Leader can delete the party"})
+		return
+	}
+
+	if len(party.Members) > 1 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Party can only be deleted if there is only one member remaining"})
+		return
+	}
+
+	err = s.Repo.DeleteParty(id)
+	if err != nil {
+		log.Printf("error deleting party: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 type RenameUserRequest struct {
@@ -597,6 +842,12 @@ func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.GET("/user/events/:email/:year", s.LoadUserEvents)
 	group.GET("/user/parties", s.GetParties)
 	group.POST("/user/parties", s.CreateParty)
+	group.GET("/party/:party_id", s.GetParty)
+	group.POST("/party/:party_id/rename", s.RenameParty)
+	group.POST("/party/:party_id/transfer", s.TransferLeadership)
+	group.POST("/party/:party_id/join", s.JoinParty)
+	group.POST("/party/:party_id/leave", s.LeaveParty)
+	group.DELETE("/party/:party_id", s.DeleteParty)
 	group.POST("/user/rename", s.RenameUser)
 	group.GET("/user/starred/:year", s.GetStarredEvents)
 	group.GET("/user/starred/list/:year", s.GetStarredIndividualEvents)

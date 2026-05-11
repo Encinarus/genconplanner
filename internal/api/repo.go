@@ -25,7 +25,13 @@ type EventRepository interface {
 
 	// Party related
 	LoadParties(user *postgres.User) ([]*postgres.Party, error)
+	LoadParty(id int64) (*postgres.Party, error)
 	NewParty(name string, year int64, founderEmail string) (*postgres.Party, error)
+	UpdatePartyLeader(id int64, newLeaderEmail string) error
+	RenameParty(id int64, name string) error
+	DeleteParty(id int64) error
+	RemoveMember(partyId int64, email string) error
+	JoinParty(partyId int64, email string) error
 
 	// User related
 	UpdateDisplayName(email string, name string) error
@@ -96,6 +102,30 @@ func (r *PostgresRepository) LoadParties(user *postgres.User) ([]*postgres.Party
 
 func (r *PostgresRepository) NewParty(name string, year int64, founderEmail string) (*postgres.Party, error) {
 	return postgres.NewParty(r.DB, name, year, founderEmail)
+}
+
+func (r *PostgresRepository) LoadParty(id int64) (*postgres.Party, error) {
+	return postgres.LoadParty(r.DB, id)
+}
+
+func (r *PostgresRepository) UpdatePartyLeader(id int64, newLeaderEmail string) error {
+	return postgres.UpdatePartyLeader(r.DB, id, newLeaderEmail)
+}
+
+func (r *PostgresRepository) RenameParty(id int64, name string) error {
+	return postgres.RenameParty(r.DB, id, name)
+}
+
+func (r *PostgresRepository) DeleteParty(id int64) error {
+	return postgres.DeleteParty(r.DB, id)
+}
+
+func (r *PostgresRepository) RemoveMember(partyId int64, email string) error {
+	return postgres.RemoveMember(r.DB, partyId, email)
+}
+
+func (r *PostgresRepository) JoinParty(partyId int64, email string) error {
+	return postgres.JoinParty(r.DB, partyId, email)
 }
 
 func (r *PostgresRepository) UpdateDisplayName(email string, name string) error {

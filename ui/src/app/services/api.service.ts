@@ -83,6 +83,7 @@ export interface Party {
   id: number;
   name: string;
   year: number;
+  leaderEmail: string;
   members: PartyMember[];
 }
 
@@ -222,6 +223,30 @@ export class ApiService {
 
   createParty(name: string, year: number): Observable<Party> {
     return this.http.post<Party>(`/api/v1/user/parties`, { name, year });
+  }
+
+  getParty(id: number): Observable<Party> {
+    return this.http.get<Party>(`/api/v1/party/${id}`);
+  }
+
+  renameParty(id: number, name: string): Observable<any> {
+    return this.http.post<any>(`/api/v1/party/${id}/rename`, { name });
+  }
+
+  transferLeadership(id: number, newLeaderEmail: string): Observable<any> {
+    return this.http.post<any>(`/api/v1/party/${id}/transfer`, { newLeaderEmail });
+  }
+
+  joinParty(id: number): Observable<any> {
+    return this.http.post<any>(`/api/v1/party/${id}/join`, {});
+  }
+
+  leaveParty(id: number): Observable<any> {
+    return this.http.post<any>(`/api/v1/party/${id}/leave`, {});
+  }
+
+  deleteParty(id: number): Observable<any> {
+    return this.http.delete<any>(`/api/v1/party/${id}`);
   }
 
   renameUser(displayName: string): Observable<any> {

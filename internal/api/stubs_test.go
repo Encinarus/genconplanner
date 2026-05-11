@@ -25,7 +25,13 @@ type StubRepository struct {
 	ClearStarredEventsFn   func(string, int) error
 	BulkStarEventsFn       func(string, int, []string, bool) error
 	LoadPartiesFn          func(*postgres.User) ([]*postgres.Party, error)
+	LoadPartyFn            func(int64) (*postgres.Party, error)
 	NewPartyFn             func(string, int64, string) (*postgres.Party, error)
+	UpdatePartyLeaderFn    func(int64, string) error
+	RenamePartyFn          func(int64, string) error
+	DeletePartyFn          func(int64) error
+	RemoveMemberFn         func(int64, string) error
+	JoinPartyFn            func(int64, string) error
 	UpdateDisplayNameFn    func(string, string) error
 }
 
@@ -74,8 +80,44 @@ func (s *StubRepository) BulkStarEvents(email string, year int, eventIds []strin
 func (s *StubRepository) LoadParties(user *postgres.User) ([]*postgres.Party, error) {
 	return s.LoadPartiesFn(user)
 }
+func (s *StubRepository) LoadParty(id int64) (*postgres.Party, error) {
+	if s.LoadPartyFn == nil {
+		return nil, nil
+	}
+	return s.LoadPartyFn(id)
+}
 func (s *StubRepository) NewParty(name string, year int64, founderEmail string) (*postgres.Party, error) {
 	return s.NewPartyFn(name, year, founderEmail)
+}
+func (s *StubRepository) UpdatePartyLeader(id int64, newLeaderEmail string) error {
+	if s.UpdatePartyLeaderFn == nil {
+		return nil
+	}
+	return s.UpdatePartyLeaderFn(id, newLeaderEmail)
+}
+func (s *StubRepository) RenameParty(id int64, name string) error {
+	if s.RenamePartyFn == nil {
+		return nil
+	}
+	return s.RenamePartyFn(id, name)
+}
+func (s *StubRepository) DeleteParty(id int64) error {
+	if s.DeletePartyFn == nil {
+		return nil
+	}
+	return s.DeletePartyFn(id)
+}
+func (s *StubRepository) RemoveMember(partyId int64, email string) error {
+	if s.RemoveMemberFn == nil {
+		return nil
+	}
+	return s.RemoveMemberFn(partyId, email)
+}
+func (s *StubRepository) JoinParty(partyId int64, email string) error {
+	if s.JoinPartyFn == nil {
+		return nil
+	}
+	return s.JoinPartyFn(partyId, email)
 }
 func (s *StubRepository) UpdateDisplayName(email string, name string) error {
 	return s.UpdateDisplayNameFn(email, name)

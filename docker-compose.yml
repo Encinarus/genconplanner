@@ -1,5 +1,5 @@
 # vim:ts=2:
-version: '3'
+
 services:
 
   update:
@@ -7,9 +7,9 @@ services:
       dockerfile: ./Dockerfile
       target: update
     links:
-    - db
+      - db
     environment:
-    - DATABASE_URL=postgres://postgres:g3nc0n@db:5432/genconplanner?sslmode=disable
+      - DATABASE_URL=postgres://postgres:g3nc0n@db:5432/genconplanner?sslmode=disable
 
   web:
     build:
@@ -17,48 +17,46 @@ services:
       target: web
     restart: on-failure
     ports:
-    - "8080:8080"
+      - "8080:8080"
     links:
-    - db
+      - db
     depends_on:
-    - update
+      - update
     environment:
-    - DATABASE_URL=postgres://postgres:g3nc0n@db:5432/genconplanner?sslmode=disable
-    - FIREBASE_CONFIG=${FIREBASE_CONFIG}
-    - FIREBASE_API_KEY=${FIREBASE_API_KEY}
-    - FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN}
-    - FIREBASE_DATABASE_URL=${FIREBASE_DATABASE_URL}
-    - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
-    - FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET}
-    - FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID}
+      - DATABASE_URL=postgres://postgres:g3nc0n@db:5432/genconplanner?sslmode=disable
+      - FIREBASE_CONFIG=${FIREBASE_CONFIG}
+      - FIREBASE_API_KEY=${FIREBASE_API_KEY}
+      - FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN}
+      - FIREBASE_DATABASE_URL=${FIREBASE_DATABASE_URL}
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET}
+      - FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID}
 
   db:
     image: "postgres:16.3-bookworm"
     restart: on-failure
     volumes:
-    - db_data:/var/lib/postgresql/data
-    - ./internal/postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - db_data:/var/lib/postgresql/data
+      - ./internal/postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     environment:
-    - POSTGRES_DB=genconplanner
-    - POSTGRES_USER=postgres
-    - POSTGRES_PASSWORD=g3nc0n
+      - POSTGRES_DB=genconplanner
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=g3nc0n
     ports:
-    - "5432:5432"
+      - "5432:5432"
 
   pgadmin:
     image: "dpage/pgadmin4:8.6"
     restart: on-failure
     links:
-    - db
+      - db
     environment:
-      PGADMIN_DEFAULT_EMAIL: user-name@domain-name.com
-      PGADMIN_DEFAULT_PASSWORD: strong-password
+      PGADMIN_DEFAULT_EMAIL: gencon@programmer.com
+      PGADMIN_DEFAULT_PASSWORD: default-password
     ports:
-    - "8888:80"
+      - "8888:80"
     volumes:
-    - pgadmin-data:/var/lib/pgadmindata
-
-
+      - pgadmin-data:/var/lib/pgadmindata
 
 volumes:
   db_data:
