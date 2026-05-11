@@ -417,3 +417,19 @@ EXECUTE PROCEDURE public.update_org();
 -- update orgs o
 -- set id = (select min(o2.id) from orgs o2
 -- 		  where translate(lower(o2.alias), '''.",!:; ', '') = translate(lower(o.alias), '''.",!:; ', '') )
+
+-- Table: public.update_log
+
+-- DROP TABLE public.update_log;
+
+CREATE TABLE public.update_log (
+    id SERIAL PRIMARY KEY,
+    timestamp timestamp with time zone DEFAULT now(),
+    success boolean,
+    events_seen integer,
+    events_inserted integer,
+    events_updated integer,
+    events_deleted integer,
+    events_unchanged integer,
+    error_message text
+);

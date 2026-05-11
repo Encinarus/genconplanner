@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
@@ -29,6 +30,7 @@ type EventRepository interface {
 
 	// User related
 	UpdateDisplayName(email string, name string) error
+	GetLastUpdate() (time.Time, error)
 }
 
 type PostgresRepository struct {
@@ -100,5 +102,9 @@ func (r *PostgresRepository) NewParty(name string, year int64, founderEmail stri
 
 func (r *PostgresRepository) UpdateDisplayName(email string, name string) error {
 	return postgres.UpdateDisplayName(r.DB, email, name)
+}
+
+func (r *PostgresRepository) GetLastUpdate() (time.Time, error) {
+	return postgres.GetLastUpdate(r.DB)
 }
 

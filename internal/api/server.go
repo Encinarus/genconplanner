@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"net/http"
 
 	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/background"
@@ -132,6 +133,7 @@ func GetUserEmail(c *gin.Context) string {
 func (s *Server) RegisterRoutes(group *gin.RouterGroup) {
 	v1 := group.Group("/v1")
 	{
+		v1.GET("/metadata/last_update", s.GetUpdateStatus)
 		s.registerCategoryRoutes(v1)
 		s.registerEventRoutes(v1)
 
@@ -142,4 +144,13 @@ func (s *Server) RegisterRoutes(group *gin.RouterGroup) {
 			s.registerUserRoutes(auth)
 		}
 	}
+}
+
+func (s *Server) GetUpdateStatus(c *gin.Context) {
+	lastUpdate, err := s.Repo.GetLastUpdate()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"lastUpdate": lastUpdate})
 }
