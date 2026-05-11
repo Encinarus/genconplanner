@@ -2,3 +2,8 @@
 <div class="main container">
   <router-outlet></router-outlet>
 </div>
+<footer class="container text-center mt-4 mb-4 text-muted pb-4">
+  @if (lastUpdate()) {
+    <small>Last data update: {{ lastUpdate() | date:'medium' }}</small>
+  }
+</footer>
