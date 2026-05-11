@@ -149,7 +149,8 @@ func (s *Server) RegisterRoutes(group *gin.RouterGroup) {
 func (s *Server) GetUpdateStatus(c *gin.Context) {
 	lastUpdate, err := s.Repo.GetLastUpdate()
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		log.Printf("Error getting last update: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: fmt.Sprintf("Internal server error: %v", err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"lastUpdate": lastUpdate})
