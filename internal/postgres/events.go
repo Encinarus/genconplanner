@@ -567,7 +567,7 @@ func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) (UpdateSta
 	for _, parsedEvent := range parsedEvents {
 		if updateTime, found := persistedEvents[parsedEvent.EventId]; found {
 			_, isActive := activeEvents[parsedEvent.EventId]
-			if !isActive || updateTime.Before(parsedEvent.LastModified) {
+			if !isActive || updateTime.Truncate(time.Second).Before(parsedEvent.LastModified.Truncate(time.Second)) {
 				updatedEvents = append(updatedEvents, parsedEvent)
 			} else {
 				stats.Unchanged++
