@@ -3,3 +3,6 @@ build:
     web:
       dockerfile: Dockerfile
       target: web
+    update:
+      dockerfile: Dockerfile
+      target: update

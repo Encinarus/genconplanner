@@ -532,9 +532,25 @@ func bulkDelete(tx *sql.Tx, deletedEvents []string) error {
 	return nil
 }
 
-func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) error {
+type UpdateStats struct {
+	Seen      int
+	Inserted  int
+	Updated   int
+	Deleted   int
+	Unchanged int
+}
+
+func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) (UpdateStats, error) {
+	var stats UpdateStats
+	if len(parsedEvents) == 0 {
+		return stats, nil
+	}
+	stats.Seen = len(parsedEvents)
 	year := parsedEvents[0].Year
 	activeEvents, inactiveEvents, err := loadEventIds(tx, year)
+	if err != nil {
+		return stats, err
+	}
 	persistedEvents := make(map[string]time.Time, len(activeEvents)+len(inactiveEvents))
 	for id, updateTime := range activeEvents {
 		persistedEvents[id] = updateTime
@@ -543,24 +559,22 @@ func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) error {
 		persistedEvents[id] = updateTime
 	}
 
-	if err != nil {
-		return err
-	}
 	log.Printf("Loaded %d Rows\n", len(persistedEvents))
 
 	var newEvents []*events.GenconEvent
 	var updatedEvents []*events.GenconEvent
 
-	latestUpdate := parsedEvents[0].LastModified
 	for _, parsedEvent := range parsedEvents {
-		if _, found := persistedEvents[parsedEvent.EventId]; found {
-			updatedEvents = append(updatedEvents, parsedEvent)
+		if updateTime, found := persistedEvents[parsedEvent.EventId]; found {
+			_, isActive := activeEvents[parsedEvent.EventId]
+			if !isActive || updateTime.Truncate(time.Second).Before(parsedEvent.LastModified.Truncate(time.Second)) {
+				updatedEvents = append(updatedEvents, parsedEvent)
+			} else {
+				stats.Unchanged++
+			}
 			delete(activeEvents, parsedEvent.EventId)
 		} else {
 			newEvents = append(newEvents, parsedEvent)
-		}
-		if latestUpdate.Before(parsedEvent.LastModified) {
-			latestUpdate = parsedEvent.LastModified
 		}
 	}
 
@@ -570,20 +584,25 @@ func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) error {
 		deletedEvents = append(deletedEvents, event)
 	}
 
-	log.Printf("Inserting %d events\n", len(newEvents))
-	log.Printf("Updating %d events\n", len(updatedEvents))
-	log.Printf("Deleting %d events\n", len(deletedEvents))
+	stats.Inserted = len(newEvents)
+	stats.Updated = len(updatedEvents)
+	stats.Deleted = len(deletedEvents)
+
+	log.Printf("Inserting %d events\n", stats.Inserted)
+	log.Printf("Updating %d events\n", stats.Updated)
+	log.Printf("Deleting %d events\n", stats.Deleted)
+	log.Printf("Unchanged %d events\n", stats.Unchanged)
 
 	err = bulkInsert(tx, newEvents)
 	if err != nil {
-		return err
+		return stats, err
 	}
 	err = bulkUpdate(tx, updatedEvents)
 	if err != nil {
-		return err
+		return stats, err
 	}
 	err = bulkDelete(tx, deletedEvents)
-	return err
+	return stats, err
 }
 
 func rangeSlice(min, max int) []interface{} {
@@ -784,4 +803,22 @@ func bulkInsert(tx *sql.Tx, newRows []*events.GenconEvent) error {
 	}
 
 	return nil
+}
+
+func GetLastUpdate(db *sql.DB) (time.Time, error) {
+	var lastUpdate time.Time
+	err := db.QueryRow("SELECT timestamp FROM update_log WHERE success = true ORDER BY timestamp DESC LIMIT 1").Scan(&lastUpdate)
+	if err == sql.ErrNoRows {
+		err = db.QueryRow("SELECT max(last_modified) FROM events").Scan(&lastUpdate)
+	}
+	return lastUpdate, err
+}
+
+func LogUpdate(db *sql.DB, stats UpdateStats, success bool, errorMsg string) error {
+	_, err := db.Exec(`
+		INSERT INTO update_log (
+			success, events_seen, events_inserted, events_updated, events_deleted, events_unchanged, error_message
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		success, stats.Seen, stats.Inserted, stats.Updated, stats.Deleted, stats.Unchanged, errorMsg)
+	return err
 }

@@ -252,4 +252,8 @@ export class ApiService {
   renameUser(displayName: string): Observable<any> {
     return this.http.post<any>(`/api/v1/user/rename`, { displayName });
   }
+
+  getLastUpdate(): Observable<{lastUpdate: string}> {
+    return this.http.get<{lastUpdate: string}>(`/api/v1/metadata/last_update`);
+  }
 }

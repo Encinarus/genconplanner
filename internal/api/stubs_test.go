@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"time"
 
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
@@ -33,6 +34,7 @@ type StubRepository struct {
 	RemoveMemberFn         func(int64, string) error
 	JoinPartyFn            func(int64, string) error
 	UpdateDisplayNameFn    func(string, string) error
+	GetLastUpdateFn        func() (time.Time, error)
 }
 
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
@@ -121,6 +123,12 @@ func (s *StubRepository) JoinParty(partyId int64, email string) error {
 }
 func (s *StubRepository) UpdateDisplayName(email string, name string) error {
 	return s.UpdateDisplayNameFn(email, name)
+}
+func (s *StubRepository) GetLastUpdate() (time.Time, error) {
+	if s.GetLastUpdateFn != nil {
+		return s.GetLastUpdateFn()
+	}
+	return time.Time{}, nil
 }
 
 // StubAuthService implements AuthService for testing.

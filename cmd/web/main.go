@@ -70,18 +70,15 @@ func SetupBackground(db *sql.DB) {
 		}
 	}()
 
-	// TODO: decide if this should run here too.
-	if 1 == 2 {
-		genconTicker := time.NewTicker(time.Hour)
-		go func() {
-			for {
-				background.UpdateEventsFromGencon(db, *sourceFile)
-				select {
-				case <-genconTicker.C:
-				}
+	genconTicker := time.NewTicker(30 * time.Minute)
+	go func() {
+		for {
+			background.UpdateEventsFromGencon(db, *sourceFile)
+			select {
+			case <-genconTicker.C:
 			}
-		}()
-	}
+		}
+	}()
 }
 
 func SetupWeb(db *sql.DB, cache *background.GameCache) {
