@@ -3,7 +3,6 @@ package postgres
 import (
 	"database/sql"
 	"flag"
-	"fmt"
 	"os"
 	"time"
 )
@@ -17,6 +16,5 @@ func OpenDb() (*sql.DB, error) {
 	if connStr == "" {
 		connStr = os.Getenv("DATABASE_URL")
 	}
-	fmt.Println("dbString", connStr)
 	return sql.Open("postgres", connStr)
 }
