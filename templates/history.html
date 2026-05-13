@@ -17,7 +17,7 @@
                 <li>
                     <strong>
                         {{ $e.StartTime.Format "3:04 PM" }} - {{ $e.EndTime.Format "3:04 PM" }}
-                    </strong>: <a href="/event/{{ $e.EventId }}">{{ $e.EventId }}</a>
+                    </strong>: <a href="/legacy/event/{{ $e.EventId }}">{{ $e.EventId }}</a>
                     {{ $e.Title }} (<a href="{{ $e.GenconLink }}">Official Listing</a>)</li>
                 <li style="padding-left: 2em">{{ $e.ShortDescription }}</li>
             </ul>
@@ -35,7 +35,7 @@
                 <li><strong>
                         {{ $e.StartTime.Format "Monday" }}
                         {{ $e.StartTime.Format "3:04 PM" }} - {{ $e.EndTime.Format "3:04 PM" }}
-                    </strong>: <a href="/event/{{ $e.EventId }}">{{ $e.EventId }}</a>
+                    </strong>: <a href="/legacy/event/{{ $e.EventId }}">{{ $e.EventId }}</a>
                     {{ $e.Title }} (<a href="{{ $e.GenconLink }}">Official Listing</a>)
                 </li>
                 <li>{{ if $e.GameSystem }}{{ $e.GameSystem }} {{ $e.RulesEdition }}{{ end }}</li>

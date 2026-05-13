@@ -5,7 +5,7 @@
 
 <nav class="navbar navbar-expand-sm bg-light navbar-light fixed-top border-bottom mb-4" id="navbar">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/cat/{{ $year }}">Gen Con Planner</a>
+        <a class="navbar-brand" href="/legacy/cat/{{ $year }}">Gen Con Planner (Legacy)</a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navToggler"
                 aria-controls="navToggler" aria-expanded="false" aria-label="Toggle navigation">
@@ -15,11 +15,12 @@
         <div class="collapse navbar-collapse" id="navToggler">
             <ul class="navbar-nav">
                 <li id="signinWidget" {{ if $display_name }}style="display: none;"{{end}}  class="loggedout nav-link"><a href="#" onclick="popupSignIn();">Signin</a></li>
-                <li {{ if not $display_name }}style="display: none;"{{end}} class="loggedin"><a href="/starred/{{ $year }}"  class="nav-link">My Starred Events</a></li>
+                <li {{ if not $display_name }}style="display: none;"{{end}} class="loggedin"><a href="/legacy/starred/{{ $year }}"  class="nav-link">My Starred Events</a></li>
                 <li {{ if not $display_name }}style="display: none;"{{end}} class="loggedin"><a href="#" onclick="signOut()"  class="nav-link">Sign out</a></li>
-                <li><a href="/about" class="nav-link">About</a></li>
+                <li><a href="/legacy/about" class="nav-link">About</a></li>
+                <li class="nav-item"><a href="/" class="nav-link text-primary font-weight-bold">Try New UI</a></li>
             </ul>
-            <form class="form-inline ms-auto" action="/search">
+            <form class="form-inline ms-auto" action="/legacy/search">
                 <input type="text" class="form-control" placeholder="Search..." name="q"/>
                 <input type="hidden" name="year" value="{{ $year }}"/>
             </form>

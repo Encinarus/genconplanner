@@ -32,7 +32,7 @@ func ServeV2(db *sql.DB, cache *background.GameCache) gin.HandlerFunc {
 		path := c.Request.URL.Path
 
 		// 1. Check if it's a physical file in static/v2
-		// The path will start with /v2/
+		// If path starts with /v2, strip it, otherwise use it as is
 		filePath := strings.TrimPrefix(path, "/v2")
 		filePath = strings.TrimPrefix(filePath, "/")
 		
@@ -44,11 +44,16 @@ func ServeV2(db *sql.DB, cache *background.GameCache) gin.HandlerFunc {
 			}
 		}
 
-		// 2. Check if it's an event route for meta tag injection: /v2/event/:eid
+		// 2. Check if it's an event route for meta tag injection: /event/:eid or /v2/event/:eid
+		eid := ""
 		if strings.HasPrefix(path, "/v2/event/") {
-			eid := strings.TrimPrefix(path, "/v2/event/")
-			eid = strings.TrimSuffix(eid, "/")
+			eid = strings.TrimPrefix(path, "/v2/event/")
+		} else if strings.HasPrefix(path, "/event/") {
+			eid = strings.TrimPrefix(path, "/event/")
+		}
 
+		if eid != "" {
+			eid = strings.TrimSuffix(eid, "/")
 			if len(eid) > 0 {
 				serveV2WithMeta(c, db, cache, eid)
 				return

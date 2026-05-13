@@ -93,7 +93,7 @@ func TestServeV2(t *testing.T) {
 		r.NoRoute(ServeV2(db, cache))
 
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/v2/event/BGM24123", nil)
+		req, _ := http.NewRequest("GET", "/event/BGM24123", nil)
 		r.ServeHTTP(w, req)
 
 		if err := mock.ExpectationsWereMet(); err != nil {
@@ -138,7 +138,7 @@ func TestServeV2(t *testing.T) {
 		r.NoRoute(ServeV2(db, cache))
 
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/v2/search", nil)
+		req, _ := http.NewRequest("GET", "/search", nil)
 		r.ServeHTTP(w, req)
 
 		if w.Code != http.StatusOK {
@@ -165,7 +165,7 @@ func TestServeV2(t *testing.T) {
 		r.NoRoute(ServeV2(db, cache))
 
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/v2/some-other-route", nil)
+		req, _ := http.NewRequest("GET", "/some-other-route", nil)
 		r.ServeHTTP(w, req)
 
 		// Should still return original content from cache
@@ -188,7 +188,7 @@ func TestServeV2(t *testing.T) {
 		r.NoRoute(ServeV2(db, cache))
 
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/v2/search", nil)
+		req, _ := http.NewRequest("GET", "/search", nil)
 		r.ServeHTTP(w, req)
 
 		body := w.Body.String()

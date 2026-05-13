@@ -14,7 +14,7 @@
 <div class="container">
     {{ template "navbar" .context }}
     <h2>This page is for merging {{len .orgs }} orgs</h2>
-    <form action="/admin/orgs/" method="post">
+    <form action="/legacy/admin/orgs/" method="post">
         <div class="row">
         <input type="submit" id="merge_orgs" name="merge_orgs" value="Merge">
         </div>

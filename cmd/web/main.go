@@ -100,30 +100,33 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.Static("/static/img", "static/img")
 	r.StaticFile("/robots.txt", "static/robots.txt")
 
-	r.GET("/v2/*v2path", web.ServeV2(db, cache))
+	r.GET("/v2/*v2path", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, c.Param("v2path"))
+	})
 	r.NoRoute(web.ServeV2(db, cache))
 
-	r.GET("/event/:eid", web.ViewEvent(db))
-	r.GET("/search", web.Search(db))
-	r.GET("/cat/:year/:cat", web.ViewCategory(db))
+	legacy := r.Group("/legacy")
+	legacy.GET("/event/:eid", web.ViewEvent(db))
+	legacy.GET("/search", web.Search(db))
+	legacy.GET("/cat/:year/:cat", web.ViewCategory(db))
 	index := func(c *gin.Context) {
 		c.Redirect(http.StatusTemporaryRedirect,
-			fmt.Sprintf("/cat/%d", time.Now().Year()))
+			fmt.Sprintf("/legacy/cat/%d", time.Now().Year()))
 	}
-	r.GET("/", index)
-	r.GET("/index", index)
-	r.GET("/cat/:year", web.CategoryList(db))
-	r.GET("/starred/:year", web.StarredPage(db))
-	r.POST("/starEvent/", web.StarEvent(db))
-	r.GET("/starEvent/", web.GetStarredEvents(db))
-	r.GET("/listStarredGroups/:year", web.GetStarredEventGroups(db))
-	r.GET("/about", web.About(db))
-	r.GET("/user", web.User(db))
-	r.GET("/admin/orgs/", web.ViewOrgs(db))
-	r.POST("/admin/orgs/", web.MergeOrgs(db))
+	legacy.GET("/", index)
+	legacy.GET("/index", index)
+	legacy.GET("/cat/:year", web.CategoryList(db))
+	legacy.GET("/starred/:year", web.StarredPage(db))
+	legacy.POST("/starEvent/", web.StarEvent(db))
+	legacy.GET("/starEvent/", web.GetStarredEvents(db))
+	legacy.GET("/listStarredGroups/:year", web.GetStarredEventGroups(db))
+	legacy.GET("/about", web.About(db))
+	legacy.GET("/user", web.User(db))
+	legacy.GET("/admin/orgs/", web.ViewOrgs(db))
+	legacy.POST("/admin/orgs/", web.MergeOrgs(db))
 
-	r.POST("/party/new", web.NewParty(db))
-	r.GET("/party/:party_id", web.Party(db))
+	legacy.POST("/party/new", web.NewParty(db))
+	legacy.GET("/party/:party_id", web.Party(db))
 
 	repo := &api.PostgresRepository{DB: db}
 	api.BuildAPIRoutes(r.Group("/api"), repo, cache, app)

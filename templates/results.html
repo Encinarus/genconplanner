@@ -45,7 +45,7 @@
         <small class="text-muted"  style="font-size: 1.4rem; font-weight: normal">{{ .subHeader }} - {{ .totalEvents }} events / {{ .groups }} groups (<a class="text-decoration-none" onclick="$('#advSearch').toggle('slow');" href="#">advanced search</a>)</small></h1>
 
     <div id="advSearch" style="display: none;"> {{/*   */}}
-        <form action="/search" method="get">
+        <form action="/legacy/search" method="get">
             <div class="form-group">
                 <label for="query">Query</label>
                 <input type="text" class="form-control" name="q" value="{{ .query.RawQuery }}">
@@ -129,7 +129,7 @@
             <div class="list-group list-group-flush pb-4">
 
             {{- range $row := (index $partitions $major $minor) -}}
-            <a href="/event/{{ $row.EventId }}" style="font-size: small; margin-bottom: -1px;"
+            <a href="/legacy/event/{{ $row.EventId }}" style="font-size: small; margin-bottom: -1px;"
                class="list-group-item-action eventGroup pt-3 px-3 border text-decoration-none">
                 <h5>{{ $row.Name }} <small class="text-muted"  style="font-size: 0.8rem">{{ $row.GameSystem }}</small></h5>
                 <p>{{ $row.Description }}</p>

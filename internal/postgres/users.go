@@ -260,14 +260,18 @@ ON CONFLICT (event_id, email) DO UPDATE SET tier = EXCLUDED.tier
 		// so that only this one gets the new tier
 		_, err = tx.Exec(`
 INSERT INTO starred_events (email, event_id, level, tier)
-SELECT $1, e2.event_id, 'event', se.tier
-FROM events e1
-JOIN events e2 ON e1.year = e2.year
-    AND e1.short_category = e2.short_category
-    AND e1.title = e2.title
-    AND e1.short_description = e2.short_description
-JOIN starred_events se ON se.event_id = e1.event_id
-WHERE e1.event_id = $2
+SELECT DISTINCT $1, e_target.event_id, 'event', se.tier
+FROM events e_clicked
+JOIN events e_group_member ON e_clicked.year = e_group_member.year
+    AND e_clicked.short_category = e_group_member.short_category
+    AND e_clicked.title = e_group_member.title
+    AND e_clicked.short_description = e_group_member.short_description
+JOIN starred_events se ON se.event_id = e_group_member.event_id
+JOIN events e_target ON e_clicked.year = e_target.year
+    AND e_clicked.short_category = e_target.short_category
+    AND e_clicked.title = e_target.title
+    AND e_clicked.short_description = e_target.short_description
+WHERE e_clicked.event_id = $2
   AND se.email = $1
   AND se.level = 'group'
 ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level
@@ -289,14 +293,18 @@ ON CONFLICT (event_id, email) DO UPDATE SET tier = EXCLUDED.tier, level = EXCLUD
 		// before deleting the specific one.
 		_, err = tx.Exec(`
 INSERT INTO starred_events (email, event_id, level, tier)
-SELECT $1, e2.event_id, 'event', se.tier
-FROM events e1
-JOIN events e2 ON e1.year = e2.year
-    AND e1.short_category = e2.short_category
-    AND e1.title = e2.title
-    AND e1.short_description = e2.short_description
-JOIN starred_events se ON se.event_id = e1.event_id
-WHERE e1.event_id = $2
+SELECT DISTINCT $1, e_target.event_id, 'event', se.tier
+FROM events e_clicked
+JOIN events e_group_member ON e_clicked.year = e_group_member.year
+    AND e_clicked.short_category = e_group_member.short_category
+    AND e_clicked.title = e_group_member.title
+    AND e_clicked.short_description = e_group_member.short_description
+JOIN starred_events se ON se.event_id = e_group_member.event_id
+JOIN events e_target ON e_clicked.year = e_target.year
+    AND e_clicked.short_category = e_target.short_category
+    AND e_clicked.title = e_target.title
+    AND e_clicked.short_description = e_target.short_description
+WHERE e_clicked.event_id = $2
   AND se.email = $1
   AND se.level = 'group'
 ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level

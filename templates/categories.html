@@ -16,7 +16,7 @@
             {{ range $cat := $row }}
                 <div class="col-md-6 col-sm-12 pb-1">
                 <a class="border btn btn-light text-center"
-                   href="/cat/{{ $year }}/{{ $cat.Code }}"
+                   href="/legacy/cat/{{ $year }}/{{ $cat.Code }}"
                    role="button"
                    style="width:100%; white-space:normal">{{ $cat.Name }}
                    <span class="badge rounded-pill bg-secondary">{{ $cat.Count }}</span></a>
