@@ -638,7 +638,7 @@ func TestBulkReplaceStarredEvents(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.BulkStarEventsFn = func(email string, year int, ids []string, overwrite bool) error {
+				stub.BulkStarEventsFn = func(email string, year int, ids []string, overwrite bool, asGroups bool) error {
 					if len(ids) == 2 && ids[0] == "BGM26ND306562" && ids[1] == "RPG26ND123456" {
 						return nil
 					}
@@ -656,7 +656,7 @@ func TestBulkReplaceStarredEvents(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.BulkStarEventsFn = func(email string, year int, ids []string, overwrite bool) error {
+				stub.BulkStarEventsFn = func(email string, year int, ids []string, overwrite bool, asGroups bool) error {
 					if len(ids) == 2 && ids[0] == "BGM26ND306562" && ids[1] == "RPG26ND123456" {
 						return nil
 					}

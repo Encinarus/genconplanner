@@ -196,6 +196,14 @@
                                     style="resize: none; font-family: monospace; font-size: 0.85rem;"></textarea>
                             </div>
                             
+                            <div class="form-check form-switch mb-4">
+                                <input class="form-check-input" type="checkbox" id="importAsGroups" 
+                                       [ngModel]="importAsGroups()" (ngModelChange)="importAsGroups.set($event)">
+                                <label class="form-check-label small fw-bold text-muted text-uppercase" for="importAsGroups">
+                                    Import as Groups <i class="bi bi-question-circle ms-1" title="This will star all sessions of the game, not just the specific sessions provided."></i>
+                                </label>
+                            </div>
+
                             <div class="d-flex flex-column gap-2">
                                 <div class="row g-2">
                                     <div class="col-6">

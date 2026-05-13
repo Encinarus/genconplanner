@@ -218,8 +218,8 @@ export class ApiService {
     return this.http.post<any>(`/api/v1/user/starred/clear/${year}`, {});
   }
 
-  bulkReplaceStarred(year: number, text: string, overwrite: boolean): Observable<any> {
-    return this.http.post<any>(`/api/v1/user/starred/bulk/${year}`, { text, overwrite });
+  bulkReplaceStarred(year: number, text: string, overwrite: boolean, asGroups: boolean): Observable<any> {
+    return this.http.post<any>(`/api/v1/user/starred/bulk/${year}`, { text, overwrite, asGroups });
   }
 
   getParties(): Observable<Party[]> {

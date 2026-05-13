@@ -41,6 +41,7 @@ export class StarredComponent implements OnInit {
   viewMode = signal<'list' | 'calendar' | 'bulk'>('calendar');
   tierFilter = signal<string>('all');
   bulkInput = signal<string>('');
+  importAsGroups = signal<boolean>(false);
   email = computed(() => this.auth.user()?.email || null);
 
   // Grouped and sorted starred events for the List view
@@ -92,10 +93,12 @@ export class StarredComponent implements OnInit {
         type: 'timeGrid',
         duration: { days: 5 },
         buttonText: 'week',
-        scrollTime: '06:00:00',
       }
     },
+    scrollTime: '06:00:00',
+    scrollTimeReset: false,
     height: 850,
+    allDaySlot: false,
     editable: false,
     navLinks: false,
     nowIndicator: true,
@@ -121,6 +124,14 @@ export class StarredComponent implements OnInit {
             trigger: 'hover focus',
             placement: 'auto'
           });
+        }
+      }
+    },
+    eventWillUnmount: (info) => {
+      if (typeof bootstrap !== 'undefined' && bootstrap.Popover) {
+        const popover = bootstrap.Popover.getInstance(info.el);
+        if (popover) {
+          popover.dispose();
         }
       }
     },
@@ -234,23 +245,36 @@ export class StarredComponent implements OnInit {
     end.setDate(end.getDate() + 1);
     const inclusiveEndDate = end.toISOString().split('T')[0];
 
-    this.calendarOptions.update(options => ({
-      ...options,
-      initialDate: initialDate,
-      validRange: {
-        start: data.metadata.startDate,
-        end: inclusiveEndDate
-      },
-      hiddenDays: hiddenDays,
-      views: {
-        ...options.views,
-        genconWeek: {
-          ...options.views?.['genconWeek'],
-          duration: { days: duration }
-        }
-      },
-      events: allClusters
-    }));
+    this.calendarOptions.update(options => {
+      const hasStructureChanged = 
+        options.initialDate !== initialDate ||
+        options.hiddenDays?.length !== hiddenDays.length;
+
+      if (hasStructureChanged) {
+        return {
+          ...options,
+          initialDate: initialDate,
+          validRange: {
+            start: data.metadata.startDate,
+            end: inclusiveEndDate
+          },
+          hiddenDays: hiddenDays,
+          views: {
+            ...options.views,
+            genconWeek: {
+              ...options.views?.['genconWeek'],
+              duration: { days: duration }
+            }
+          },
+          events: allClusters
+        };
+      } else {
+        return {
+          ...options,
+          events: allClusters
+        };
+      }
+    });
   }
 
   fetchData(): void {
@@ -348,7 +372,7 @@ export class StarredComponent implements OnInit {
     }
 
     if (confirm(confirmMsg)) {
-      this.starredService.bulkReplace(year, text, overwrite).subscribe({
+      this.starredService.bulkReplace(year, text, overwrite, this.importAsGroups()).subscribe({
         next: () => {
           this.bulkInput.set('');
           this.viewMode.set('list');

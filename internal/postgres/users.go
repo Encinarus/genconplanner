@@ -357,7 +357,7 @@ WHERE se.event_id = e.event_id
 	return err
 }
 
-func BulkStarEvents(db *sql.DB, email string, year int, eventIds []string, overwrite bool) error {
+func BulkStarEvents(db *sql.DB, email string, year int, eventIds []string, overwrite bool, asGroups bool) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -380,22 +380,20 @@ WHERE se.event_id = e.event_id
 
 	// 2. Insert new ones
 	if len(eventIds) > 0 {
-		stmt, err := tx.Prepare(pq.CopyIn("starred_events", "email", "event_id", "level", "tier"))
-		if err != nil {
-			return err
+		level := "event"
+		if asGroups {
+			level = "group"
 		}
-		defer stmt.Close()
 
 		for _, id := range eventIds {
-			_, err = stmt.Exec(email, id, "event", "very_interested")
+			_, err = tx.Exec(`
+INSERT INTO starred_events (email, event_id, level, tier)
+VALUES ($1, $2, $3, 'very_interested')
+ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level, tier = EXCLUDED.tier
+`, email, id, level)
 			if err != nil {
 				return err
 			}
-		}
-
-		_, err = stmt.Exec()
-		if err != nil {
-			return err
 		}
 	}
 

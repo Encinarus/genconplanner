@@ -24,7 +24,7 @@ type StubRepository struct {
 	LoadStarredEventGroupsFn func(string, int) ([]*postgres.EventGroup, error)
 	LoadStarredEventClustersFn func(string, int, []*events.GenconEvent) ([]*postgres.CalendarEventCluster, error)
 	ClearStarredEventsFn   func(string, int) error
-	BulkStarEventsFn       func(string, int, []string, bool) error
+	BulkStarEventsFn       func(string, int, []string, bool, bool) error
 	LoadAgendaFn           func(string, int) ([]*postgres.AgendaEntry, error)
 	LoadPartiesFn          func(*postgres.User) ([]*postgres.Party, error)
 	LoadPartyFn            func(int64) (*postgres.Party, error)
@@ -77,8 +77,8 @@ func (s *StubRepository) LoadStarredEventClusters(email string, year int, starre
 func (s *StubRepository) ClearStarredEvents(email string, year int) error {
 	return s.ClearStarredEventsFn(email, year)
 }
-func (s *StubRepository) BulkStarEvents(email string, year int, eventIds []string, overwrite bool) error {
-	return s.BulkStarEventsFn(email, year, eventIds, overwrite)
+func (s *StubRepository) BulkStarEvents(email string, year int, eventIds []string, overwrite bool, asGroups bool) error {
+	return s.BulkStarEventsFn(email, year, eventIds, overwrite, asGroups)
 }
 func (s *StubRepository) LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error) {
 	return s.LoadAgendaFn(email, year)
