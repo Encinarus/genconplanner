@@ -259,18 +259,18 @@ ON CONFLICT (event_id, email) DO UPDATE SET tier = EXCLUDED.tier
 		// But first, if this was part of a group star, demote the group star to individual stars
 		// so that only this one gets the new tier
 		_, err = tx.Exec(`
-UPDATE starred_events
-SET level = 'event'
-WHERE email = $1
-  AND level = 'group'
-  AND event_id IN (
-    SELECT e2.event_id
-    FROM events e1 JOIN events e2 ON e1.year = e2.year
-          AND e1.short_category = e2.short_category
-          AND e1.title = e2.title
-          AND e1.short_description = e2.short_description
-    WHERE e1.event_id = $2
-  )
+INSERT INTO starred_events (email, event_id, level, tier)
+SELECT $1, e2.event_id, 'event', se.tier
+FROM events e1
+JOIN events e2 ON e1.year = e2.year
+    AND e1.short_category = e2.short_category
+    AND e1.title = e2.title
+    AND e1.short_description = e2.short_description
+JOIN starred_events se ON se.event_id = e1.event_id
+WHERE e1.event_id = $2
+  AND se.email = $1
+  AND se.level = 'group'
+ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level
 `, email, eventId)
 		if err != nil {
 			tx.Rollback()
@@ -285,19 +285,21 @@ ON CONFLICT (event_id, email) DO UPDATE SET tier = EXCLUDED.tier, level = EXCLUD
 	} else {
 		// unstar individual session
 		// 1. Demote any group star for this cluster to individual stars
+		// We expand the group star into individual stars for all OTHER sessions
+		// before deleting the specific one.
 		_, err = tx.Exec(`
-UPDATE starred_events
-SET level = 'event'
-WHERE email = $1
-  AND level = 'group'
-  AND event_id IN (
-    SELECT e2.event_id
-    FROM events e1 JOIN events e2 ON e1.year = e2.year
-          AND e1.short_category = e2.short_category
-          AND e1.title = e2.title
-          AND e1.short_description = e2.short_description
-    WHERE e1.event_id = $2
-  )
+INSERT INTO starred_events (email, event_id, level, tier)
+SELECT $1, e2.event_id, 'event', se.tier
+FROM events e1
+JOIN events e2 ON e1.year = e2.year
+    AND e1.short_category = e2.short_category
+    AND e1.title = e2.title
+    AND e1.short_description = e2.short_description
+JOIN starred_events se ON se.event_id = e1.event_id
+WHERE e1.event_id = $2
+  AND se.email = $1
+  AND se.level = 'group'
+ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level
 `, email, eventId)
 		if err != nil {
 			tx.Rollback()
