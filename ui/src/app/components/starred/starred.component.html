@@ -8,17 +8,47 @@
         </div>
     </h1>
     
-    <ul class="nav nav-tabs nav-fill mb-4" id="viewModeTabs">
-        <li class="nav-item">
-            <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'calendar'" (click)="setViewMode('calendar')">Calendar</a>
-        </li>
-        <li class="nav-item">
-            <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'list'" (click)="setViewMode('list')">By Type</a>
-        </li>
-        <li class="nav-item">
-            <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'bulk'" (click)="setViewMode('bulk')">Bulk</a>
-        </li>
-    </ul>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <ul class="nav nav-tabs border-bottom-0" id="viewModeTabs">
+            <li class="nav-item">
+                <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'calendar'" (click)="setViewMode('calendar')">Calendar</a>
+            </li>
+            <li class="nav-item">
+                <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'list'" (click)="setViewMode('list')">By Type</a>
+            </li>
+            <li class="nav-item">
+                <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'bulk'" (click)="setViewMode('bulk')">Bulk</a>
+            </li>
+        </ul>
+
+        <!-- Tier Filter -->
+        <div *ngIf="viewMode() !== 'bulk'" class="d-flex align-items-center gap-2">
+            <span class="small text-muted text-uppercase fw-bold">Filter:</span>
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="tierFilter" id="tierAll" 
+                       [checked]="tierFilter() === 'all'" (change)="setTierFilter('all')">
+                <label class="btn btn-outline-secondary tier-btn" for="tierAll" title="All">All</label>
+
+                <input type="radio" class="btn-check" name="tierFilter" id="tierMust" 
+                       [checked]="tierFilter() === 'must_have'" (change)="setTierFilter('must_have')">
+                <label class="btn btn-outline-danger tier-btn" for="tierMust" title="Must Have">
+                    <i class="bi" [class.bi-heart-fill]="tierFilter() === 'must_have'" [class.bi-heart]="tierFilter() !== 'must_have'"></i>
+                </label>
+
+                <input type="radio" class="btn-check" name="tierFilter" id="tierVery" 
+                       [checked]="tierFilter() === 'very_interested'" (change)="setTierFilter('very_interested')">
+                <label class="btn btn-outline-primary tier-btn" for="tierVery" title="Very Interested">
+                    <i class="bi" [class.bi-star-fill]="tierFilter() === 'very_interested'" [class.bi-star]="tierFilter() !== 'very_interested'"></i>
+                </label>
+
+                <input type="radio" class="btn-check" name="tierFilter" id="tierSome" 
+                       [checked]="tierFilter() === 'somewhat_interested'" (change)="setTierFilter('somewhat_interested')">
+                <label class="btn btn-outline-secondary tier-btn" for="tierSome" title="Somewhat Interested">
+                    <i class="bi" [class.bi-hand-thumbs-up-fill]="tierFilter() === 'somewhat_interested'" [class.bi-hand-thumbs-up]="tierFilter() !== 'somewhat_interested'"></i>
+                </label>
+            </div>
+        </div>
+    </div>
 
     <div *ngIf="loading()" class="text-center py-5">
         <div class="spinner-border text-primary" role="status">
@@ -31,27 +61,73 @@
             <div *ngIf="starredList().length > 0; else noStarred">
                 <div *ngFor="let group of groupedStarredList()" class="mb-4">
                     <div class="category-header d-flex justify-content-between align-items-center mb-2" 
-                         (click)="toggleGroup(group.code)" style="cursor: pointer;">
+                         (click)="toggleCategory(group.code)" style="cursor: pointer;">
                         <div class="d-flex align-items-center">
-                            <i class="bi me-2" [class.bi-chevron-down]="!isCollapsed(group.code)" [class.bi-chevron-right]="isCollapsed(group.code)"></i>
+                            <i class="bi me-2" [class.bi-chevron-down]="!isCategoryCollapsed(group.code)" [class.bi-chevron-right]="isCategoryCollapsed(group.code)"></i>
                             <h3 class="h5 mb-0 text-uppercase tracking-wider">{{ group.code }}</h3>
-                            <span class="ms-3 badge rounded-pill bg-light text-dark border">{{ group.events.length }}</span>
+                            <span class="ms-3 badge rounded-pill bg-light text-dark border">{{ group.eventGroups.length }} Groups</span>
                         </div>
                         <div class="header-line flex-grow-1 ms-3 border-bottom opacity-25"></div>
                     </div>
                     
-                    <div [hidden]="isCollapsed(group.code)" class="ps-3 border-start ms-2">
-                        <div *ngFor="let event of group.events" class="event-row mb-3 pb-3 border-bottom-dashed">
-                            <div class="mb-1">
-                                <div class="d-flex align-items-center mb-1 flex-wrap">
-                                    <a [href]="event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 me-3" style="font-size: 0.75rem;">
-                                        GenCon <i class="bi bi-box-arrow-up-right small"></i>
-                                    </a>
-                                    <span class="timing-label me-3">{{ formatTiming(event.startTime, event.endTime) }}</span>
-                                    <a [routerLink]="linkService.getEventRouterLink(event.eventId)" class="event-id-link me-2">{{ event.eventId }}</a>
-                                    <h4 class="h6 mb-0 fw-bold">{{ event.title }}</h4>
+                    <div [hidden]="isCategoryCollapsed(group.code)" class="ps-3 border-start ms-2">
+                        <div *ngFor="let evGroup of group.eventGroups" class="mb-4">
+                            <!-- Group Header -->
+                            <div class="event-group-header d-flex align-items-center mb-2" 
+                                 [style.cursor]="evGroup.events.length > 1 ? 'pointer' : 'default'"
+                                 (click)="evGroup.events.length > 1 ? toggleEventGroup(evGroup.key) : null">
+                                <i *ngIf="evGroup.events.length > 1" class="bi me-2 text-muted" [class.bi-plus-square]="isEventGroupCollapsed(evGroup.key)" [class.bi-dash-square]="!isEventGroupCollapsed(evGroup.key)"></i>
+                                <!-- Space for alignment if no icon -->
+                                <div *ngIf="evGroup.events.length === 1" class="me-2" style="width: 16px;"></div>
+                                <h4 class="h6 mb-0 fw-bold">{{ evGroup.title }}</h4>
+                                <span class="ms-2 badge rounded-pill bg-light text-muted border" style="font-size: 0.7rem;">{{ evGroup.events.length }}</span>
+                            </div>
+                            
+                            <div [hidden]="evGroup.events.length > 1 ? isEventGroupCollapsed(evGroup.key) : false" class="ps-4">
+                                <div class="text-muted small mb-2">{{ evGroup.shortDescription }}</div>
+                                
+                                <div *ngFor="let event of evGroup.events" class="event-row mb-2 py-2 border-bottom-dashed d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="tier-selector">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'must-' + event.eventId" 
+                                                       autocomplete="off" [checked]="event.tier === 'must_have'" (change)="updateTier(event.eventId, 'must_have')">
+                                                <label class="btn btn-outline-danger tier-btn" [for]="'must-' + event.eventId" title="Must Have">
+                                                    <i class="bi" [class.bi-heart-fill]="event.tier === 'must_have'" [class.bi-heart]="event.tier !== 'must_have'"></i>
+                                                </label>
+                                        
+                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'very-' + event.eventId" 
+                                                       autocomplete="off" [checked]="event.tier === 'very_interested' || !event.tier" (change)="updateTier(event.eventId, 'very_interested')">
+                                                <label class="btn btn-outline-primary tier-btn" [for]="'very-' + event.eventId" title="Very Interested">
+                                                    <i class="bi" [class.bi-star-fill]="event.tier === 'very_interested' || !event.tier" [class.bi-star]="event.tier !== 'very_interested' && event.tier"></i>
+                                                </label>
+                                        
+                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'some-' + event.eventId" 
+                                                       autocomplete="off" [checked]="event.tier === 'somewhat_interested'" (change)="updateTier(event.eventId, 'somewhat_interested')">
+                                                <label class="btn btn-outline-secondary tier-btn" [for]="'some-' + event.eventId" title="Somewhat Interested">
+                                                    <i class="bi" [class.bi-hand-thumbs-up-fill]="event.tier === 'somewhat_interested'" [class.bi-hand-thumbs-up]="event.tier !== 'somewhat_interested'"></i>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <a [href]="event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                                            GenCon <i class="bi bi-box-arrow-up-right small"></i>
+                                        </a>
+
+                                        <div class="d-flex flex-column">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="timing-label">{{ formatTiming(event.startTime, event.endTime) }}</span>
+                                                <a [routerLink]="linkService.getEventRouterLink(event.eventId)" class="event-id-link">{{ event.eventId }}</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex align-items-center gap-3">
+                                        <button class="btn btn-sm btn-outline-secondary border-0 p-1 lh-1" (click)="unstarEvent(event.eventId)" title="Unstar session">
+                                            <i class="bi bi-trash3 text-danger"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <p class="text-muted small mb-0">{{ event.shortDescription }}</p>
                             </div>
                         </div>
                     </div>

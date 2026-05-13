@@ -5,11 +5,12 @@ import { RouterModule } from '@angular/router';
 import { ApiService, Party } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { Title } from '@angular/platform-browser';
+import { AgendaComponent } from '../agenda/agenda.component';
 
 @Component({
   selector: 'app-user',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, AgendaComponent],
   templateUrl: './user.component.html',
   styleUrl: './user.component.css'
 })
@@ -25,6 +26,7 @@ export class UserComponent implements OnInit {
   creatingParty = signal<boolean>(false);
   editingName = signal<boolean>(false);
   tempDisplayName = signal<string>('');
+  selectedYear = signal<number>(2026);
 
   // Form fields
   newPartyName = '';

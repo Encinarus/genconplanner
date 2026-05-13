@@ -57,6 +57,7 @@ export interface StarredEventDetail {
   endTime: string;
   genconUrl: string;
   plannerUrl: string;
+  tier: string;
 }
 
 export interface CalendarMetadata {
@@ -189,8 +190,12 @@ export class ApiService {
     return this.http.get<EventSummary[]>(`/api/v1/user/starred/${year}`);
   }
 
-  starEvent(eventId: string, add: boolean, related: boolean): Observable<any> {
-    return this.http.post<any>(`/api/v1/user/star`, { eventId, add, related });
+  starEvent(eventId: string, add: boolean, related: boolean, tier: string = ''): Observable<any> {
+    return this.http.post<any>(`/api/v1/user/star`, { eventId, add, related, tier });
+  }
+
+  getAgenda(year: number): Observable<StarredEventDetail[]> {
+    return this.http.get<StarredEventDetail[]>(`/api/v1/user/agenda/${year}`);
   }
 
   getStarredCalendarEvents(year: number): Observable<CalendarEvent[]> {

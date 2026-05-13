@@ -91,3 +91,48 @@
 
 .container-fluid {
 }
+
+.event-group-header {
+    user-select: none;
+    transition: color 0.2s;
+    color: #333;
+}
+
+.event-group-header:hover {
+    color: #0073AA;
+}
+
+.event-group-header i {
+    transition: transform 0.2s;
+}
+
+.event-row {
+    transition: background-color 0.1s;
+}
+
+.event-row:hover {
+    background-color: #fcfcfc;
+}
+
+.tier-selector {
+    display: flex;
+    align-items: center;
+}
+
+.tier-btn {
+    /* Smaller square buttons */
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 0.85rem; /* Slightly smaller icon size */
+}
+
+/* Allow 'All' button to fit its text */
+label.tier-btn[for="calTierAll"] {
+    width: auto;
+    padding-left: 8px;
+    padding-right: 8px;
+}

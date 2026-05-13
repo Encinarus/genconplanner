@@ -160,6 +160,30 @@ export class StarredService {
     });
   }
 
+  updateTier(eventId: string, year: number, tier: string): void {
+    const user = this.auth.user();
+    if (!user) return;
+
+    // Optimistically update the tier in local state if possible
+    const currentData = this.starredPageData();
+    if (currentData) {
+      const updatedEvents = currentData.individualEvents.map(e => 
+        e.eventId === eventId ? { ...e, tier } : e
+      );
+      this.starredPageData.set({ ...currentData, individualEvents: updatedEvents });
+    }
+
+    this.api.starEvent(eventId, true, false, tier).subscribe({
+      next: () => {
+        this.fetchStarred(year, true);
+      },
+      error: (err) => {
+        console.error('Error updating tier', err);
+        this.fetchStarred(year, true);
+      }
+    });
+  }
+
   bulkClear(year: number) {
     return this.api.bulkClearStarred(year).pipe(
       tap(() => this.fetchStarred(year, true))

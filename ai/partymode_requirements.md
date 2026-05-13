@@ -163,3 +163,18 @@ As Gen Con processes wishlists, members update their status in real-time:
 
 ### Phase 7: Event Booking Day ("War Room")
 *   The full coordination flow: Lock-ins, real-time reservation tracking, and the purchase dashboard.
+
+## 9. Progress Tracking
+
+### Status Summary
+- **Phase 1: Basic Party Management & Visibility** - [x] **Completed**
+- **Phase 2: Personal Interest Tiers & Solo Optimization** - [x] **Completed**
+- **Phase 3: Party-Aware Personal Prioritization** - [ ] **Remaining**
+- **Phase 4: Collaborative Group Prioritization** - [ ] **Remaining**
+- **Phase 5: Ticket Management & Claims** - [ ] **Remaining**
+- **Phase 6: Advanced Analysis & Leaving Logic** - [ ] **Remaining**
+- **Phase 7: Event Booking Day ("War Room")** - [ ] **Remaining**
+
+### Implementation Notes
+- **Phase 1**: Core backend logic implemented in `internal/postgres/party.go`. V2 UI component implemented in `ui/src/app/components/party/`. Database schema updated with `parties` and `party_members` tables.
+- **Phase 2**: Introduced `interest_tier` ENUM and `tier` column in `starred_events`. Updated API to support tiered starring. Implemented Agenda View in `AgendaComponent` and integrated into the user profile.

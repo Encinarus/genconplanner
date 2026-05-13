@@ -14,6 +14,7 @@ import (
 )
 
 type CalendarEventCluster struct {
+	EventId          string
 	Title            string
 	StartTime        time.Time
 	EndTime          time.Time
@@ -26,6 +27,7 @@ type CalendarEventCluster struct {
 
 func newClusterForEvent(event *events.GenconEvent) *CalendarEventCluster {
 	return &CalendarEventCluster{
+		EventId:          event.EventId,
 		Title:            event.Title,
 		StartTime:        event.StartTime,
 		EndTime:          event.EndTime,

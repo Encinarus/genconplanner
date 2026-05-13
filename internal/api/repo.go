@@ -16,13 +16,14 @@ type EventRepository interface {
 	LoadOrCreateUser(email string) (*postgres.User, error)
 	GetStarredIds(email string, year int) (*postgres.UserStarredEvents, error)
 	GetAllStarredIds(email string) (*postgres.UserStarredEvents, error)
-	UpdateStarredEvent(email string, eventId string, starGroup bool, add bool) (*postgres.UserStarredEvents, error)
-	UpdateStarredEventMinimal(email string, eventId string, starGroup bool, add bool) (*postgres.UserStarredEvents, error)
+	UpdateStarredEvent(email string, eventId string, tier string, starGroup bool, add bool) (*postgres.UserStarredEvents, error)
+	UpdateStarredEventMinimal(email string, eventId string, tier string, starGroup bool, add bool) (*postgres.UserStarredEvents, error)
 	LoadStarredEvents(email string, year int) ([]*events.GenconEvent, error)
 	LoadStarredEventGroups(email string, year int) ([]*postgres.EventGroup, error)
 	LoadStarredEventClusters(email string, year int, starredEvents []*events.GenconEvent) ([]*postgres.CalendarEventCluster, error)
 	ClearStarredEvents(email string, year int) error
 	BulkStarEvents(email string, year int, eventIds []string, overwrite bool) error
+	LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error)
 
 	// Party related
 	LoadParties(user *postgres.User) ([]*postgres.Party, error)
@@ -70,12 +71,12 @@ func (r *PostgresRepository) GetStarredIds(email string, year int) (*postgres.Us
 func (r *PostgresRepository) GetAllStarredIds(email string) (*postgres.UserStarredEvents, error) {
 	return postgres.GetAllStarredIds(r.DB, email)
 }
-func (r *PostgresRepository) UpdateStarredEvent(email string, eventId string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
-	return postgres.UpdateStarredEvent(r.DB, email, eventId, starGroup, add)
+func (r *PostgresRepository) UpdateStarredEvent(email string, eventId string, tier string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
+	return postgres.UpdateStarredEvent(r.DB, email, eventId, tier, starGroup, add)
 }
 
-func (r *PostgresRepository) UpdateStarredEventMinimal(email string, eventId string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
-	return postgres.UpdateStarredEventMinimal(r.DB, email, eventId, starGroup, add)
+func (r *PostgresRepository) UpdateStarredEventMinimal(email string, eventId string, tier string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
+	return postgres.UpdateStarredEventMinimal(r.DB, email, eventId, tier, starGroup, add)
 }
 
 func (r *PostgresRepository) LoadStarredEvents(email string, year int) ([]*events.GenconEvent, error) {
@@ -96,6 +97,10 @@ func (r *PostgresRepository) ClearStarredEvents(email string, year int) error {
 
 func (r *PostgresRepository) BulkStarEvents(email string, year int, eventIds []string, overwrite bool) error {
 	return postgres.BulkStarEvents(r.DB, email, year, eventIds, overwrite)
+}
+
+func (r *PostgresRepository) LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error) {
+	return postgres.LoadAgenda(r.DB, email, year)
 }
 
 func (r *PostgresRepository) LoadParties(user *postgres.User) ([]*postgres.Party, error) {

@@ -19,6 +19,7 @@ type User struct {
 type StarredEvent struct {
 	EventId string
 	Level   string // "group" or "event"
+	Tier    string // "must_have", "very_interested", "somewhat_interested"
 }
 
 type UserStarredEvents struct {
@@ -90,10 +91,15 @@ GROUP BY e.cluster_key, day_of_week
 
 		for _, event := range dayGroupEvents[1:] {
 			if event.StartTime.After(cluster.EndTime) {
+				if cluster.SimilarCount > 1 {
+					cluster.Title = fmt.Sprintf("%s\n\n(%d similar)", cluster.Title, cluster.SimilarCount)
+				}
 				groupedEvents = append(groupedEvents, cluster)
 				cluster = newClusterForEvent(event)
-			} else if event.EndTime.After(cluster.EndTime) {
-				cluster.EndTime = event.EndTime
+			} else {
+				if event.EndTime.After(cluster.EndTime) {
+					cluster.EndTime = event.EndTime
+				}
 				cluster.SimilarCount++
 			}
 		}
@@ -203,15 +209,18 @@ ORDER BY e2.start_time`, fields), userEmail, year)
 	return loadedEvents, nil
 }
 
-func UpdateStarredEvent(db *sql.DB, email string, eventId string, starGroup bool, add bool) (*UserStarredEvents, error) {
-	return updateStarredEventInternal(db, email, eventId, starGroup, add, true)
+func UpdateStarredEvent(db *sql.DB, email string, eventId string, tier string, starGroup bool, add bool) (*UserStarredEvents, error) {
+	return updateStarredEventInternal(db, email, eventId, tier, starGroup, add, true)
 }
 
-func UpdateStarredEventMinimal(db *sql.DB, email string, eventId string, starGroup bool, add bool) (*UserStarredEvents, error) {
-	return updateStarredEventInternal(db, email, eventId, starGroup, add, false)
+func UpdateStarredEventMinimal(db *sql.DB, email string, eventId string, tier string, starGroup bool, add bool) (*UserStarredEvents, error) {
+	return updateStarredEventInternal(db, email, eventId, tier, starGroup, add, false)
 }
 
-func updateStarredEventInternal(db *sql.DB, email string, eventId string, starGroup bool, add bool, fullResponse bool) (*UserStarredEvents, error) {
+func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier string, starGroup bool, add bool, fullResponse bool) (*UserStarredEvents, error) {
+	if tier == "" {
+		tier = "very_interested"
+	}
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -235,23 +244,44 @@ WHERE s.email = $1
 		if err == nil && add {
 			// insert via select related ids
 			_, err = tx.Exec(`
-INSERT INTO starred_events(email, event_id, level)
-SELECT $1, e2.event_id, 'group'
+INSERT INTO starred_events(email, event_id, level, tier)
+SELECT $1, e2.event_id, 'group', $3
 FROM events e1 join events e2 on e1.year = e2.year
     AND e1.short_category = e2.short_category
     AND e1.title = e2.title   
     AND e1.short_description = e2.short_description
 WHERE e1.event_id = $2
-ON CONFLICT DO NOTHING
-`, email, eventId)
+ON CONFLICT (event_id, email) DO UPDATE SET tier = EXCLUDED.tier
+`, email, eventId, tier)
 		}
 	} else if add {
-		// insert one record
+		// insert/update one record
+		// But first, if this was part of a group star, demote the group star to individual stars
+		// so that only this one gets the new tier
 		_, err = tx.Exec(`
-INSERT INTO starred_events(email, event_id, level)
-VALUES ($1, $2, 'event')
-ON CONFLICT DO NOTHING
+UPDATE starred_events
+SET level = 'event'
+WHERE email = $1
+  AND level = 'group'
+  AND event_id IN (
+    SELECT e2.event_id
+    FROM events e1 JOIN events e2 ON e1.year = e2.year
+          AND e1.short_category = e2.short_category
+          AND e1.title = e2.title
+          AND e1.short_description = e2.short_description
+    WHERE e1.event_id = $2
+  )
 `, email, eventId)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		_, err = tx.Exec(`
+INSERT INTO starred_events(email, event_id, level, tier)
+VALUES ($1, $2, 'event', $3)
+ON CONFLICT (event_id, email) DO UPDATE SET tier = EXCLUDED.tier, level = EXCLUDED.level
+`, email, eventId, tier)
 	} else {
 		// unstar individual session
 		// 1. Demote any group star for this cluster to individual stars
@@ -301,6 +331,7 @@ WHERE s.email = $1
 			StarredEvents: []StarredEvent{{
 				EventId: eventId,
 				Level:   level,
+				Tier:    tier,
 			}},
 		}, nil
 	}
@@ -349,14 +380,14 @@ WHERE se.event_id = e.event_id
 
 	// 2. Insert new ones
 	if len(eventIds) > 0 {
-		stmt, err := tx.Prepare(pq.CopyIn("starred_events", "email", "event_id", "level"))
+		stmt, err := tx.Prepare(pq.CopyIn("starred_events", "email", "event_id", "level", "tier"))
 		if err != nil {
 			return err
 		}
 		defer stmt.Close()
 
 		for _, id := range eventIds {
-			_, err = stmt.Exec(email, id, "event")
+			_, err = stmt.Exec(email, id, "event", "very_interested")
 			if err != nil {
 				return err
 			}
@@ -397,7 +428,8 @@ func fetchStarredInternal(q queryable, email string, year int) (*UserStarredEven
 
 	query := fmt.Sprintf(`
 SELECT DISTINCT e2.event_id, 
-       CASE WHEN se.level = 'group' THEN 'group' ELSE 'event' END as level
+       CASE WHEN se.level = 'group' THEN 'group' ELSE 'event' END as level,
+       se.tier
 FROM starred_events se
 JOIN events e1 ON se.event_id = e1.event_id
 JOIN events e2 ON (
@@ -415,7 +447,7 @@ WHERE se.email = $1 %s AND e2.active`, yearFilter)
 
 	for rows.Next() {
 		var starred StarredEvent
-		err = rows.Scan(&starred.EventId, &starred.Level)
+		err = rows.Scan(&starred.EventId, &starred.Level, &starred.Tier)
 		if err != nil {
 			return nil, err
 		}

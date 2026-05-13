@@ -14,3 +14,11 @@ SET leader_email = (
     LIMIT 1
 )
 WHERE leader_email IS NULL;
+
+-- Phase 2: Personal Interest Tiers & Solo Optimization
+
+-- Define the interest tier enum
+CREATE TYPE public.interest_tier AS ENUM ('must_have', 'very_interested', 'somewhat_interested');
+
+-- Add the tier column to starred_events
+ALTER TABLE public.starred_events ADD COLUMN tier public.interest_tier NOT NULL DEFAULT 'very_interested';

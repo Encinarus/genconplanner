@@ -56,6 +56,7 @@ type EventRef struct {
 }
 
 type CalendarEventCluster struct {
+	EventId          string    `json:"eventId"`
 	Title            string    `json:"title"`
 	StartTime        time.Time `json:"startTime"`
 	EndTime          time.Time `json:"endTime"`

@@ -18,13 +18,14 @@ type StubRepository struct {
 	LoadOrCreateUserFn    func(string) (*postgres.User, error)
 	GetStarredIdsFn       func(string, int) (*postgres.UserStarredEvents, error)
 	GetAllStarredIdsFn    func(string) (*postgres.UserStarredEvents, error)
-	UpdateStarredEventFn  func(string, string, bool, bool) (*postgres.UserStarredEvents, error)
-	UpdateStarredEventMinimalFn  func(string, string, bool, bool) (*postgres.UserStarredEvents, error)
+	UpdateStarredEventFn  func(string, string, string, bool, bool) (*postgres.UserStarredEvents, error)
+	UpdateStarredEventMinimalFn  func(string, string, string, bool, bool) (*postgres.UserStarredEvents, error)
 	LoadStarredEventsFn   func(string, int) ([]*events.GenconEvent, error)
 	LoadStarredEventGroupsFn func(string, int) ([]*postgres.EventGroup, error)
 	LoadStarredEventClustersFn func(string, int, []*events.GenconEvent) ([]*postgres.CalendarEventCluster, error)
 	ClearStarredEventsFn   func(string, int) error
 	BulkStarEventsFn       func(string, int, []string, bool) error
+	LoadAgendaFn           func(string, int) ([]*postgres.AgendaEntry, error)
 	LoadPartiesFn          func(*postgres.User) ([]*postgres.Party, error)
 	LoadPartyFn            func(int64) (*postgres.Party, error)
 	NewPartyFn             func(string, int64, string) (*postgres.Party, error)
@@ -58,11 +59,11 @@ func (s *StubRepository) GetStarredIds(email string, year int) (*postgres.UserSt
 func (s *StubRepository) GetAllStarredIds(email string) (*postgres.UserStarredEvents, error) {
 	return s.GetAllStarredIdsFn(email)
 }
-func (s *StubRepository) UpdateStarredEvent(email string, eventId string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
-	return s.UpdateStarredEventFn(email, eventId, starGroup, add)
+func (s *StubRepository) UpdateStarredEvent(email string, eventId string, tier string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
+	return s.UpdateStarredEventFn(email, eventId, tier, starGroup, add)
 }
-func (s *StubRepository) UpdateStarredEventMinimal(email string, eventId string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
-	return s.UpdateStarredEventMinimalFn(email, eventId, starGroup, add)
+func (s *StubRepository) UpdateStarredEventMinimal(email string, eventId string, tier string, starGroup bool, add bool) (*postgres.UserStarredEvents, error) {
+	return s.UpdateStarredEventMinimalFn(email, eventId, tier, starGroup, add)
 }
 func (s *StubRepository) LoadStarredEvents(email string, year int) ([]*events.GenconEvent, error) {
 	return s.LoadStarredEventsFn(email, year)
@@ -78,6 +79,9 @@ func (s *StubRepository) ClearStarredEvents(email string, year int) error {
 }
 func (s *StubRepository) BulkStarEvents(email string, year int, eventIds []string, overwrite bool) error {
 	return s.BulkStarEventsFn(email, year, eventIds, overwrite)
+}
+func (s *StubRepository) LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error) {
+	return s.LoadAgendaFn(email, year)
 }
 func (s *StubRepository) LoadParties(user *postgres.User) ([]*postgres.Party, error) {
 	return s.LoadPartiesFn(user)

@@ -457,7 +457,7 @@ func TestStarEvent(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.UpdateStarredEventMinimalFn = func(email string, id string, related bool, add bool) (*postgres.UserStarredEvents, error) {
+				stub.UpdateStarredEventMinimalFn = func(email string, id string, tier string, related bool, add bool) (*postgres.UserStarredEvents, error) {
 					return &postgres.UserStarredEvents{Email: email}, nil
 				}
 			},

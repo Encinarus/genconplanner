@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject, computed, effect, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { ApiService, EventSummary, StarredEventDetail, StarredPageData } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { StarredService } from '../../services/starred.service';
@@ -28,6 +28,7 @@ export class StarredComponent implements OnInit {
   @ViewChild('calendar') calendarComponent!: FullCalendarComponent;
 
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private api = inject(ApiService);
   private auth = inject(AuthService);
   private starredService = inject(StarredService);
@@ -38,26 +39,41 @@ export class StarredComponent implements OnInit {
   starredList = signal<StarredEventDetail[]>([]);
   loading = signal<boolean>(true);
   viewMode = signal<'list' | 'calendar' | 'bulk'>('calendar');
+  tierFilter = signal<string>('all');
   bulkInput = signal<string>('');
   email = computed(() => this.auth.user()?.email || null);
 
   // Grouped and sorted starred events for the List view
   groupedStarredList = computed(() => {
-    const groups: Record<string, StarredEventDetail[]> = {};
+    const filter = this.tierFilter();
+    const categoryGroups: Record<string, Record<string, StarredEventDetail[]>> = {};
+    
     this.starredList().forEach(e => {
-      if (!groups[e.categoryCode]) groups[e.categoryCode] = [];
-      groups[e.categoryCode].push(e);
+      // Apply tier filter
+      const eventTier = e.tier || 'very_interested';
+      if (filter !== 'all' && eventTier !== filter) return;
+
+      if (!categoryGroups[e.categoryCode]) categoryGroups[e.categoryCode] = {};
+      const groupKey = `${e.title}|${e.shortDescription}`;
+      if (!categoryGroups[e.categoryCode][groupKey]) categoryGroups[e.categoryCode][groupKey] = [];
+      categoryGroups[e.categoryCode][groupKey].push(e);
     });
     
-    return Object.entries(groups)
-      .map(([code, events]) => ({ 
+    return Object.entries(categoryGroups)
+      .map(([code, groupMap]) => ({ 
         code, 
-        events: events.sort((a, b) => a.startTime.localeCompare(b.startTime))
+        eventGroups: Object.entries(groupMap).map(([key, events]) => ({
+            key,
+            title: events[0].title,
+            shortDescription: events[0].shortDescription,
+            events: events.sort((a, b) => a.startTime.localeCompare(b.startTime))
+        })).sort((a, b) => a.title.localeCompare(b.title))
       }))
       .sort((a, b) => a.code.localeCompare(b.code));
   });
 
-  collapsedGroups = signal<Set<string>>(new Set());
+  collapsedCategories = signal<Set<string>>(new Set());
+  collapsedEventGroups = signal<Set<string>>(new Set());
 
   // Store metadata to help with view jumps
   private metadata: { startDate: string, endDate: string } | null = null;
@@ -182,21 +198,30 @@ export class StarredComponent implements OnInit {
     this.starredList.set(data.individualEvents || []);
     this.metadata = data.metadata;
     
-    // Update calendar events
-    const fcEvents = (data.calendarEvents || []).map((e: any) => ({
-      title: e.title,
-      start: e.startTime,
-      end: e.endTime,
-      url: this.linkService.getEventUrl(e.plannerUrl.split('/').pop() || ''),
-      backgroundColor: this.categoryColors[e.shortCategory] || '#888888',
-      borderColor: this.categoryColors[e.shortCategory] || '#888888',
-      extendedProps: {
-        description: e.shortDescription,
-        similarCount: e.similarCount
-      }
-    }));
+    // Client-side clustering
+    const filter = this.tierFilter();
+    
+    // 1. Filter the raw sessions
+    const filteredSessions = (data.individualEvents || []).filter(e => {
+        const eventTier = e.tier || 'very_interested';
+        return filter === 'all' || eventTier === filter;
+    });
 
-    this.hasWednesday = (data.calendarEvents || []).some((e: any) => {
+    // 2. Group by "Game" (Title + Description + Category) to maintain original clustering behavior
+    const gameGroups: Record<string, StarredEventDetail[]> = {};
+    filteredSessions.forEach(e => {
+        const key = `${e.title}|${e.shortDescription}|${e.categoryCode}`;
+        if (!gameGroups[key]) gameGroups[key] = [];
+        gameGroups[key].push(e);
+    });
+
+    // 3. Cluster each game's sessions based on time overlaps
+    const allClusters: any[] = [];
+    Object.values(gameGroups).forEach(sessions => {
+        allClusters.push(...this.clusterEvents(sessions));
+    });
+
+    this.hasWednesday = (data.individualEvents || []).some((e: any) => {
       const d = new Date(e.startTime);
       return d.getDay() === 3;
     });
@@ -224,7 +249,7 @@ export class StarredComponent implements OnInit {
           duration: { days: duration }
         }
       },
-      events: fcEvents
+      events: allClusters
     }));
   }
 
@@ -240,8 +265,11 @@ export class StarredComponent implements OnInit {
       if (this.year() !== newYear) {
         this.year.set(newYear);
       }
-      // No need to call starredService.fetchStarred here, 
-      // as fetchData() will do it more efficiently
+
+      const tab = params['tab'];
+      if (tab && ['calendar', 'list', 'bulk'].includes(tab)) {
+        this.viewMode.set(tab as any);
+      }
     });
   }
 
@@ -257,7 +285,20 @@ export class StarredComponent implements OnInit {
   }
 
   setViewMode(mode: 'list' | 'calendar' | 'bulk'): void {
-    this.viewMode.set(mode);
+    this.router.navigate(['/starred', this.year(), mode]);
+  }
+
+  updateTier(eventId: string, tier: string): void {
+    this.starredService.updateTier(eventId, this.year(), tier);
+  }
+
+  setTierFilter(tier: string): void {
+    this.tierFilter.set(tier);
+    // Re-process data to refresh calendar (and trigger computed list refresh)
+    const data = this.starredService.starredPageData();
+    if (data) {
+      this.processData(data);
+    }
   }
 
   onClearAll(): void {
@@ -319,8 +360,8 @@ export class StarredComponent implements OnInit {
     }
   }
 
-  toggleGroup(code: string): void {
-    this.collapsedGroups.update(set => {
+  toggleCategory(code: string): void {
+    this.collapsedCategories.update(set => {
       const newSet = new Set(set);
       if (newSet.has(code)) newSet.delete(code);
       else newSet.add(code);
@@ -328,8 +369,27 @@ export class StarredComponent implements OnInit {
     });
   }
 
-  isCollapsed(code: string): boolean {
-    return this.collapsedGroups().has(code);
+  isCategoryCollapsed(code: string): boolean {
+    return this.collapsedCategories().has(code);
+  }
+
+  toggleEventGroup(key: string): void {
+    this.collapsedEventGroups.update(set => {
+      const newSet = new Set(set);
+      if (newSet.has(key)) newSet.delete(key);
+      else newSet.add(key);
+      return newSet;
+    });
+  }
+
+  isEventGroupCollapsed(key: string): boolean {
+    return this.collapsedEventGroups().has(key);
+  }
+
+  unstarEvent(eventId: string): void {
+    if (confirm('Are you sure you want to unstar this event session?')) {
+        this.starredService.toggleStar(eventId, this.year(), false);
+    }
   }
 
   formatTiming(start: string, end: string): string {
@@ -350,5 +410,53 @@ export class StarredComponent implements OnInit {
       hour12: true
     };
     return `${s.toLocaleDateString('en-US', options)} - ${e.toLocaleTimeString('en-US', timeOptions)}`;
+  }
+
+  private clusterEvents(events: StarredEventDetail[]): any[] {
+    if (events.length === 0) return [];
+
+    // Sort by start time
+    const sorted = [...events].sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    const clusters: any[] = [];
+    let currentCluster: any = null;
+
+    for (const event of sorted) {
+      if (!currentCluster || event.startTime > currentCluster.end) {
+        if (currentCluster) {
+          if (currentCluster.extendedProps.similarCount > 1) {
+            currentCluster.title = `${currentCluster.title}\n\n(${currentCluster.extendedProps.similarCount} similar)`;
+          }
+          clusters.push(currentCluster);
+        }
+        currentCluster = {
+          title: event.title,
+          start: event.startTime,
+          end: event.endTime,
+          url: this.linkService.getEventUrl(event.eventId),
+          backgroundColor: this.categoryColors[event.categoryCode] || '#888888',
+          borderColor: this.categoryColors[event.categoryCode] || '#888888',
+          extendedProps: {
+            description: event.shortDescription,
+            similarCount: 1,
+            tier: event.tier || 'very_interested'
+          }
+        };
+      } else {
+        if (event.endTime > currentCluster.end) {
+          currentCluster.end = event.endTime;
+        }
+        currentCluster.extendedProps.similarCount++;
+      }
+    }
+
+    if (currentCluster) {
+      if (currentCluster.extendedProps.similarCount > 1) {
+        currentCluster.title = `${currentCluster.title}\n\n(${currentCluster.extendedProps.similarCount} similar)`;
+      }
+      clusters.push(currentCluster);
+    }
+
+    return clusters;
   }
 }

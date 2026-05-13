@@ -1,0 +1,41 @@
+.agenda-container {
+    max-width: 800px;
+}
+
+.timeline-item {
+    transition: transform 0.1s ease;
+    border-left: 4px solid #dee2e6 !important;
+}
+
+.timeline-item:hover {
+    transform: translateX(4px);
+}
+
+.tier-must {
+    border-left-color: #dc3545 !important;
+    background-color: rgba(220, 53, 69, 0.02) !important;
+}
+
+.tier-very {
+    border-left-color: #0d6efd !important;
+    background-color: rgba(13, 110, 253, 0.02) !important;
+}
+
+.tier-some {
+    border-left-color: #6c757d !important;
+    background-color: rgba(108, 117, 125, 0.02) !important;
+}
+
+.tier-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.tracking-wider {
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+}
+
+.timing-badge {
+    white-space: nowrap;
+}

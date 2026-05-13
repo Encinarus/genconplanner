@@ -17,11 +17,12 @@ type User struct {
 }
 
 type UserEvents struct {
-	Email           string   `json:"email"`
-	Year            int      `json:"year"`
-	StarredClusters []string `json:"starredClusters"`
-	StarredEvents   []string `json:"starredEvents"`
-	TicketedEvents  []string `json:"ticketedEvents"`
+	Email           string            `json:"email"`
+	Year            int               `json:"year"`
+	StarredClusters []string          `json:"starredClusters"`
+	StarredEvents   []string          `json:"starredEvents"`
+	StarredTiers    map[string]string `json:"starredTiers"`
+	TicketedEvents  []string          `json:"ticketedEvents"`
 }
 
 type StarredEventDetail struct {
@@ -33,6 +34,7 @@ type StarredEventDetail struct {
 	EndTime          string `json:"endTime"`
 	GenconUrl        string `json:"genconUrl"`
 	PlannerUrl       string `json:"plannerUrl"`
+	Tier             string `json:"tier"`
 }
 
 type StarredPageData struct {
@@ -99,6 +101,7 @@ func (s *Server) LoadUserEvents(c *gin.Context) {
 	userEvents.Year = year
 	userEvents.StarredClusters = make([]string, 0)
 	userEvents.StarredEvents = make([]string, 0)
+	userEvents.StarredTiers = make(map[string]string)
 	userEvents.TicketedEvents = make([]string, 0)
 
 	starredIds, err := s.Repo.GetStarredIds(authedEmail, year)
@@ -106,6 +109,7 @@ func (s *Server) LoadUserEvents(c *gin.Context) {
 		log.Printf("error getting user starred list: %v\n", err)
 	} else {
 		for _, starred := range starredIds.StarredEvents {
+			userEvents.StarredTiers[starred.EventId] = starred.Tier
 			if starred.Level == "group" {
 				userEvents.StarredClusters = append(userEvents.StarredClusters, starred.EventId)
 			} else if starred.Level == "event" {
@@ -121,6 +125,7 @@ type StarEventRequest struct {
 	EventId string `json:"eventId"`
 	Add     bool   `json:"add"`
 	Related bool   `json:"related"`
+	Tier    string `json:"tier"`
 }
 
 func (s *Server) StarEvent(c *gin.Context) {
@@ -136,7 +141,7 @@ func (s *Server) StarEvent(c *gin.Context) {
 		return
 	}
 
-	starred, err := s.Repo.UpdateStarredEventMinimal(email, req.EventId, req.Related, req.Add)
+	starred, err := s.Repo.UpdateStarredEventMinimal(email, req.EventId, req.Tier, req.Related, req.Add)
 	if err != nil {
 		log.Printf("error updating starred event: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
@@ -222,6 +227,7 @@ func (s *Server) GetStarredCalendarEvents(c *gin.Context) {
 	apiClusters := make([]CalendarEventCluster, 0, len(clusters))
 	for _, cluster := range clusters {
 		apiClusters = append(apiClusters, CalendarEventCluster{
+			EventId:          cluster.EventId,
 			Title:            cluster.Title,
 			StartTime:        cluster.StartTime,
 			EndTime:          cluster.EndTime,
@@ -273,6 +279,14 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 	}
 
 	results := make([]StarredEventDetail, 0)
+	starredIds, _ := s.Repo.GetStarredIds(email, year)
+	tiers := make(map[string]string)
+	if starredIds != nil {
+		for _, s := range starredIds.StarredEvents {
+			tiers[s.EventId] = s.Tier
+		}
+	}
+
 	for _, e := range dbEvents {
 		results = append(results, StarredEventDetail{
 			EventId:          e.EventId,
@@ -283,6 +297,7 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 			EndTime:          e.EndTime.Format("2006-01-02T15:04:05Z07:00"),
 			GenconUrl:        e.GenconLink(),
 			PlannerUrl:       e.PlannerLink(),
+			Tier:             tiers[e.EventId],
 		})
 	}
 
@@ -339,6 +354,16 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 	data.StarredEvents = make([]string, 0)
 
 	for _, e := range dbEvents {
+		tier := ""
+		if starredIds != nil {
+			for _, s := range starredIds.StarredEvents {
+				if s.EventId == e.EventId {
+					tier = s.Tier
+					break
+				}
+			}
+		}
+
 		data.IndividualEvents = append(data.IndividualEvents, StarredEventDetail{
 			EventId:          e.EventId,
 			Title:            e.Title,
@@ -348,11 +373,13 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 			EndTime:          e.EndTime.Format("2006-01-02T15:04:05Z07:00"),
 			GenconUrl:        e.GenconLink(),
 			PlannerUrl:       e.PlannerLink(),
+			Tier:             tier,
 		})
 	}
 
 	for _, cluster := range clusters {
 		data.CalendarEvents = append(data.CalendarEvents, CalendarEventCluster{
+			EventId:          cluster.EventId,
 			Title:            cluster.Title,
 			StartTime:        cluster.StartTime,
 			EndTime:          cluster.EndTime,
@@ -472,6 +499,46 @@ func (s *Server) BulkReplaceStarredEvents(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (s *Server) GetAgenda(c *gin.Context) {
+	email := GetUserEmail(c)
+	yearParam := c.Param("year")
+
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	year, err := strconv.Atoi(yearParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid year"})
+		return
+	}
+
+	dbAgenda, err := s.Repo.LoadAgenda(email, year)
+	if err != nil {
+		log.Printf("error loading agenda: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	results := make([]StarredEventDetail, 0)
+	for _, entry := range dbAgenda {
+		results = append(results, StarredEventDetail{
+			EventId:          entry.Event.EventId,
+			Title:            entry.Event.Title,
+			ShortDescription: entry.Event.ShortDescription,
+			CategoryCode:     entry.Event.ShortCategory,
+			StartTime:        entry.Event.StartTime.Format("2006-01-02T15:04:05Z07:00"),
+			EndTime:          entry.Event.EndTime.Format("2006-01-02T15:04:05Z07:00"),
+			GenconUrl:        entry.Event.GenconLink(),
+			PlannerUrl:       entry.Event.PlannerLink(),
+			Tier:             entry.Tier,
+		})
+	}
+
+	c.JSON(http.StatusOK, results)
 }
 
 func (s *Server) GetParties(c *gin.Context) {
@@ -857,4 +924,5 @@ func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.POST("/user/star", s.StarEvent)
 	group.POST("/user/starred/clear/:year", s.BulkClearStarredEvents)
 	group.POST("/user/starred/bulk/:year", s.BulkReplaceStarredEvents)
+	group.GET("/user/agenda/:year", s.GetAgenda)
 }

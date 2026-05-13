@@ -21,8 +21,9 @@ export const routes: Routes = [
     path: 'search/:grouping', 
     loadComponent: () => import('./components/search/search.component').then(m => m.SearchComponent) 
   },
+  { path: 'starred/:year', redirectTo: 'starred/:year/calendar', pathMatch: 'full' },
   { 
-    path: 'starred/:year', 
+    path: 'starred/:year/:tab', 
     loadComponent: () => import('./components/starred/starred.component').then(m => m.StarredComponent),
     canActivate: [authGuard] 
   },
