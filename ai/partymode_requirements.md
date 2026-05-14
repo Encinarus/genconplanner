@@ -143,6 +143,11 @@ As Gen Con processes wishlists, members update their status in real-time:
 *   Background prioritization engine for "Party of One."
 *   Agenda View on the profile (based on stars initially).
 
+### Phase 2.5: Personal Wishlist Optimization
+*   Wishlist generation logic (Top 50 items).
+*   Anti-spam optimization (capping instances per group).
+*   Optimized Wishlist view on the user profile.
+
 ### Phase 3: Party-Aware Personal Prioritization
 *   Adding tie-breaker modifiers (`Better with others`, `Worth alone`, etc.) - visible only to party members.
 *   Scoring adjustments based on the interest of other party members.
@@ -169,6 +174,7 @@ As Gen Con processes wishlists, members update their status in real-time:
 ### Status Summary
 - **Phase 1: Basic Party Management & Visibility** - [x] **Completed**
 - **Phase 2: Personal Interest Tiers & Solo Optimization** - [x] **Completed**
+- **Phase 2.5: Personal Wishlist Optimization** - [x] **Completed**
 - **Phase 3: Party-Aware Personal Prioritization** - [ ] **Remaining**
 - **Phase 4: Collaborative Group Prioritization** - [ ] **Remaining**
 - **Phase 5: Ticket Management & Claims** - [ ] **Remaining**

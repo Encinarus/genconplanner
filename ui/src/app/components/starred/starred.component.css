@@ -136,3 +136,67 @@ label.tier-btn[for="calTierAll"] {
     padding-left: 8px;
     padding-right: 8px;
 }
+
+/* Wishlist Styles */
+.wishlist-item {
+    transition: background-color 0.2s ease;
+    border: 1px solid rgba(0,0,0,0.05) !important;
+}
+
+.wishlist-item:hover {
+    background-color: #f8f9fa;
+    box-shadow: none !important;
+}
+
+.wishlist-rank {
+    font-size: 1rem;
+    min-width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f3f5;
+    border-radius: 6px;
+    flex-shrink: 0;
+    color: #6c757d;
+}
+
+.wishlist-group-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #495057;
+    margin-bottom: 1rem;
+}
+
+.wishlist-item h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+}
+
+.wishlist-item .text-muted.small {
+    font-size: 0.8rem;
+}
+
+.wishlist-item .timing-label {
+    font-size: 0.75rem;
+    padding: 1px 6px;
+}
+
+.tier-icon {
+    font-size: 1rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 50%;
+}
+
+.reasoning-badge {
+    font-size: 0.65rem !important;
+    padding: 2px 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}

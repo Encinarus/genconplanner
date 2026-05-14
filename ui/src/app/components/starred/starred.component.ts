@@ -38,10 +38,12 @@ export class StarredComponent implements OnInit {
   year = signal<number>(new Date().getFullYear());
   starredList = signal<StarredEventDetail[]>([]);
   loading = signal<boolean>(true);
-  viewMode = signal<'list' | 'calendar' | 'bulk'>('calendar');
+  viewMode = signal<'list' | 'calendar' | 'bulk' | 'wishlist'>('calendar');
   tierFilter = signal<string>('all');
   bulkInput = signal<string>('');
   importAsGroups = signal<boolean>(false);
+  wishlistItems = signal<any[]>([]);
+  wishlistLoading = signal<boolean>(false);
   email = computed(() => this.auth.user()?.email || null);
 
   // Grouped and sorted starred events for the List view
@@ -200,6 +202,10 @@ export class StarredComponent implements OnInit {
       
       if (this.auth.authLoaded()) {
         this.starredService.fetchStarred(year);
+        // Also fetch wishlist if in that mode
+        if (this.viewMode() === 'wishlist') {
+          this.fetchWishlist();
+        }
       }
     });
   }
@@ -291,8 +297,11 @@ export class StarredComponent implements OnInit {
       }
 
       const tab = params['tab'];
-      if (tab && ['calendar', 'list', 'bulk'].includes(tab)) {
+      if (tab && ['calendar', 'list', 'bulk', 'wishlist'].includes(tab)) {
         this.viewMode.set(tab as any);
+        if (tab === 'wishlist') {
+          this.fetchWishlist();
+        }
       }
     });
   }
@@ -308,8 +317,25 @@ export class StarredComponent implements OnInit {
     }
   }
 
-  setViewMode(mode: 'list' | 'calendar' | 'bulk'): void {
+  setViewMode(mode: 'list' | 'calendar' | 'bulk' | 'wishlist'): void {
     this.router.navigate(['/starred', this.year(), mode]);
+    if (mode === 'wishlist') {
+      this.fetchWishlist();
+    }
+  }
+
+  fetchWishlist(): void {
+    this.wishlistLoading.set(true);
+    this.api.getWishlist(this.year()).subscribe({
+      next: (items) => {
+        this.wishlistItems.set(items);
+        this.wishlistLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Error fetching wishlist:', err);
+        this.wishlistLoading.set(false);
+      }
+    });
   }
 
   updateTier(eventId: string, tier: string): void {

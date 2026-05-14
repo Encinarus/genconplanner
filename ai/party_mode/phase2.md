@@ -1,4 +1,4 @@
-# Implementation Plan: Party Mode Phase 2
+# Implementation Plan: Party Mode Phase 2 [COMPLETED]
 
 This phase introduces granular interest tiers (`Must Have`, `Very Interested`, `Somewhat Interested`) and the foundation for the personal Agenda view.
 

@@ -65,6 +65,13 @@ export interface CalendarMetadata {
   endDate: string;
 }
 
+export interface WishlistItem {
+  event: StarredEventDetail;
+  status: string;
+  reasoning: string[];
+  score: number;
+}
+
 export interface StarredPageData {
   email: string;
   year: number;
@@ -260,5 +267,9 @@ export class ApiService {
 
   getLastUpdate(): Observable<{lastUpdate: string}> {
     return this.http.get<{lastUpdate: string}>(`/api/v1/metadata/last_update`);
+  }
+
+  getWishlist(year: number): Observable<WishlistItem[]> {
+    return this.http.get<WishlistItem[]>(`/api/v1/user/wishlist/${year}`);
   }
 }

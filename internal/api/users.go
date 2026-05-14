@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/Encinarus/genconplanner/internal/prioritization"
 	"github.com/gin-gonic/gin"
 )
 
@@ -45,6 +46,13 @@ type StarredPageData struct {
 	Metadata         CalendarMetadata       `json:"metadata"`
 	StarredClusters  []string               `json:"starredClusters"`
 	StarredEvents    []string               `json:"starredEvents"`
+}
+
+type WishlistItem struct {
+	Event     StarredEventDetail `json:"event"`
+	Status    string             `json:"status"`
+	Reasoning []string           `json:"reasoning"`
+	Score     float64            `json:"score"`
 }
 
 type Party struct {
@@ -905,6 +913,61 @@ func (s *Server) RenameUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
+func (s *Server) GetWishlist(c *gin.Context) {
+	email := GetUserEmail(c)
+	yearParam := c.Param("year")
+
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	year, err := strconv.Atoi(yearParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid year"})
+		return
+	}
+
+	starred, err := s.Repo.GetStarredIds(email, year)
+	if err != nil {
+		log.Printf("error loading starred ids: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	allStarredEvents, err := s.Repo.LoadStarredEvents(email, year)
+	if err != nil {
+		log.Printf("error loading starred events: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	// Use the prioritization package
+	optimized := prioritization.GeneratePersonalWishlist(starred.StarredEvents, allStarredEvents)
+
+	results := make([]WishlistItem, 0, len(optimized))
+	for _, item := range optimized {
+		results = append(results, WishlistItem{
+			Event: StarredEventDetail{
+				EventId:          item.Event.EventId,
+				Title:            item.Event.Title,
+				ShortDescription: item.Event.ShortDescription,
+				CategoryCode:     item.Event.ShortCategory,
+				StartTime:        item.Event.StartTime.Format("2006-01-02T15:04:05Z07:00"),
+				EndTime:          item.Event.EndTime.Format("2006-01-02T15:04:05Z07:00"),
+				GenconUrl:        item.Event.GenconLink(),
+				PlannerUrl:       item.Event.PlannerLink(),
+				Tier:             starred.GetTier(item.Event.EventId),
+			},
+			Status:    item.Status,
+			Reasoning: item.Reasoning,
+			Score:     item.Score,
+		})
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
 func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.GET("/user", s.GetUser)
 	group.GET("/user/events/:email/:year", s.LoadUserEvents)
@@ -926,4 +989,5 @@ func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.POST("/user/starred/clear/:year", s.BulkClearStarredEvents)
 	group.POST("/user/starred/bulk/:year", s.BulkReplaceStarredEvents)
 	group.GET("/user/agenda/:year", s.GetAgenda)
+	group.GET("/user/wishlist/:year", s.GetWishlist)
 }

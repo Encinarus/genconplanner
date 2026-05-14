@@ -27,6 +27,15 @@ type UserStarredEvents struct {
 	StarredEvents []StarredEvent
 }
 
+func (u *UserStarredEvents) GetTier(eventId string) string {
+	for _, s := range u.StarredEvents {
+		if s.EventId == eventId {
+			return s.Tier
+		}
+	}
+	return ""
+}
+
 func UpdateDisplayName(db *sql.DB, email string, displayName string) error {
 	email = strings.ToLower(email)
 	_, err := db.Exec("UPDATE users SET display_name = $1 WHERE email = $2", displayName, email)
