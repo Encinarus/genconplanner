@@ -2,20 +2,22 @@ package background
 
 import (
 	"database/sql"
-	"github.com/Encinarus/genconplanner/internal/events"
-	"github.com/Encinarus/genconplanner/internal/logging"
-	"github.com/Encinarus/genconplanner/internal/postgres"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/Encinarus/genconplanner/internal/logging"
+	"github.com/Encinarus/genconplanner/internal/postgres"
 )
 
 func parseHttp(sourceFile string) []*events.GenconEvent {
 	resp, err := http.Get(sourceFile)
-	
+
 	if err != nil {
+		log.Printf("Error getting %s: %v", sourceFile, err)
 		panic(err)
 	}
 	defer resp.Body.Close()
@@ -76,13 +78,12 @@ func UpdateEventsFromGencon(db *sql.DB, sourceFile string) {
 	var err error
 
 	defer func() {
-		// Recover any panic, log error, and save failure state before re-panicking
+		// Recover any panic, log error, and save failure state
 		if r := recover(); r != nil {
 			err = r.(error)
 			if logErr := postgres.LogUpdate(db, stats, false, err.Error()); logErr != nil {
 				logging.LogWithError(logErr, "Failed to record update log (panic path)")
 			}
-			panic(r)
 		} else if err != nil {
 			if logErr := postgres.LogUpdate(db, stats, false, err.Error()); logErr != nil {
 				logging.LogWithError(logErr, "Failed to record update log (error path)")

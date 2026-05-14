@@ -198,7 +198,7 @@ func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
 				log.Printf("Issue getting family: %v", err)
 				continue
 			}
-			gameIds := make([]int64, 0, 0)
+			gameIds := make([]int64, 0, len(bggFamily.Item.Link))
 			for _, related := range bggFamily.Item.Link {
 				gameIds = append(gameIds, related.ID)
 			}

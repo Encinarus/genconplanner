@@ -5,7 +5,8 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
+
 	"log"
 	"net/http"
 	"time"
@@ -106,7 +107,7 @@ func (bgg *BggApi) get(ctx context.Context, url string, v interface{}) error {
 
 		if resp.StatusCode == http.StatusAccepted {
 			resp.Body.Close()
-			log.Printf("BGG API returned 202 (Accepted) for %s, waiting 5 seconds to retry...", url)
+			log.Printf("BGG API returned 202 (Accepted) for %s, waiting 4 seconds to retry...", url)
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -121,11 +122,12 @@ func (bgg *BggApi) get(ctx context.Context, url string, v interface{}) error {
 			return fmt.Errorf("Surprise status code: %v", resp.StatusCode)
 		}
 
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Printf("Error in processing body %v", err)
 			return err
 		}
+		log.Printf("Body: %s", string(bodyBytes))
 		return xml.Unmarshal(bodyBytes, v)
 	}
 }
@@ -138,7 +140,7 @@ func (bgg *BggApi) GetGame(ctx context.Context, id int64) (*Game, error) {
 		return nil, err
 	}
 	if len(game.Item.Name) == 0 {
-		return nil, errors.New("Not a board game")
+		return nil, fmt.Errorf("Not a board game: %d from %s. Contents: %v", id, url, game)
 	}
 	return &game, nil
 }
