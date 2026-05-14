@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/Encinarus/genconplanner/internal/prioritization"
 	"github.com/gin-gonic/gin"
 )
@@ -66,6 +67,14 @@ type Party struct {
 type PartyMember struct {
 	DisplayName string `json:"displayName"`
 	Email       string `json:"email"`
+}
+
+type WishlistConstraint struct {
+	DayOfWeek   int `json:"dayOfWeek"`
+	StartHour   int `json:"startHour"`
+	StartMinute int `json:"startMinute"`
+	EndHour     int `json:"endHour"`
+	EndMinute   int `json:"endMinute"`
 }
 
 func (s *Server) GetUser(c *gin.Context) {
@@ -928,6 +937,44 @@ func (s *Server) GetWishlist(c *gin.Context) {
 		return
 	}
 
+	cache, dirty, err := s.Repo.GetWishlistCache(email, year)
+	if err == nil && !dirty {
+		// Convert cache to results
+		results := make([]WishlistItem, 0, len(cache))
+		for _, item := range cache {
+			dbEvents, _ := s.Repo.LoadSimilarEvents(item.EventId, "")
+			var entry *events.GenconEvent
+			for i := range dbEvents {
+				if dbEvents[i].EventId == item.EventId {
+					entry = dbEvents[i]
+					break
+				}
+			}
+			if entry == nil {
+				continue
+			}
+
+			results = append(results, WishlistItem{
+				Event: StarredEventDetail{
+					EventId:          entry.EventId,
+					Title:            entry.Title,
+					ShortDescription: entry.ShortDescription,
+					CategoryCode:     entry.ShortCategory,
+					StartTime:        entry.StartTime.Format("2006-01-02T15:04:05Z07:00"),
+					EndTime:          entry.EndTime.Format("2006-01-02T15:04:05Z07:00"),
+					GenconUrl:        entry.GenconLink(),
+					PlannerUrl:       entry.PlannerLink(),
+					Tier:             "", // Tier is handled by client or we can fetch it if needed
+				},
+				Status:    item.Status,
+				Reasoning: item.Reasoning,
+				Score:     item.Score,
+			})
+		}
+		c.JSON(http.StatusOK, results)
+		return
+	}
+
 	starred, err := s.Repo.GetStarredIds(email, year)
 	if err != nil {
 		log.Printf("error loading starred ids: %v\n", err)
@@ -942,8 +989,28 @@ func (s *Server) GetWishlist(c *gin.Context) {
 		return
 	}
 
+	constraints, err := s.Repo.GetWishlistConstraints(email)
+	if err != nil {
+		log.Printf("error loading wishlist constraints: %v\n", err)
+		// Fallback to defaults rather than failing
+		constraints = []postgres.WishlistConstraint{{DayOfWeek: -1, StartHour: 23, EndHour: 6}}
+	}
+
 	// Use the prioritization package
-	optimized := prioritization.GeneratePersonalWishlist(starred.StarredEvents, allStarredEvents)
+	optimized := prioritization.GeneratePersonalWishlist(starred.StarredEvents, allStarredEvents, constraints)
+
+	// Save to cache
+	cacheItems := make([]postgres.WishlistCacheItem, 0, len(optimized))
+	for i, item := range optimized {
+		cacheItems = append(cacheItems, postgres.WishlistCacheItem{
+			EventId:   item.Event.EventId,
+			Rank:      i + 1,
+			Status:    item.Status,
+			Reasoning: item.Reasoning,
+			Score:     item.Score,
+		})
+	}
+	s.Repo.SaveWishlistCache(email, year, cacheItems)
 
 	results := make([]WishlistItem, 0, len(optimized))
 	for _, item := range optimized {
@@ -968,6 +1035,78 @@ func (s *Server) GetWishlist(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
+func (s *Server) GetWishlistConstraints(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	constraints, err := s.Repo.GetWishlistConstraints(email)
+	if err != nil {
+		log.Printf("error loading wishlist constraints: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	results := make([]WishlistConstraint, 0, len(constraints))
+	for _, c := range constraints {
+		results = append(results, WishlistConstraint{
+			DayOfWeek:   c.DayOfWeek,
+			StartHour:   c.StartHour,
+			StartMinute: c.StartMinute,
+			EndHour:     c.EndHour,
+			EndMinute:   c.EndMinute,
+		})
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (s *Server) UpdateWishlistConstraints(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	var req []WishlistConstraint
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
+		return
+	}
+
+	dbConstraints := make([]postgres.WishlistConstraint, 0, len(req))
+	for _, r := range req {
+		// Validate
+		if r.DayOfWeek < -1 || r.DayOfWeek > 6 {
+			c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid day of week"})
+			return
+		}
+		if r.StartHour < 0 || r.StartHour > 23 || r.EndHour < 0 || r.EndHour > 23 {
+			c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Hours must be 0-23"})
+			return
+		}
+
+		dbConstraints = append(dbConstraints, postgres.WishlistConstraint{
+			DayOfWeek:   r.DayOfWeek,
+			StartHour:   r.StartHour,
+			StartMinute: r.StartMinute,
+			EndHour:     r.EndHour,
+			EndMinute:   r.EndMinute,
+		})
+	}
+
+	err := s.Repo.UpdateWishlistConstraints(email, dbConstraints)
+	if err != nil {
+		log.Printf("error updating wishlist constraints: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
 func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.GET("/user", s.GetUser)
 	group.GET("/user/events/:email/:year", s.LoadUserEvents)
@@ -990,4 +1129,6 @@ func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.POST("/user/starred/bulk/:year", s.BulkReplaceStarredEvents)
 	group.GET("/user/agenda/:year", s.GetAgenda)
 	group.GET("/user/wishlist/:year", s.GetWishlist)
+	group.GET("/user/wishlist/constraints", s.GetWishlistConstraints)
+	group.POST("/user/wishlist/constraints", s.UpdateWishlistConstraints)
 }

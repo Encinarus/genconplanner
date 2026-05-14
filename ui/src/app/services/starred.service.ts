@@ -22,17 +22,19 @@ export class StarredService {
     effect(() => {
       const user = this.auth.user();
       if (user) {
-        // If we have a year loaded or pending, fetch it
-        const yearToFetch = this.loadedYear() || (this.pendingStar ? this.pendingStar.year : 0);
-        if (yearToFetch > 0) {
-          this.fetchStarred(yearToFetch);
-          
-          // Execute pending star if exists
-          if (this.pendingStar) {
-            const { eventId, year, starGroup } = this.pendingStar;
-            this.pendingStar = null;
-            setTimeout(() => this.toggleStar(eventId, year, starGroup), 500);
-          }
+        // If we have a pending star, execute it
+        if (this.pendingStar) {
+          const { eventId, year, starGroup } = this.pendingStar;
+          this.pendingStar = null;
+          // Small delay to ensure auth state is fully propagated
+          setTimeout(() => this.toggleStar(eventId, year, starGroup), 500);
+          return;
+        }
+
+        // If a year was requested but we haven't loaded it for this user yet
+        const year = this.loadedYear();
+        if (year > 0 && !this.starredPageData()) {
+          this.fetchStarred(year);
         }
       } else {
         this.clearCache();

@@ -72,6 +72,14 @@ export interface WishlistItem {
   score: number;
 }
 
+export interface WishlistConstraint {
+  dayOfWeek: number; // -1 for Every Day, 0-6 for Sun-Sat
+  startHour: number;
+  startMinute: number;
+  endHour: number;
+  endMinute: number;
+}
+
 export interface StarredPageData {
   email: string;
   year: number;
@@ -271,5 +279,13 @@ export class ApiService {
 
   getWishlist(year: number): Observable<WishlistItem[]> {
     return this.http.get<WishlistItem[]>(`/api/v1/user/wishlist/${year}`);
+  }
+
+  getWishlistConstraints(): Observable<WishlistConstraint[]> {
+    return this.http.get<WishlistConstraint[]>(`/api/v1/user/wishlist/constraints`);
+  }
+
+  updateWishlistConstraints(constraints: WishlistConstraint[]): Observable<any> {
+    return this.http.post<any>(`/api/v1/user/wishlist/constraints`, constraints);
   }
 }

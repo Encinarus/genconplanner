@@ -200,3 +200,26 @@ label.tier-btn[for="calTierAll"] {
     text-transform: uppercase;
     letter-spacing: 0.02em;
 }
+
+/* Wishlist Calendar Styles */
+::ng-deep .secondary-wishlist-item {
+    filter: saturate(0.3) opacity(0.7);
+    border-style: dashed !important;
+    border-width: 2px !important;
+}
+
+::ng-deep .fc-event.secondary-wishlist-item .fc-event-main {
+    opacity: 0.8;
+}
+
+::ng-deep .fc-v-event.secondary-wishlist-item {
+    border-style: dashed !important;
+}
+
+::ng-deep .primary-wishlist-item {
+    z-index: 5 !important;
+}
+
+::ng-deep .secondary-wishlist-item {
+    z-index: 1 !important;
+}

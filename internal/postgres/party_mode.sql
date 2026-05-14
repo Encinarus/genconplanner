@@ -22,3 +22,32 @@ CREATE TYPE public.interest_tier AS ENUM ('must_have', 'very_interested', 'somew
 
 -- Add the tier column to starred_events
 ALTER TABLE public.starred_events ADD COLUMN tier public.interest_tier NOT NULL DEFAULT 'very_interested';
+
+-- Phase 2.6: Wishlist Constraints
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS wishlist_constraints_initialized BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS wishlist_dirty BOOLEAN NOT NULL DEFAULT TRUE;
+
+CREATE TABLE IF NOT EXISTS public.user_wishlist_constraints (
+    id SERIAL PRIMARY KEY,
+    email TEXT NOT NULL REFERENCES public.users(email),
+    day_of_week INTEGER NOT NULL DEFAULT -1, -- -1 for "Every Day", 0-6 for Sun-Sat
+    start_hour INTEGER NOT NULL,
+    start_minute INTEGER NOT NULL DEFAULT 0,
+    end_hour INTEGER NOT NULL,
+    end_minute INTEGER NOT NULL DEFAULT 0
+);
+
+-- Phase 2.7: Wishlist Caching
+CREATE TABLE IF NOT EXISTS public.user_wishlist_cache (
+    id SERIAL PRIMARY KEY,
+    email TEXT NOT NULL REFERENCES public.users(email),
+    year INTEGER NOT NULL,
+    event_id TEXT NOT NULL,
+    rank INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    reasoning TEXT[] NOT NULL,
+    score DOUBLE PRECISION NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_wishlist_cache_email_year ON public.user_wishlist_cache(email, year);

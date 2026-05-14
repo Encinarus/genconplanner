@@ -27,6 +27,14 @@ type UserStarredEvents struct {
 	StarredEvents []StarredEvent
 }
 
+type WishlistConstraint struct {
+	DayOfWeek   int // -1 for Every Day, 0-6 for Sun-Sat
+	StartHour   int
+	StartMinute int
+	EndHour     int
+	EndMinute   int
+}
+
 func (u *UserStarredEvents) GetTier(eventId string) string {
 	for _, s := range u.StarredEvents {
 		if s.EventId == eventId {
@@ -200,7 +208,7 @@ WHERE e2.active AND e2.year = $2
           (se.level = 'group' AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description)
         )
   )
-ORDER BY e2.start_time`, fields), userEmail, year)
+ORDER BY e2.start_time, e2.event_id`, fields), userEmail, year)
 
 	if err != nil {
 		return nil, err
@@ -337,7 +345,14 @@ WHERE s.email = $1
 	}
 
 	if !fullResponse {
-		err = tx.Commit()
+		// Mark wishlist as dirty
+	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	err = tx.Commit()
 		if err != nil {
 			return nil, err
 		}
@@ -371,8 +386,11 @@ DELETE FROM starred_events se
 USING events e
 WHERE se.event_id = e.event_id
   AND se.email = $1
-  AND e.year = $2
 `, email, year)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
 	return err
 }
 
@@ -416,6 +434,12 @@ ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level, tier = EXCLU
 		}
 	}
 
+	// Mark wishlist as dirty
+	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
+	if err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }
 
@@ -454,7 +478,8 @@ JOIN events e2 ON (
     OR
     (se.level = 'group' AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description)
 )
-WHERE se.email = $1 %s AND e2.active`, yearFilter)
+WHERE se.email = $1 %s AND e2.active
+ORDER BY e2.event_id`, yearFilter)
 
 	rows, err := q.Query(query, args...)
 	if err != nil {
@@ -521,4 +546,163 @@ WHERE email=$1
 	}
 
 	return user, nil
+}
+func GetWishlistConstraints(db *sql.DB, email string) ([]WishlistConstraint, error) {
+	email = strings.ToLower(email)
+
+	// Check if already initialized
+	var initialized bool
+	err := db.QueryRow("SELECT wishlist_constraints_initialized FROM users WHERE email = $1", email).Scan(&initialized)
+	if err != nil {
+		return nil, err
+	}
+
+	if !initialized {
+		// Create default entry
+		defaultConstraint := WishlistConstraint{
+			DayOfWeek:   -1,
+			StartHour:   23,
+			StartMinute: 0,
+			EndHour:     6,
+			EndMinute:   0,
+		}
+		err = UpdateWishlistConstraints(db, email, []WishlistConstraint{defaultConstraint})
+		if err != nil {
+			return nil, err
+		}
+		return []WishlistConstraint{defaultConstraint}, nil
+	}
+
+	rows, err := db.Query(`
+		SELECT COALESCE(day_of_week, -1), start_hour, start_minute, end_hour, end_minute 
+		FROM user_wishlist_constraints 
+		WHERE email = $1`, email)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var constraints []WishlistConstraint
+	for rows.Next() {
+		var c WishlistConstraint
+		if err := rows.Scan(&c.DayOfWeek, &c.StartHour, &c.StartMinute, &c.EndHour, &c.EndMinute); err != nil {
+			return nil, err
+		}
+		constraints = append(constraints, c)
+	}
+
+	return constraints, nil
+}
+
+func UpdateWishlistConstraints(db *sql.DB, email string, constraints []WishlistConstraint) error {
+	email = strings.ToLower(email)
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Mark as initialized
+	_, err = tx.Exec("UPDATE users SET wishlist_constraints_initialized = TRUE WHERE email = $1", email)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec("DELETE FROM user_wishlist_constraints WHERE email = $1", email)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range constraints {
+		_, err = tx.Exec(`
+			INSERT INTO user_wishlist_constraints (email, day_of_week, start_hour, start_minute, end_hour, end_minute)
+			VALUES ($1, $2, $3, $4, $5, $6)`,
+			email, c.DayOfWeek, c.StartHour, c.StartMinute, c.EndHour, c.EndMinute)
+		if err != nil {
+			return err
+		}
+	}
+	
+	// Mark wishlist as dirty
+	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+type WishlistCacheItem struct {
+	EventId   string
+	Rank      int
+	Status    string
+	Reasoning []string
+	Score     float64
+}
+
+func GetWishlistCache(db *sql.DB, email string, year int) ([]WishlistCacheItem, bool, error) {
+	email = strings.ToLower(email)
+	var dirty bool
+	err := db.QueryRow("SELECT wishlist_dirty FROM users WHERE email = $1", email).Scan(&dirty)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, true, nil
+		}
+		return nil, false, err
+	}
+	if dirty {
+		return nil, true, nil
+	}
+
+	rows, err := db.Query(`
+		SELECT event_id, rank, status, reasoning, score 
+		FROM user_wishlist_cache 
+		WHERE email = $1 AND year = $2 
+		ORDER BY rank ASC`, email, year)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+
+	var cache []WishlistCacheItem
+	for rows.Next() {
+		var item WishlistCacheItem
+		if err := rows.Scan(&item.EventId, &item.Rank, &item.Status, pq.Array(&item.Reasoning), &item.Score); err != nil {
+			return nil, false, err
+		}
+		cache = append(cache, item)
+	}
+	return cache, false, nil
+}
+
+func SaveWishlistCache(db *sql.DB, email string, year int, items []WishlistCacheItem) error {
+	email = strings.ToLower(email)
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec("DELETE FROM user_wishlist_cache WHERE email = $1 AND year = $2", email, year)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range items {
+		_, err = tx.Exec(`
+			INSERT INTO user_wishlist_cache (email, year, event_id, rank, status, reasoning, score)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			email, year, item.EventId, item.Rank, item.Status, pq.Array(item.Reasoning), item.Score)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = tx.Exec("UPDATE users SET wishlist_dirty = FALSE WHERE email = $1", email)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

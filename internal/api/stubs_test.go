@@ -26,6 +26,8 @@ type StubRepository struct {
 	ClearStarredEventsFn   func(string, int) error
 	BulkStarEventsFn       func(string, int, []string, bool, bool) error
 	LoadAgendaFn           func(string, int) ([]*postgres.AgendaEntry, error)
+	GetWishlistConstraintsFn func(string) ([]postgres.WishlistConstraint, error)
+	UpdateWishlistConstraintsFn func(string, []postgres.WishlistConstraint) error
 	LoadPartiesFn          func(*postgres.User) ([]*postgres.Party, error)
 	LoadPartyFn            func(int64) (*postgres.Party, error)
 	NewPartyFn             func(string, int64, string) (*postgres.Party, error)
@@ -36,6 +38,8 @@ type StubRepository struct {
 	JoinPartyFn            func(int64, string) error
 	UpdateDisplayNameFn    func(string, string) error
 	GetLastUpdateFn        func() (time.Time, error)
+	GetWishlistCacheFn     func(string, int) ([]postgres.WishlistCacheItem, bool, error)
+	SaveWishlistCacheFn    func(string, int, []postgres.WishlistCacheItem) error
 }
 
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
@@ -82,6 +86,18 @@ func (s *StubRepository) BulkStarEvents(email string, year int, eventIds []strin
 }
 func (s *StubRepository) LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error) {
 	return s.LoadAgendaFn(email, year)
+}
+func (s *StubRepository) GetWishlistConstraints(email string) ([]postgres.WishlistConstraint, error) {
+	if s.GetWishlistConstraintsFn == nil {
+		return nil, nil
+	}
+	return s.GetWishlistConstraintsFn(email)
+}
+func (s *StubRepository) UpdateWishlistConstraints(email string, constraints []postgres.WishlistConstraint) error {
+	if s.UpdateWishlistConstraintsFn == nil {
+		return nil
+	}
+	return s.UpdateWishlistConstraintsFn(email, constraints)
 }
 func (s *StubRepository) LoadParties(user *postgres.User) ([]*postgres.Party, error) {
 	return s.LoadPartiesFn(user)
@@ -133,6 +149,19 @@ func (s *StubRepository) GetLastUpdate() (time.Time, error) {
 		return s.GetLastUpdateFn()
 	}
 	return time.Time{}, nil
+}
+func (s *StubRepository) GetWishlistCache(email string, year int) ([]postgres.WishlistCacheItem, bool, error) {
+	if s.GetWishlistCacheFn == nil {
+		return nil, true, nil
+	}
+	return s.GetWishlistCacheFn(email, year)
+}
+
+func (s *StubRepository) SaveWishlistCache(email string, year int, items []postgres.WishlistCacheItem) error {
+	if s.SaveWishlistCacheFn == nil {
+		return nil
+	}
+	return s.SaveWishlistCacheFn(email, year, items)
 }
 
 // StubAuthService implements AuthService for testing.

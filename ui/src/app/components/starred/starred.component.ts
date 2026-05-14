@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject, computed, effect, ViewChild } from '
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
-import { ApiService, EventSummary, StarredEventDetail, StarredPageData } from '../../services/api.service';
+import { ApiService, EventSummary, StarredEventDetail, StarredPageData, WishlistConstraint } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { StarredService } from '../../services/starred.service';
 import { LinkService } from '../../services/link.service';
@@ -13,7 +13,8 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 import interactionPlugin from '@fullcalendar/interaction';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 
 declare var bootstrap: any;
 
@@ -38,12 +39,32 @@ export class StarredComponent implements OnInit {
   year = signal<number>(new Date().getFullYear());
   starredList = signal<StarredEventDetail[]>([]);
   loading = signal<boolean>(true);
-  viewMode = signal<'list' | 'calendar' | 'bulk' | 'wishlist'>('calendar');
+  viewMode = signal<'list' | 'calendar' | 'bulk' | 'wishlist' | 'wishlist_calendar'>('calendar');
   tierFilter = signal<string>('all');
   bulkInput = signal<string>('');
   importAsGroups = signal<boolean>(false);
   wishlistItems = signal<any[]>([]);
   wishlistLoading = signal<boolean>(false);
+  hideBackups = signal<boolean>(false);
+  
+  // Wishlist constraints
+  constraints = signal<WishlistConstraint[]>([]);
+  private constraintChangeSubject = new Subject<void>();
+  
+  days = [
+    { value: -1, label: 'Every Day' },
+    { value: 4, label: 'Thursday' },
+    { value: 5, label: 'Friday' },
+    { value: 6, label: 'Saturday' },
+    { value: 0, label: 'Sunday' }
+  ];
+
+  hours = Array.from({ length: 24 }, (_, i) => ({
+    value: i,
+    label: i === 0 ? 'Midnight' : i === 12 ? 'Noon' : i > 12 ? `${i - 12} PM` : `${i} AM`
+  }));
+
+  minutes = [0, 15, 30, 45];
   email = computed(() => this.auth.user()?.email || null);
 
   // Grouped and sorted starred events for the List view
@@ -104,6 +125,7 @@ export class StarredComponent implements OnInit {
     editable: false,
     navLinks: false,
     nowIndicator: true,
+    eventOrder: '-rank',
     timeZone: 'America/Indiana/Indianapolis',
     eventClick: (info) => {
       if (info.event.url) {
@@ -112,12 +134,35 @@ export class StarredComponent implements OnInit {
       }
     },
     eventDidMount: (info) => {
-      const description = info.event.extendedProps['description'];
-      if (description) {
+      const props = info.event.extendedProps;
+      const description = props['description'];
+      
+      let content = description || '';
+      let title = info.event.title;
+
+      if (props['isWishlist']) {
+        const rank = props['rank'];
+        const status = props['status'];
+        const eventId = props['eventId'];
+        const reasoning = (props['reasoning'] || []).join(', ');
+
+        title = `#${rank}: ${title}`;
+        content = `
+          <div class="small">
+            <div class="mb-1"><strong>ID:</strong> ${eventId}</div>
+            <div class="mb-1"><strong>Status:</strong> <span class="badge ${status === 'Primary' ? 'bg-success' : 'bg-secondary'}">${status}</span></div>
+            <div class="mb-1"><strong>Reasoning:</strong> ${reasoning}</div>
+            <hr class="my-1">
+            <div>${description}</div>
+          </div>
+        `;
+      }
+
+      if (content) {
         info.el.setAttribute('data-bs-toggle', 'popover');
         info.el.setAttribute('data-bs-trigger', 'hover focus');
-        info.el.setAttribute('title', info.event.title);
-        info.el.setAttribute('data-bs-content', description);
+        info.el.setAttribute('title', title);
+        info.el.setAttribute('data-bs-content', content);
         
         if (typeof bootstrap !== 'undefined' && bootstrap.Popover) {
           new bootstrap.Popover(info.el, {
@@ -202,11 +247,28 @@ export class StarredComponent implements OnInit {
       
       if (this.auth.authLoaded()) {
         this.starredService.fetchStarred(year);
+        this.fetchConstraints();
         // Also fetch wishlist if in that mode
-        if (this.viewMode() === 'wishlist') {
+        if (this.viewMode() === 'wishlist' || this.viewMode() === 'wishlist_calendar') {
           this.fetchWishlist();
         }
       }
+    });
+
+    // React to view mode changes to re-process calendar
+    effect(() => {
+      const mode = this.viewMode();
+      const data = this.starredService.starredPageData();
+      if (data) {
+        this.processData(data);
+      }
+    });
+
+    // Debounce constraint updates
+    this.constraintChangeSubject.pipe(
+      debounceTime(1500)
+    ).subscribe(() => {
+      this.saveConstraints();
     });
   }
 
@@ -234,9 +296,40 @@ export class StarredComponent implements OnInit {
 
     // 3. Cluster each game's sessions based on time overlaps
     const allClusters: any[] = [];
-    Object.values(gameGroups).forEach(sessions => {
-        allClusters.push(...this.clusterEvents(sessions));
-    });
+    const mode = this.viewMode();
+
+    if (mode === 'wishlist_calendar') {
+        // Individual wishlist items, no clustering
+        const hideBackups = this.hideBackups();
+        this.wishlistItems().forEach((item, index) => {
+            if (hideBackups && item.status === 'Backup') return;
+            
+            const event = item.event;
+            allClusters.push({
+                title: event.title,
+                start: event.startTime,
+                end: event.endTime,
+                url: this.linkService.getEventUrl(event.eventId),
+                backgroundColor: this.categoryColors[event.categoryCode] || '#888888',
+                borderColor: this.categoryColors[event.categoryCode] || '#888888',
+                className: item.status === 'Backup' ? 'secondary-wishlist-item' : 'primary-wishlist-item',
+                rank: index + 1,
+                extendedProps: {
+                    description: event.shortDescription,
+                    isWishlist: true,
+                    rank: index + 1,
+                    status: item.status,
+                    reasoning: item.reasoning,
+                    eventId: event.eventId,
+                    category: event.categoryCode
+                }
+            });
+        });
+    } else {
+        Object.values(gameGroups).forEach(sessions => {
+            allClusters.push(...this.clusterEvents(sessions));
+        });
+    }
 
     this.hasWednesday = (data.individualEvents || []).some((e: any) => {
       const d = new Date(e.startTime);
@@ -250,16 +343,34 @@ export class StarredComponent implements OnInit {
     const end = new Date(data.metadata.endDate);
     end.setDate(end.getDate() + 1);
     const inclusiveEndDate = end.toISOString().split('T')[0];
+    
+    const blockedEvents = this.generateBlockedEvents();
+    const allEvents = [...allClusters, ...blockedEvents];
+    
+    // Determine scroll time based on real events only
+    let scrollTime = '06:00:00';
+    if (allClusters.length > 0) {
+      let earliestMinutes = 24 * 60;
+      allClusters.forEach(e => {
+        const d = new Date(e.start);
+        const mins = d.getHours() * 60 + d.getMinutes();
+        if (mins < earliestMinutes) earliestMinutes = mins;
+      });
+      const scrollMinutes = Math.max(0, earliestMinutes - 60);
+      scrollTime = `${this.pad(Math.floor(scrollMinutes / 60))}:${this.pad(scrollMinutes % 60)}:00`;
+    }
 
     this.calendarOptions.update(options => {
       const hasStructureChanged = 
         options.initialDate !== initialDate ||
-        options.hiddenDays?.length !== hiddenDays.length;
+        options.hiddenDays?.length !== hiddenDays.length ||
+        options.scrollTime !== scrollTime;
 
       if (hasStructureChanged) {
         return {
           ...options,
           initialDate: initialDate,
+          scrollTime: scrollTime,
           validRange: {
             start: data.metadata.startDate,
             end: inclusiveEndDate
@@ -272,15 +383,88 @@ export class StarredComponent implements OnInit {
               duration: { days: duration }
             }
           },
-          events: allClusters
+          events: allEvents
         };
       } else {
         return {
           ...options,
-          events: allClusters
+          events: allEvents
         };
       }
     });
+  }
+
+  private generateBlockedEvents(): any[] {
+    if (!this.metadata) return [];
+    
+    const blocks: any[] = [];
+    const constraints = this.constraints();
+    const start = new Date(this.metadata.startDate);
+    const end = new Date(this.metadata.endDate);
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dow = d.getDay();
+        const dateStr = d.toISOString().split('T')[0];
+
+        // Ranges in minutes for this day
+        let dayRanges: {start: number, end: number}[] = [];
+
+        constraints.forEach(c => {
+            if (c.dayOfWeek !== -1 && c.dayOfWeek !== dow) return;
+
+            const startTotal = c.startHour * 60 + c.startMinute;
+            const endTotal = c.endHour * 60 + c.endMinute;
+            
+            if (endTotal < startTotal) {
+                // Wrap around
+                dayRanges.push({start: startTotal, end: 1440});
+                dayRanges.push({start: 0, end: endTotal});
+            } else if (startTotal !== endTotal) {
+                dayRanges.push({start: startTotal, end: endTotal});
+            }
+        });
+
+        if (dayRanges.length === 0) continue;
+
+        // Merge overlapping ranges
+        dayRanges.sort((a, b) => a.start - b.start);
+        const merged: {start: number, end: number}[] = [];
+        let current = dayRanges[0];
+
+        for (let i = 1; i < dayRanges.length; i++) {
+            if (dayRanges[i].start <= current.end) {
+                current.end = Math.max(current.end, dayRanges[i].end);
+            } else {
+                merged.push(current);
+                current = dayRanges[i];
+            }
+        }
+        merged.push(current);
+
+        // Create events from merged ranges
+        merged.forEach(r => {
+            // Correct for 1440 being 00:00 of next day
+            let endHour = Math.floor(r.end / 60);
+            let endMin = r.end % 60;
+            let endStr = `${dateStr}T${this.pad(endHour)}:${this.pad(endMin)}:00`;
+            if (r.end === 1440) {
+                endStr = `${dateStr}T23:59:59`;
+            }
+
+            blocks.push({
+                start: `${dateStr}T${this.pad(Math.floor(r.start / 60))}:${this.pad(r.start % 60)}:00`,
+                end: endStr,
+                display: 'background',
+                backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                className: 'blocked-time-bg'
+            });
+        });
+    }
+    return blocks;
+  }
+
+  private pad(n: number): string {
+    return n < 10 ? '0' + n : '' + n;
   }
 
   fetchData(): void {
@@ -297,11 +481,8 @@ export class StarredComponent implements OnInit {
       }
 
       const tab = params['tab'];
-      if (tab && ['calendar', 'list', 'bulk', 'wishlist'].includes(tab)) {
+      if (tab && ['calendar', 'list', 'bulk', 'wishlist', 'wishlist_calendar'].includes(tab)) {
         this.viewMode.set(tab as any);
-        if (tab === 'wishlist') {
-          this.fetchWishlist();
-        }
       }
     });
   }
@@ -317,11 +498,13 @@ export class StarredComponent implements OnInit {
     }
   }
 
-  setViewMode(mode: 'list' | 'calendar' | 'bulk' | 'wishlist'): void {
+  setViewMode(mode: 'list' | 'calendar' | 'bulk' | 'wishlist' | 'wishlist_calendar'): void {
     this.router.navigate(['/starred', this.year(), mode]);
-    if (mode === 'wishlist') {
-      this.fetchWishlist();
-    }
+  }
+
+  toggleHideBackups(): void {
+    this.hideBackups.update(v => !v);
+    this.processData(this.starredService.starredPageData()!);
   }
 
   fetchWishlist(): void {
@@ -337,6 +520,51 @@ export class StarredComponent implements OnInit {
         this.wishlistLoading.set(false);
       }
     });
+  }
+
+  fetchConstraints(): void {
+    this.api.getWishlistConstraints().subscribe({
+      next: (constraints) => {
+        this.constraints.set(constraints);
+      },
+      error: (err) => console.error('Error fetching constraints', err)
+    });
+  }
+
+  onConstraintsChange(): void {
+    // Only update local calendar visuals immediately
+    const data = this.starredService.starredPageData();
+    if (data) this.processData(data);
+    
+    // Debounce the actual save and wishlist refresh
+    this.constraintChangeSubject.next();
+  }
+
+  saveConstraints(): void {
+    this.api.updateWishlistConstraints(this.constraints()).subscribe({
+      next: () => {
+        // Re-fetch wishlist to apply new constraints
+        this.fetchWishlist();
+      },
+      error: (err) => console.error('Error updating constraints', err)
+    });
+  }
+
+  addConstraint(): void {
+    const newConstraint: WishlistConstraint = {
+      dayOfWeek: -1,
+      startHour: 23,
+      startMinute: 0,
+      endHour: 6,
+      endMinute: 0
+    };
+    this.constraints.update(c => [...c, newConstraint]);
+    this.onConstraintsChange();
+  }
+
+  removeConstraint(index: number): void {
+    this.constraints.update(c => c.filter((_, i) => i !== index));
+    this.onConstraintsChange();
   }
 
   initWishlistPopovers(): void {
@@ -368,6 +596,9 @@ export class StarredComponent implements OnInit {
 
   setTierFilter(tier: string): void {
     this.tierFilter.set(tier);
+    if (this.viewMode() === 'wishlist_calendar') {
+      this.setViewMode('calendar');
+    }
     // Re-process data to refresh calendar (and trigger computed list refresh)
     const data = this.starredService.starredPageData();
     if (data) {

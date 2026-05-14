@@ -37,7 +37,7 @@ func TestGeneratePersonalWishlist(t *testing.T) {
 		{EventId: "C1", Tier: "must_have"},
 	}
 
-	wishlist := GeneratePersonalWishlist(starred, allEvents)
+	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{})
 
 	if len(wishlist) == 0 {
 		t.Fatal("Expected non-empty wishlist")
@@ -79,7 +79,7 @@ func TestAntiSpam(t *testing.T) {
 		starred = append(starred, postgres.StarredEvent{EventId: id, Tier: "must_have"})
 	}
 
-	wishlist := GeneratePersonalWishlist(starred, allEvents)
+	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{})
 	
 	groupCount := 0
 	for _, item := range wishlist {

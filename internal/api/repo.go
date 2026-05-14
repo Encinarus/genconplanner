@@ -24,6 +24,10 @@ type EventRepository interface {
 	ClearStarredEvents(email string, year int) error
 	BulkStarEvents(email string, year int, eventIds []string, overwrite bool, asGroups bool) error
 	LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error)
+	GetWishlistConstraints(email string) ([]postgres.WishlistConstraint, error)
+	UpdateWishlistConstraints(email string, constraints []postgres.WishlistConstraint) error
+	GetWishlistCache(email string, year int) ([]postgres.WishlistCacheItem, bool, error)
+	SaveWishlistCache(email string, year int, items []postgres.WishlistCacheItem) error
 
 	// Party related
 	LoadParties(user *postgres.User) ([]*postgres.Party, error)
@@ -101,6 +105,22 @@ func (r *PostgresRepository) BulkStarEvents(email string, year int, eventIds []s
 
 func (r *PostgresRepository) LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error) {
 	return postgres.LoadAgenda(r.DB, email, year)
+}
+
+func (r *PostgresRepository) GetWishlistConstraints(email string) ([]postgres.WishlistConstraint, error) {
+	return postgres.GetWishlistConstraints(r.DB, email)
+}
+
+func (r *PostgresRepository) UpdateWishlistConstraints(email string, constraints []postgres.WishlistConstraint) error {
+	return postgres.UpdateWishlistConstraints(r.DB, email, constraints)
+}
+
+func (r *PostgresRepository) GetWishlistCache(email string, year int) ([]postgres.WishlistCacheItem, bool, error) {
+	return postgres.GetWishlistCache(r.DB, email, year)
+}
+
+func (r *PostgresRepository) SaveWishlistCache(email string, year int, items []postgres.WishlistCacheItem) error {
+	return postgres.SaveWishlistCache(r.DB, email, year, items)
 }
 
 func (r *PostgresRepository) LoadParties(user *postgres.User) ([]*postgres.Party, error) {

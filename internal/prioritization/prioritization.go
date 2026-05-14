@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"time"
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 )
@@ -39,7 +40,56 @@ func tierToScore(tier string) float64 {
 	}
 }
 
-func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*events.GenconEvent) []WishlistItem {
+func isTimeBlocked(checkTime time.Time, constraints []postgres.WishlistConstraint) bool {
+	dow := int(checkTime.Weekday())
+	totalMinutes := checkTime.Hour()*60 + checkTime.Minute()
+
+	for _, c := range constraints {
+		// Check day
+		if c.DayOfWeek != -1 && c.DayOfWeek != dow {
+			continue
+		}
+
+		startTotal := c.StartHour*60 + c.StartMinute
+		endTotal := c.EndHour*60 + c.EndMinute
+
+		if startTotal == endTotal {
+			continue
+		}
+
+		if startTotal < endTotal {
+			if totalMinutes >= startTotal && totalMinutes < endTotal {
+				return true
+			}
+		} else {
+			// Crosses midnight within its own context (usually for "Every Day")
+			if totalMinutes >= startTotal || totalMinutes < endTotal {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func overlapsBlockedTime(e *events.GenconEvent, constraints []postgres.WishlistConstraint) bool {
+	if len(constraints) == 0 {
+		return false
+	}
+	// Check each 15-min interval of the event for precision
+	for m := 0; m <= e.Duration; m += 15 {
+		checkTime := e.StartTime.Add(time.Duration(m) * time.Minute)
+		if isTimeBlocked(checkTime, constraints) {
+			return true
+		}
+	}
+	// Also check final end time
+	if isTimeBlocked(e.EndTime, constraints) {
+		return true
+	}
+	return false
+}
+
+func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*events.GenconEvent, constraints []postgres.WishlistConstraint) []WishlistItem {
 	// 1. Map events by ID for quick lookup
 	eventMap := make(map[string]*events.GenconEvent)
 	for _, e := range allEvents {
@@ -115,6 +165,12 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 			reasoning = append(reasoning, "Single Session")
 		}
 
+		// Apply Time Constraints
+		if len(constraints) > 0 && overlapsBlockedTime(event, constraints) {
+			score -= 1000000 // Massive penalty for blocked times
+			reasoning = append(reasoning, "Blocked Time")
+		}
+
 		scoredSessions = append(scoredSessions, scoredSession{
 			Event:      event,
 			Score:      score,
@@ -139,7 +195,10 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 		groupPriorities = append(groupPriorities, groupPriority{key, maxScore})
 	}
 	sort.Slice(groupPriorities, func(i, j int) bool {
-		return groupPriorities[i].MaxScore > groupPriorities[j].MaxScore
+		if groupPriorities[i].MaxScore != groupPriorities[j].MaxScore {
+			return groupPriorities[i].MaxScore > groupPriorities[j].MaxScore
+		}
+		return groupPriorities[i].ClusterKey < groupPriorities[j].ClusterKey
 	})
 
 	// 4. Pass 1: Perfect Calendar (Primary)
@@ -176,7 +235,7 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 			if s.ClusterKey != gp.ClusterKey {
 				continue
 			}
-			if !hasConflict(s.Event, wishlist) {
+			if !hasConflict(s.Event, wishlist) && s.Score > 0 {
 				// Count how many OTHER starred sessions this would conflict with
 				conflicts := 0
 				for j := range scoredSessions {
@@ -197,11 +256,15 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 			// Sort candidates:
 			// 1. Higher Session Score
 			// 2. Lower Conflict Count
+			// 3. Deterministic tie-breaker (EventId)
 			sort.Slice(candidates, func(i, j int) bool {
 				if candidates[i].session.Score != candidates[j].session.Score {
 					return candidates[i].session.Score > candidates[j].session.Score
 				}
-				return candidates[i].conflictCount < candidates[j].conflictCount
+				if candidates[i].conflictCount != candidates[j].conflictCount {
+					return candidates[i].conflictCount < candidates[j].conflictCount
+				}
+				return candidates[i].session.Event.EventId < candidates[j].session.Event.EventId
 			})
 
 			best := candidates[0]
@@ -217,40 +280,68 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 
 	// 5. Pass 2: Backups
 	// Fill remaining up to 50 items or 3 per group
-	// Sort all remaining sessions by score
-	sort.Slice(scoredSessions, func(i, j int) bool {
-		return scoredSessions[i].Score > scoredSessions[j].Score
-	})
+	// We'll pick them one by one to dynamically account for overlaps
+	for len(wishlist) < 50 {
+		var bestSession *scoredSession
+		var bestScoreWithPenalty float64 = -2000000.0 // Start very low
 
-	for _, s := range scoredSessions {
-		if len(wishlist) >= 50 {
-			break
-		}
-		
-		// Check if we already have this specific event in wishlist
-		alreadyIn := false
-		for _, item := range wishlist {
-			if item.Event.EventId == s.Event.EventId {
-				alreadyIn = true
-				break
+		for i := range scoredSessions {
+			s := &scoredSessions[i]
+
+			// 1. Check if specific event ID is already in wishlist
+			alreadyIn := false
+			for _, item := range wishlist {
+				if item.Event.EventId == s.Event.EventId {
+					alreadyIn = true
+					break
+				}
+			}
+			if alreadyIn {
+				continue
+			}
+
+			// 2. Cap at 3 sessions per group (including primary)
+			if selectedGroups[s.ClusterKey] >= 3 {
+				continue
+			}
+
+			// 3. Calculate overlap penalty to "spread out" backups
+			overlapPenalty := 0.0
+			for _, item := range wishlist {
+				// Interval overlap check
+				if s.Event.StartTime.Before(item.Event.EndTime) && item.Event.StartTime.Before(s.Event.EndTime) {
+					if item.Status == "Primary" {
+						overlapPenalty += 2000 // Higher penalty for overlapping the primary schedule
+					} else {
+						overlapPenalty += 1000 // Lower penalty for overlapping another backup
+					}
+
+					// Extra penalty if it overlaps with a session of the SAME game
+					if getClusterKey(item.Event) == s.ClusterKey {
+						overlapPenalty += 5000 
+					}
+				}
+			}
+
+			scoreWithPenalty := s.Score - overlapPenalty
+			if scoreWithPenalty > bestScoreWithPenalty {
+				bestScoreWithPenalty = scoreWithPenalty
+				bestSession = s
 			}
 		}
-		if alreadyIn {
-			continue
-		}
 
-		// Cap at 3 per group
-		if selectedGroups[s.ClusterKey] >= 3 {
-			continue
+		if bestSession == nil || bestScoreWithPenalty < -500000 {
+			// No more viable sessions (the -500k check avoids picking "Blocked Time" sessions)
+			break
 		}
 
 		wishlist = append(wishlist, WishlistItem{
-			Event:     s.Event,
+			Event:     bestSession.Event,
 			Status:    "Backup",
-			Reasoning: append(s.Reasoning, "Backup Option"),
-			Score:     s.Score,
+			Reasoning: append(bestSession.Reasoning, "Backup Option"),
+			Score:     bestSession.Score,
 		})
-		selectedGroups[s.ClusterKey]++
+		selectedGroups[bestSession.ClusterKey]++
 	}
 
 	return wishlist
