@@ -18,53 +18,57 @@ var ErrNoApiKey = errors.New("BGG API key not set")
 
 // XML tags generated from https://www.onlinetool.io/xmltogo/
 // Game can be a game, or expansion, see the Item.Type field.
-type Game struct {
-	Item struct {
-		Type          string `xml:"type,attr"`
-		ID            int64  `xml:"id,attr"`
-		YearPublished struct {
-			Text  string `xml:",chardata"`
-			Value int64  `xml:"value,attr"`
-		} `xml:"yearpublished"`
-		Name []struct {
-			Type  string `xml:"type,attr"`
-			Value string `xml:"value,attr"`
-		} `xml:"name"`
-		Description string `xml:"description"`
-		Link        []struct {
-			Type  string `xml:"type,attr"`
-			ID    int64  `xml:"id,attr"`
-			Value string `xml:"value,attr"`
-		} `xml:"link"`
-		Statistics struct {
-			Ratings struct {
-				Text       string `xml:",chardata"`
-				NumRatings struct {
-					Text  string `xml:",chardata"`
-					Value int64  `xml:"value,attr"`
-				} `xml:"usersrated"`
-				Average struct {
-					Text  string  `xml:",chardata"`
-					Value float64 `xml:"value,attr"`
-				} `xml:"average"`
-			} `xml:"ratings"`
-		} `xml:"statistics"`
-	} `xml:"item"`
+type Games struct {
+	Items []GameItem `xml:"item"`
 }
 
-type Family struct {
-	Item struct {
-		Type string `xml:"type,attr"`
-		ID   int64  `xml:"id,attr"`
-		Name struct {
-			Value string `xml:"value,attr"`
-		} `xml:"name"`
-		Link []struct {
-			Type  string `xml:"type,attr"`
-			ID    int64  `xml:"id,attr"`
-			Value string `xml:"value,attr"`
-		} `xml:"link"`
-	} `xml:"item"`
+type GameItem struct {
+	Type          string `xml:"type,attr"`
+	ID            int64  `xml:"id,attr"`
+	YearPublished struct {
+		Text  string `xml:",chardata"`
+		Value int64  `xml:"value,attr"`
+	} `xml:"yearpublished"`
+	Name []struct {
+		Type  string `xml:"type,attr"`
+		Value string `xml:"value,attr"`
+	} `xml:"name"`
+	Description string `xml:"description"`
+	Link        []struct {
+		Type  string `xml:"type,attr"`
+		ID    int64  `xml:"id,attr"`
+		Value string `xml:"value,attr"`
+	} `xml:"link"`
+	Statistics struct {
+		Ratings struct {
+			Text       string `xml:",chardata"`
+			NumRatings struct {
+				Text  string `xml:",chardata"`
+				Value int64  `xml:"value,attr"`
+			} `xml:"usersrated"`
+			Average struct {
+				Text  string  `xml:",chardata"`
+				Value float64 `xml:"value,attr"`
+			} `xml:"average"`
+		} `xml:"ratings"`
+	} `xml:"statistics"`
+}
+
+type Families struct {
+	Items []FamilyItem `xml:"item"`
+}
+
+type FamilyItem struct {
+	Type string `xml:"type,attr"`
+	ID   int64  `xml:"id,attr"`
+	Name struct {
+		Value string `xml:"value,attr"`
+	} `xml:"name"`
+	Link []struct {
+		Type  string `xml:"type,attr"`
+		ID    int64  `xml:"id,attr"`
+		Value string `xml:"value,attr"`
+	} `xml:"link"`
 }
 
 type BggApi struct {
@@ -74,7 +78,7 @@ type BggApi struct {
 
 func NewBggApi(apiKey string) *BggApi {
 	return &BggApi{
-		limiter: rate.NewLimiter(rate.Every(5*time.Second), 1),
+		limiter: rate.NewLimiter(rate.Every(10*time.Second), 1),
 		apiKey:  apiKey,
 	}
 }
@@ -127,30 +131,63 @@ func (bgg *BggApi) get(ctx context.Context, url string, v interface{}) error {
 			log.Printf("Error in processing body %v", err)
 			return err
 		}
-		log.Printf("Body: %s", string(bodyBytes))
 		return xml.Unmarshal(bodyBytes, v)
 	}
 }
 
-func (bgg *BggApi) GetGame(ctx context.Context, id int64) (*Game, error) {
-	url := fmt.Sprintf("http://boardgamegeek.com/xmlapi2/thing?type=boardgame,boardgameexpansion&stats=1&id=%d", id)
-	var game Game
-	err := bgg.get(ctx, url, &game)
+func (bgg *BggApi) GetGames(ctx context.Context, ids []int64) ([]*GameItem, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	idStr := ""
+	for i, id := range ids {
+		if i > 0 {
+			idStr += ","
+		}
+		idStr += fmt.Sprintf("%d", id)
+	}
+
+	url := fmt.Sprintf("http://boardgamegeek.com/xmlapi2/thing?type=boardgame,boardgameexpansion&stats=1&id=%s", idStr)
+	var games Games
+	err := bgg.get(ctx, url, &games)
 	if err != nil {
 		return nil, err
 	}
-	if len(game.Item.Name) == 0 {
-		return nil, fmt.Errorf("Not a board game: %d from %s. Contents: %v", id, url, game)
+
+	res := make([]*GameItem, 0)
+	for i := range games.Items {
+		if len(games.Items[i].Name) == 0 {
+			continue
+		}
+		res = append(res, &games.Items[i])
 	}
-	return &game, nil
+	return res, nil
 }
 
-func (bgg *BggApi) GetFamily(ctx context.Context, id int64) (*Family, error) {
-	url := fmt.Sprintf("http://boardgamegeek.com/xmlapi2/family?id=%d", id)
-	var family Family
-	err := bgg.get(ctx, url, &family)
+func (bgg *BggApi) GetFamilies(ctx context.Context, ids []int64) ([]*FamilyItem, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	idStr := ""
+	for i, id := range ids {
+		if i > 0 {
+			idStr += ","
+		}
+		idStr += fmt.Sprintf("%d", id)
+	}
+
+	url := fmt.Sprintf("http://boardgamegeek.com/xmlapi2/family?id=%s", idStr)
+	var families Families
+	err := bgg.get(ctx, url, &families)
 	if err != nil {
 		return nil, err
 	}
-	return &family, nil
+
+	res := make([]*FamilyItem, 0, len(families.Items))
+	for i := range families.Items {
+		res = append(res, &families.Items[i])
+	}
+	return res, nil
 }

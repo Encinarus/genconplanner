@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -18,17 +19,12 @@ func addIdsToBacklog(backlog map[int64]bool, newIds []int64) {
 	}
 }
 
-func RefreshGame(ctx context.Context, bggId int64,
-	familyBacklog map[int64]bool, db *sql.DB, api *bgg.BggApi) (*postgres.Game, error) {
+func RefreshGame(ctx context.Context, apiGame *bgg.GameItem,
+	familyBacklog map[int64]bool, db *sql.DB) (*postgres.Game, error) {
 
-	apiGame, err := api.GetGame(ctx, bggId)
-	if err != nil {
-		log.Printf("Issue getting apiGame %v", err)
-		return nil, err
-	}
 	var familyIds []int64
 
-	for _, related := range apiGame.Item.Link {
+	for _, related := range apiGame.Link {
 		// Other types exist (below), unfortunately we can't query for them. If BGG adds
 		// support for pulling these down, we can expand how we branch out and discover
 		// games.
@@ -46,8 +42,8 @@ func RefreshGame(ctx context.Context, bggId int64,
 	addIdsToBacklog(familyBacklog, familyIds)
 
 	// Default to 0 just in case none of them are primary
-	name := apiGame.Item.Name[0].Value
-	for _, n := range apiGame.Item.Name {
+	name := apiGame.Name[0].Value
+	for _, n := range apiGame.Name {
 		if n.Type == "primary" {
 			name = n.Value
 			break
@@ -56,15 +52,15 @@ func RefreshGame(ctx context.Context, bggId int64,
 
 	g := &postgres.Game{
 		Name:          name,
-		BggId:         apiGame.Item.ID,
+		BggId:         apiGame.ID,
 		FamilyIds:     familyIds,
 		LastUpdate:    time.Now(),
-		NumRatings:    apiGame.Item.Statistics.Ratings.NumRatings.Value,
-		AvgRatings:    apiGame.Item.Statistics.Ratings.Average.Value,
-		YearPublished: apiGame.Item.YearPublished.Value,
-		Type:          apiGame.Item.Type,
+		NumRatings:    apiGame.Statistics.Ratings.NumRatings.Value,
+		AvgRatings:    apiGame.Statistics.Ratings.Average.Value,
+		YearPublished: apiGame.YearPublished.Value,
+		Type:          apiGame.Type,
 	}
-	if err = g.Upsert(db); err != nil {
+	if err := g.Upsert(db); err != nil {
 		log.Printf("Issue storing apiGame %v", err)
 		return nil, err
 	}
@@ -150,71 +146,132 @@ func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
 		processedFamilies := 0
 
 		// Prioritize unknown games.
-		// TODO: extract the ids then sort, unknown first.
+		var unknownIds []int64
 		for id := range gameBacklog {
-			_, found := games[id]
-			if found {
-				// Will be picked up by the next loop
-				continue
-			}
-			processedGames++
-
-			_, err := RefreshGame(ctx, id, familyBacklog, db, api)
-			if err != nil {
-				log.Printf("Issue getting apiGame %v", err)
-				continue
+			if _, found := games[id]; !found {
+				unknownIds = append(unknownIds, id)
 			}
 		}
+
+		batchSize := 20
+		for i := 0; i < len(unknownIds); i += batchSize {
+			end := i + batchSize
+			if end > len(unknownIds) {
+				end = len(unknownIds)
+			}
+			batch := unknownIds[i:end]
+
+			apiGames, err := api.GetGames(ctx, batch)
+			if err != nil {
+				log.Printf("Issue getting apiGames %v", err)
+				continue
+			}
+			logDetails := ""
+			for _, apiGame := range apiGames {
+				processedGames++
+				g, err := RefreshGame(ctx, apiGame, familyBacklog, db)
+				if err == nil {
+					games[g.BggId] = g
+					if logDetails != "" {
+						logDetails += ", "
+					}
+					logDetails += fmt.Sprintf("%d:%s", g.BggId, g.Name)
+				}
+			}
+			log.Printf("processed %d games... %s", len(apiGames), logDetails)
+		}
+
+		var oldIds []int64
 		for id := range gameBacklog {
 			dbGame, found := games[id]
 			if !found {
-				// Handled in first loop
 				continue
 			} else if dbGame.LastUpdate.After(gameUpdateLimit) {
 				// We still want this for identifying families to load
 				addIdsToBacklog(familyBacklog, dbGame.FamilyIds)
 				continue
 			}
-			processedGames++
+			oldIds = append(oldIds, id)
+		}
 
-			_, err := RefreshGame(ctx, id, familyBacklog, db, api)
+		for i := 0; i < len(oldIds); i += batchSize {
+			end := i + batchSize
+			if end > len(oldIds) {
+				end = len(oldIds)
+			}
+			batch := oldIds[i:end]
+
+			apiGames, err := api.GetGames(ctx, batch)
 			if err != nil {
-				log.Printf("Issue getting apiGame %v", err)
+				log.Printf("Issue getting apiGames %v", err)
 				continue
 			}
+			logDetails := ""
+			for _, apiGame := range apiGames {
+				processedGames++
+				g, err := RefreshGame(ctx, apiGame, familyBacklog, db)
+				if err == nil {
+					games[g.BggId] = g
+					if logDetails != "" {
+						logDetails += ", "
+					}
+					logDetails += fmt.Sprintf("%d:%s", g.BggId, g.Name)
+				}
+			}
+			log.Printf("processed %d games... %s", len(apiGames), logDetails)
 		}
 
 		gameBacklog = make(map[int64]bool)
+		var familiesToProcess []int64
 		for id := range familyBacklog {
 			dbFamily, found := families[id]
 			if found && dbFamily.LastUpdate.After(familyUpdateLimit) {
 				addIdsToBacklog(gameBacklog, dbFamily.GameIds)
 				continue
 			}
-			processedFamilies++
+			familiesToProcess = append(familiesToProcess, id)
+		}
 
-			bggFamily, err := api.GetFamily(ctx, id)
+		for i := 0; i < len(familiesToProcess); i += batchSize {
+			end := i + batchSize
+			if end > len(familiesToProcess) {
+				end = len(familiesToProcess)
+			}
+			batch := familiesToProcess[i:end]
+
+			apiFamilies, err := api.GetFamilies(ctx, batch)
 			if err != nil {
-				log.Printf("Issue getting family: %v", err)
+				log.Printf("Issue getting families: %v", err)
 				continue
 			}
-			gameIds := make([]int64, 0, len(bggFamily.Item.Link))
-			for _, related := range bggFamily.Item.Link {
-				gameIds = append(gameIds, related.ID)
-			}
 
-			dbFamily = &postgres.GameFamily{
-				Name:       bggFamily.Item.Name.Value,
-				BggId:      bggFamily.Item.ID,
-				GameIds:    gameIds,
-				LastUpdate: time.Now(),
+			logDetails := ""
+			for _, bggFamily := range apiFamilies {
+				processedFamilies++
+				gameIds := make([]int64, 0, len(bggFamily.Link))
+				for _, related := range bggFamily.Link {
+					gameIds = append(gameIds, related.ID)
+				}
+				addIdsToBacklog(gameBacklog, gameIds)
+
+				dbFamily := &postgres.GameFamily{
+					Name:       bggFamily.Name.Value,
+					BggId:      bggFamily.ID,
+					GameIds:    gameIds,
+					LastUpdate: time.Now(),
+				}
+				families[bggFamily.ID] = dbFamily
+				err = families[bggFamily.ID].Upsert(db)
+				if err != nil {
+					log.Printf("Issue saving family: %v", err)
+					continue
+				}
+				if logDetails != "" {
+					logDetails += ", "
+				}
+				logDetails += fmt.Sprintf("%d:%s", bggFamily.ID, bggFamily.Name.Value)
 			}
-			families[id] = dbFamily
-			err = families[id].Upsert(db)
-			if err != nil {
-				log.Printf("Issue saving family: %v", err)
-				continue
-			}
+			log.Printf("processed %d families... %s", len(apiFamilies), logDetails)
 		}
 
 		// We're done! We don't know about anything else to dig into
