@@ -172,31 +172,36 @@
                                 YOUR PERFECT CALENDAR
                             </h3>
                             <div *ngFor="let item of wishlistItems(); let i = index">
-                                <div *ngIf="item.status === 'Primary'" class="wishlist-item card border-0 shadow-sm mb-2">
+                                <div *ngIf="item.status === 'Primary'" class="wishlist-item card border-0 shadow-sm mb-2" 
+                                     [attr.data-bs-toggle]="item.event.shortDescription ? 'popover' : null"
+                                     [attr.data-bs-content]="item.event.shortDescription"
+                                     [attr.title]="item.event.title">
                                     <div class="card-body p-2 px-3">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div class="d-flex align-items-center gap-3 overflow-hidden">
                                                 <div class="wishlist-rank">#{{ i + 1 }}</div>
                                                 <div class="text-truncate">
-                                                    <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
+                                                    <h4 class="mb-0 fw-bold">
                                                         <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="text-dark text-decoration-none text-truncate">
                                                             {{ item.event.title }}
-                                                        </a>
-                                                        <a [href]="item.event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-1" style="font-size: 0.65rem; height: 1.2rem; line-height: 1;">
-                                                            GC <i class="bi bi-box-arrow-up-right" style="font-size: 0.6rem;"></i>
                                                         </a>
                                                     </h4>
                                                     <div class="d-flex align-items-center gap-2">
                                                         <span class="timing-label">{{ formatTiming(item.event.startTime, item.event.endTime) }}</span>
-                                                        <span class="text-muted small text-truncate">{{ item.event.shortDescription }}</span>
+                                                        <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="event-id-link small opacity-75">{{ item.event.eventId }}</a>
+                                                        <a [href]="item.event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.65rem; height: 1.2rem; line-height: 1;">
+                                                            GenCon <i class="bi bi-box-arrow-up-right" style="font-size: 0.6rem;"></i>
+                                                        </a>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center gap-3 flex-shrink-0">
                                                 <div class="d-none d-md-flex flex-wrap gap-1 justify-content-end">
-                                                    <span *ngFor="let reason of item.reasoning" class="badge bg-success bg-opacity-10 text-success border-success border-opacity-25 reasoning-badge">
-                                                        {{ reason }}
-                                                    </span>
+                                                    <ng-container *ngFor="let reason of item.reasoning">
+                                                        <span *ngIf="!isTierReason(reason)" class="badge bg-success bg-opacity-10 text-success border-success border-opacity-25 reasoning-badge">
+                                                            {{ reason }}
+                                                        </span>
+                                                    </ng-container>
                                                 </div>
                                                 <div class="tier-icon" [title]="item.event.tier">
                                                     <i class="bi" 
@@ -220,31 +225,36 @@
                                 SECONDARY OPTIONS
                             </h3>
                             <div *ngFor="let item of wishlistItems(); let i = index">
-                                <div *ngIf="item.status === 'Backup'" class="wishlist-item card border-0 shadow-sm mb-2">
+                                <div *ngIf="item.status === 'Backup'" class="wishlist-item card border-0 shadow-sm mb-2"
+                                     [attr.data-bs-toggle]="item.event.shortDescription ? 'popover' : null"
+                                     [attr.data-bs-content]="item.event.shortDescription"
+                                     [attr.title]="item.event.title">
                                     <div class="card-body p-2 px-3">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div class="d-flex align-items-center gap-3 overflow-hidden">
                                                 <div class="wishlist-rank">#{{ i + 1 }}</div>
                                                 <div class="text-truncate">
-                                                    <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
+                                                    <h4 class="mb-0 fw-bold">
                                                         <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="text-dark text-decoration-none text-truncate">
                                                             {{ item.event.title }}
-                                                        </a>
-                                                        <a [href]="item.event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-1" style="font-size: 0.65rem; height: 1.2rem; line-height: 1;">
-                                                            GC <i class="bi bi-box-arrow-up-right" style="font-size: 0.6rem;"></i>
                                                         </a>
                                                     </h4>
                                                     <div class="d-flex align-items-center gap-2">
                                                         <span class="timing-label">{{ formatTiming(item.event.startTime, item.event.endTime) }}</span>
-                                                        <span class="text-muted small text-truncate">{{ item.event.shortDescription }}</span>
+                                                        <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="event-id-link small opacity-75">{{ item.event.eventId }}</a>
+                                                        <a [href]="item.event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.65rem; height: 1.2rem; line-height: 1;">
+                                                            GenCon <i class="bi bi-box-arrow-up-right" style="font-size: 0.6rem;"></i>
+                                                        </a>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center gap-3 flex-shrink-0">
                                                 <div class="d-none d-md-flex flex-wrap gap-1 justify-content-end">
-                                                    <span *ngFor="let reason of item.reasoning" class="badge bg-secondary bg-opacity-10 text-secondary border-secondary border-opacity-25 reasoning-badge">
-                                                        {{ reason }}
-                                                    </span>
+                                                    <ng-container *ngFor="let reason of item.reasoning">
+                                                        <span *ngIf="!isTierReason(reason)" class="badge bg-secondary bg-opacity-10 text-secondary border-secondary border-opacity-25 reasoning-badge">
+                                                            {{ reason }}
+                                                        </span>
+                                                    </ng-container>
                                                 </div>
                                                 <div class="tier-icon" [title]="item.event.tier">
                                                     <i class="bi" 
