@@ -70,12 +70,24 @@ export class StarredComponent implements OnInit {
   // Grouped and sorted starred events for the List view
   groupedStarredList = computed(() => {
     const filter = this.tierFilter();
+    const list = this.starredList();
+    const wishlist = this.wishlistItems();
+    
+    // If filtering by wishlist, we only want events that are in the wishlist
+    let sourceEvents = list;
+    if (filter === 'wishlist') {
+      const wishlistIds = new Set(wishlist.map(item => item.event.eventId));
+      sourceEvents = list.filter(e => wishlistIds.has(e.eventId));
+    }
+
     const categoryGroups: Record<string, Record<string, StarredEventDetail[]>> = {};
     
-    this.starredList().forEach(e => {
-      // Apply tier filter
-      const eventTier = e.tier || 'very_interested';
-      if (filter !== 'all' && eventTier !== filter) return;
+    sourceEvents.forEach(e => {
+      // Apply tier filter (if not wishlist mode)
+      if (filter !== 'all' && filter !== 'wishlist') {
+        const eventTier = e.tier || 'very_interested';
+        if (eventTier !== filter) return;
+      }
 
       if (!categoryGroups[e.categoryCode]) categoryGroups[e.categoryCode] = {};
       const groupKey = `${e.title}|${e.shortDescription}`;
@@ -111,6 +123,14 @@ export class StarredComponent implements OnInit {
       center: 'title',
       right: 'timeGridDay,genconWeek'
     },
+    customButtons: {
+      hideBackups: {
+        text: 'Hide Backups',
+        click: () => {
+          this.toggleHideBackups();
+        }
+      }
+    },
     views: {
       genconWeek: {
         type: 'timeGrid',
@@ -141,6 +161,7 @@ export class StarredComponent implements OnInit {
       let title = info.event.title;
 
       if (props['isWishlist']) {
+        info.el.style.setProperty('--event-bg-color', info.event.backgroundColor);
         const rank = props['rank'];
         const status = props['status'];
         const eventId = props['eventId'];
@@ -248,10 +269,7 @@ export class StarredComponent implements OnInit {
       if (this.auth.authLoaded()) {
         this.starredService.fetchStarred(year);
         this.fetchConstraints();
-        // Also fetch wishlist if in that mode
-        if (this.viewMode() === 'wishlist' || this.viewMode() === 'wishlist_calendar') {
-          this.fetchWishlist();
-        }
+        this.fetchWishlist();
       }
     });
 
@@ -296,9 +314,10 @@ export class StarredComponent implements OnInit {
 
     // 3. Cluster each game's sessions based on time overlaps
     const allClusters: any[] = [];
-    const mode = this.viewMode();
+    const tierFilter = this.tierFilter();
+    const isWishlistMode = tierFilter === 'wishlist';
 
-    if (mode === 'wishlist_calendar') {
+    if (isWishlistMode) {
         // Individual wishlist items, no clustering
         const hideBackups = this.hideBackups();
         this.wishlistItems().forEach((item, index) => {
@@ -361,16 +380,24 @@ export class StarredComponent implements OnInit {
     }
 
     this.calendarOptions.update(options => {
+      const expectedLeft = isWishlistMode ? 'prev,next hideBackups' : 'prev,next';
+      const currentToolbar = options.headerToolbar as any;
       const hasStructureChanged = 
         options.initialDate !== initialDate ||
         options.hiddenDays?.length !== hiddenDays.length ||
-        options.scrollTime !== scrollTime;
+        options.scrollTime !== scrollTime ||
+        currentToolbar?.left !== expectedLeft;
 
       if (hasStructureChanged) {
         return {
           ...options,
           initialDate: initialDate,
           scrollTime: scrollTime,
+          headerToolbar: {
+            ...currentToolbar,
+            left: expectedLeft,
+            right: 'timeGridDay,genconWeek'
+          },
           validRange: {
             start: data.metadata.startDate,
             end: inclusiveEndDate
@@ -481,7 +508,7 @@ export class StarredComponent implements OnInit {
       }
 
       const tab = params['tab'];
-      if (tab && ['calendar', 'list', 'bulk', 'wishlist', 'wishlist_calendar'].includes(tab)) {
+      if (tab && ['calendar', 'list', 'bulk', 'wishlist'].includes(tab)) {
         this.viewMode.set(tab as any);
       }
     });
@@ -498,7 +525,7 @@ export class StarredComponent implements OnInit {
     }
   }
 
-  setViewMode(mode: 'list' | 'calendar' | 'bulk' | 'wishlist' | 'wishlist_calendar'): void {
+  setViewMode(mode: 'list' | 'calendar' | 'bulk' | 'wishlist'): void {
     this.router.navigate(['/starred', this.year(), mode]);
   }
 
@@ -596,9 +623,6 @@ export class StarredComponent implements OnInit {
 
   setTierFilter(tier: string): void {
     this.tierFilter.set(tier);
-    if (this.viewMode() === 'wishlist_calendar') {
-      this.setViewMode('calendar');
-    }
     // Re-process data to refresh calendar (and trigger computed list refresh)
     const data = this.starredService.starredPageData();
     if (data) {

@@ -203,13 +203,20 @@ label.tier-btn[for="calTierAll"] {
 
 /* Wishlist Calendar Styles */
 ::ng-deep .secondary-wishlist-item {
-    filter: saturate(0.3) opacity(0.7);
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--event-bg-color, #888),
+        var(--event-bg-color, #888) 15px,
+        color-mix(in srgb, var(--event-bg-color, #888), #888888 40%) 15px,
+        color-mix(in srgb, var(--event-bg-color, #888), #888888 40%) 30px
+    ) !important;
     border-style: dashed !important;
     border-width: 2px !important;
+    filter: none; /* Remove previous saturate filter to let color-mix do the work */
 }
 
 ::ng-deep .fc-event.secondary-wishlist-item .fc-event-main {
-    opacity: 0.8;
+    background: transparent !important;
 }
 
 ::ng-deep .fc-v-event.secondary-wishlist-item {
@@ -222,4 +229,23 @@ label.tier-btn[for="calTierAll"] {
 
 ::ng-deep .secondary-wishlist-item {
     z-index: 1 !important;
+}
+
+/* Force title centering */
+::ng-deep .fc .fc-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+::ng-deep .fc .fc-toolbar-chunk:nth-child(2) {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+::ng-deep .fc .fc-toolbar-chunk:nth-child(2) * {
+    pointer-events: auto;
 }

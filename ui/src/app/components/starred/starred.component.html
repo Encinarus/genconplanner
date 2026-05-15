@@ -25,7 +25,7 @@
         </ul>
 
         <!-- Tier Filter -->
-        <div *ngIf="viewMode() !== 'bulk'" class="d-flex align-items-center gap-2">
+        <div *ngIf="viewMode() === 'calendar' || viewMode() === 'list'" class="d-flex align-items-center gap-2">
             <span class="small text-muted text-uppercase fw-bold">Filter:</span>
             <div class="btn-group btn-group-sm" role="group">
                 <input type="radio" class="btn-check" name="tierFilter" id="tierAll" 
@@ -45,22 +45,16 @@
                 </label>
 
                 <input type="radio" class="btn-check" name="tierFilter" id="tierSome" 
-                       [checked]="tierFilter() === 'somewhat_interested' && viewMode() !== 'wishlist_calendar'" (change)="setTierFilter('somewhat_interested')">
+                       [checked]="tierFilter() === 'somewhat_interested'" (change)="setTierFilter('somewhat_interested')">
                 <label class="btn btn-outline-secondary tier-btn" for="tierSome" title="Somewhat Interested">
-                    <i class="bi" [class.bi-hand-thumbs-up-fill]="tierFilter() === 'somewhat_interested' && viewMode() !== 'wishlist_calendar'" [class.bi-hand-thumbs-up]="tierFilter() !== 'somewhat_interested' || viewMode() === 'wishlist_calendar'"></i>
+                    <i class="bi" [class.bi-hand-thumbs-up-fill]="tierFilter() === 'somewhat_interested'" [class.bi-hand-thumbs-up]="tierFilter() !== 'somewhat_interested'"></i>
                 </label>
 
                 <input type="radio" class="btn-check" name="tierFilter" id="tierWishlist" 
-                       [checked]="viewMode() === 'wishlist_calendar'" (change)="setViewMode('wishlist_calendar')">
-                <label class="btn btn-outline-info tier-btn" for="tierWishlist" title="Wishlist Calendar">
+                       [checked]="tierFilter() === 'wishlist'" (change)="setTierFilter('wishlist')">
+                <label class="btn btn-outline-info tier-btn" for="tierWishlist" title="Wishlist Items">
                     <i class="bi bi-magic"></i>
                 </label>
-            </div>
-
-            <div *ngIf="viewMode() === 'wishlist_calendar'" class="form-check form-switch ms-3 mb-0">
-                <input class="form-check-input" type="checkbox" id="hideBackupsToggle" 
-                       [checked]="hideBackups()" (change)="toggleHideBackups()">
-                <label class="form-check-label small fw-bold text-muted text-uppercase" for="hideBackupsToggle" style="cursor: pointer;">Hide Backups</label>
             </div>
         </div>
     </div>
@@ -161,23 +155,23 @@
         </div>
 
         <div *ngIf="viewMode() === 'wishlist'">
-            <div *ngIf="wishlistLoading()" class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading Wishlist...</span>
+            <div class="alert alert-primary border-0 shadow-sm mb-4 d-flex align-items-center">
+                <i class="bi bi-magic me-3 fs-4"></i>
+                <div>
+                    <strong>Wishlist Optimizer</strong><br>
+                    Generated a 50-item wishlist based on your interest tiers, event scarcity, and schedule density.
                 </div>
             </div>
 
-            <div *ngIf="!wishlistLoading()">
-                <div class="alert alert-primary border-0 shadow-sm mb-4 d-flex align-items-center">
-                    <i class="bi bi-magic me-3 fs-4"></i>
-                    <div>
-                        <strong>Wishlist Optimizer</strong><br>
-                        Generated a 50-item wishlist based on your interest tiers, event scarcity, and schedule density.
+            <div class="row">
+                <div class="col-lg-8">
+                    <div *ngIf="wishlistLoading()" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading Wishlist...</span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="row">
-                    <div class="col-lg-8">
+                    <div *ngIf="!wishlistLoading()">
                         <div class="wishlist-group mb-5">
                             <h3 class="wishlist-group-title d-flex align-items-center">
                                 <span class="badge bg-primary me-2 px-2 py-1">Primary</span>
@@ -280,12 +274,13 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
 
-                    <div class="col-lg-4">
+            <div class="col-lg-4">
                         <div class="card border-0 shadow-sm sticky-top" style="top: 100px;">
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -320,8 +315,8 @@
                                                             (change)="onConstraintsChange()">
                                                         <option *ngFor="let h of hours" [ngValue]="h.value">{{h.label}}</option>
                                                     </select>
-                                                    <select class="form-select form-select-sm border-0 shadow-none bg-white" 
-                                                            style="width: 55px;"
+                                                    <select class="form-select form-select-sm border-0 shadow-none bg-white flex-shrink-0" 
+                                                            style="width: 70px;"
                                                             [(ngModel)]="c.startMinute" 
                                                             (change)="onConstraintsChange()">
                                                         <option *ngFor="let m of minutes" [ngValue]="m">:{{m | number:'2.0-0'}}</option>
@@ -336,8 +331,8 @@
                                                             (change)="onConstraintsChange()">
                                                         <option *ngFor="let h of hours" [ngValue]="h.value">{{h.label}}</option>
                                                     </select>
-                                                    <select class="form-select form-select-sm border-0 shadow-none bg-white" 
-                                                            style="width: 55px;"
+                                                    <select class="form-select form-select-sm border-0 shadow-none bg-white flex-shrink-0" 
+                                                            style="width: 70px;"
                                                             [(ngModel)]="c.endMinute" 
                                                             (change)="onConstraintsChange()">
                                                         <option *ngFor="let m of minutes" [ngValue]="m">:{{m | number:'2.0-0'}}</option>
@@ -356,12 +351,11 @@
                                     <i class="bi bi-info-circle-fill me-2"></i>
                                     Overlapping events will be deprioritized and marked as <strong>Blocked</strong>.
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                            </div> <!-- card-body -->
+                        </div> <!-- card -->
+                    </div> <!-- col-lg-4 -->
+                </div> <!-- row -->
+            </div> <!-- wishlist viewMode -->
 
 
         <div *ngIf="viewMode() === 'bulk'" class="bulk-container">

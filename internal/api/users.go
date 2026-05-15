@@ -937,6 +937,13 @@ func (s *Server) GetWishlist(c *gin.Context) {
 		return
 	}
 
+	starred, err := s.Repo.GetStarredIds(email, year)
+	if err != nil {
+		log.Printf("error loading starred ids: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
 	cache, dirty, err := s.Repo.GetWishlistCache(email, year)
 	if err == nil && !dirty {
 		// Convert cache to results
@@ -964,7 +971,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 					EndTime:          entry.EndTime.Format("2006-01-02T15:04:05Z07:00"),
 					GenconUrl:        entry.GenconLink(),
 					PlannerUrl:       entry.PlannerLink(),
-					Tier:             "", // Tier is handled by client or we can fetch it if needed
+					Tier:             starred.GetTier(entry.EventId),
 				},
 				Status:    item.Status,
 				Reasoning: item.Reasoning,
@@ -975,12 +982,6 @@ func (s *Server) GetWishlist(c *gin.Context) {
 		return
 	}
 
-	starred, err := s.Repo.GetStarredIds(email, year)
-	if err != nil {
-		log.Printf("error loading starred ids: %v\n", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
-		return
-	}
 
 	allStarredEvents, err := s.Repo.LoadStarredEvents(email, year)
 	if err != nil {
