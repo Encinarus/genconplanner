@@ -28,11 +28,12 @@ type UserStarredEvents struct {
 }
 
 type WishlistConstraint struct {
-	DayOfWeek   int // -1 for Every Day, 0-6 for Sun-Sat
-	StartHour   int
-	StartMinute int
-	EndHour     int
-	EndMinute   int
+	DayOfWeek          int // -1 for Every Day, 0-6 for Sun-Sat
+	StartHour          int
+	StartMinute        int
+	EndHour            int
+	EndMinute          int
+	MinDurationMinutes int // 0 means hard block, > 0 means flexible block
 }
 
 func (u *UserStarredEvents) GetTier(eventId string) string {
@@ -574,7 +575,7 @@ func GetWishlistConstraints(db *sql.DB, email string) ([]WishlistConstraint, err
 	}
 
 	rows, err := db.Query(`
-		SELECT COALESCE(day_of_week, -1), start_hour, start_minute, end_hour, end_minute 
+		SELECT COALESCE(day_of_week, -1), start_hour, start_minute, end_hour, end_minute, min_duration_minutes 
 		FROM user_wishlist_constraints 
 		WHERE email = $1`, email)
 
@@ -586,7 +587,7 @@ func GetWishlistConstraints(db *sql.DB, email string) ([]WishlistConstraint, err
 	var constraints []WishlistConstraint
 	for rows.Next() {
 		var c WishlistConstraint
-		if err := rows.Scan(&c.DayOfWeek, &c.StartHour, &c.StartMinute, &c.EndHour, &c.EndMinute); err != nil {
+		if err := rows.Scan(&c.DayOfWeek, &c.StartHour, &c.StartMinute, &c.EndHour, &c.EndMinute, &c.MinDurationMinutes); err != nil {
 			return nil, err
 		}
 		constraints = append(constraints, c)
@@ -616,9 +617,9 @@ func UpdateWishlistConstraints(db *sql.DB, email string, constraints []WishlistC
 
 	for _, c := range constraints {
 		_, err = tx.Exec(`
-			INSERT INTO user_wishlist_constraints (email, day_of_week, start_hour, start_minute, end_hour, end_minute)
-			VALUES ($1, $2, $3, $4, $5, $6)`,
-			email, c.DayOfWeek, c.StartHour, c.StartMinute, c.EndHour, c.EndMinute)
+			INSERT INTO user_wishlist_constraints (email, day_of_week, start_hour, start_minute, end_hour, end_minute, min_duration_minutes)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			email, c.DayOfWeek, c.StartHour, c.StartMinute, c.EndHour, c.EndMinute, c.MinDurationMinutes)
 		if err != nil {
 			return err
 		}

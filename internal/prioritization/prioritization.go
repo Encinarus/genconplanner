@@ -50,6 +50,10 @@ func IsTimeBlocked(checkTime time.Time, constraints []postgres.WishlistConstrain
 			continue
 		}
 
+		if c.MinDurationMinutes > 0 {
+			continue
+		}
+
 		startTotal := c.StartHour*60 + c.StartMinute
 		endTotal := c.EndHour*60 + c.EndMinute
 
@@ -206,6 +210,85 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 	var wishlist []WishlistItem
 	selectedGroups := make(map[string]int) // ClusterKey -> Count
 	
+	// Helper to check for gaps in flexible constraints
+	checkFlexibleConstraints := func(candidate *events.GenconEvent, currentList []WishlistItem) bool {
+		dow := int(candidate.StartTime.Weekday())
+		for _, c := range constraints {
+			if c.MinDurationMinutes <= 0 {
+				continue
+			}
+			if c.DayOfWeek != -1 && c.DayOfWeek != dow {
+				continue
+			}
+
+			windowStart := c.StartHour*60 + c.StartMinute
+			windowEnd := c.EndHour*60 + c.EndMinute
+			if windowEnd <= windowStart {
+				// For now, only support windows within a single day for flexible breaks.
+				// Supporting cross-midnight flexible breaks is significantly more complex.
+				continue
+			}
+
+			type interval struct{ start, end int }
+			var occupied []interval
+
+			addEvent := func(e *events.GenconEvent) {
+				if int(e.StartTime.Weekday()) != dow {
+					return
+				}
+				eStart := e.StartTime.Hour()*60 + e.StartTime.Minute()
+				eEnd := e.EndTime.Hour()*60 + e.EndTime.Minute()
+
+				// Overlap check and clipping
+				if eStart < windowEnd && eEnd > windowStart {
+					clipStart := eStart
+					if clipStart < windowStart {
+						clipStart = windowStart
+					}
+					clipEnd := eEnd
+					if clipEnd > windowEnd {
+						clipEnd = windowEnd
+					}
+					if clipStart < clipEnd {
+						occupied = append(occupied, interval{clipStart, clipEnd})
+					}
+				}
+			}
+
+			addEvent(candidate)
+			for _, item := range currentList {
+				if item.Status == "Primary" {
+					addEvent(item.Event)
+				}
+			}
+
+			sort.Slice(occupied, func(i, j int) bool {
+				return occupied[i].start < occupied[j].start
+			})
+
+			// Check for gap
+			lastEnd := windowStart
+			foundGap := false
+			for _, inter := range occupied {
+				if inter.start-lastEnd >= c.MinDurationMinutes {
+					foundGap = true
+					break
+				}
+				if inter.end > lastEnd {
+					lastEnd = inter.end
+				}
+			}
+			if !foundGap && windowEnd-lastEnd >= c.MinDurationMinutes {
+				foundGap = true
+			}
+
+			if !foundGap {
+				return false
+			}
+		}
+		return true
+	}
+
 	// Helper to check for conflicts
 	hasConflict := func(e1 *events.GenconEvent, currentList []WishlistItem) bool {
 		for _, item := range currentList {
@@ -218,6 +301,11 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 				return true
 			}
 		}
+
+		if !checkFlexibleConstraints(e1, currentList) {
+			return true
+		}
+
 		return false
 	}
 
@@ -321,6 +409,11 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 						overlapPenalty += 5000 
 					}
 				}
+			}
+
+			// Flexible block penalty
+			if !checkFlexibleConstraints(s.Event, wishlist) {
+				overlapPenalty += 5000 // High penalty for breaking a flexible break
 			}
 
 			scoreWithPenalty := s.Score - overlapPenalty

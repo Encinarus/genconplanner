@@ -583,7 +583,8 @@ export class StarredComponent implements OnInit {
       startHour: 23,
       startMinute: 0,
       endHour: 6,
-      endMinute: 0
+      endMinute: 0,
+      minDurationMinutes: 0
     };
     this.constraints.update(c => [...c, newConstraint]);
     this.onConstraintsChange();

@@ -78,6 +78,7 @@ export interface WishlistConstraint {
   startMinute: number;
   endHour: number;
   endMinute: number;
+  minDurationMinutes: number;
 }
 
 export interface StarredPageData {

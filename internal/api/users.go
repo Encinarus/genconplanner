@@ -70,11 +70,12 @@ type PartyMember struct {
 }
 
 type WishlistConstraint struct {
-	DayOfWeek   int `json:"dayOfWeek"`
-	StartHour   int `json:"startHour"`
-	StartMinute int `json:"startMinute"`
-	EndHour     int `json:"endHour"`
-	EndMinute   int `json:"endMinute"`
+	DayOfWeek          int `json:"dayOfWeek"`
+	StartHour          int `json:"startHour"`
+	StartMinute        int `json:"startMinute"`
+	EndHour            int `json:"endHour"`
+	EndMinute          int `json:"endMinute"`
+	MinDurationMinutes int `json:"minDurationMinutes"`
 }
 
 func (s *Server) GetUser(c *gin.Context) {
@@ -1053,11 +1054,12 @@ func (s *Server) GetWishlistConstraints(c *gin.Context) {
 	results := make([]WishlistConstraint, 0, len(constraints))
 	for _, c := range constraints {
 		results = append(results, WishlistConstraint{
-			DayOfWeek:   c.DayOfWeek,
-			StartHour:   c.StartHour,
-			StartMinute: c.StartMinute,
-			EndHour:     c.EndHour,
-			EndMinute:   c.EndMinute,
+			DayOfWeek:          c.DayOfWeek,
+			StartHour:          c.StartHour,
+			StartMinute:        c.StartMinute,
+			EndHour:            c.EndHour,
+			EndMinute:          c.EndMinute,
+			MinDurationMinutes: c.MinDurationMinutes,
 		})
 	}
 
@@ -1090,11 +1092,12 @@ func (s *Server) UpdateWishlistConstraints(c *gin.Context) {
 		}
 
 		dbConstraints = append(dbConstraints, postgres.WishlistConstraint{
-			DayOfWeek:   r.DayOfWeek,
-			StartHour:   r.StartHour,
-			StartMinute: r.StartMinute,
-			EndHour:     r.EndHour,
-			EndMinute:   r.EndMinute,
+			DayOfWeek:          r.DayOfWeek,
+			StartHour:          r.StartHour,
+			StartMinute:        r.StartMinute,
+			EndHour:            r.EndHour,
+			EndMinute:          r.EndMinute,
+			MinDurationMinutes: r.MinDurationMinutes,
 		})
 	}
 

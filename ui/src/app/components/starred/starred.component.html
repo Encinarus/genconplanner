@@ -340,6 +340,20 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        <div class="mt-2 pt-2 border-top">
+                                            <label class="small fw-bold text-muted text-uppercase d-block mb-1" style="font-size: 0.65rem;">Min Duration (Minutes)</label>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <input type="number" class="form-control form-control-sm border-0 shadow-none bg-white" 
+                                                       style="width: 70px;"
+                                                       [(ngModel)]="c.minDurationMinutes" 
+                                                       (change)="onConstraintsChange()"
+                                                       min="0" step="15">
+                                                <span class="small text-muted">
+                                                    {{ c.minDurationMinutes > 0 ? 'Flexible Break' : 'Hard Block' }}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
