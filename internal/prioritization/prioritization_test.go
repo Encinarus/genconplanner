@@ -92,3 +92,95 @@ func TestAntiSpam(t *testing.T) {
 		t.Errorf("Expected at most 3 items from Spam Group, got %d", groupCount)
 	}
 }
+
+func TestExclusiveBlockedTimes(t *testing.T) {
+	// Mock constraints
+	constraints := []postgres.WishlistConstraint{
+		{
+			DayOfWeek:   int(time.Thursday),
+			StartHour:   8,
+			StartMinute: 0,
+			EndHour:     8,
+			EndMinute:   30,
+		},
+		{
+			DayOfWeek:   -1, // Every Day
+			StartHour:   23,
+			StartMinute: 0,
+			EndHour:     1,
+			EndMinute:   0,
+		},
+	}
+
+	testCases := []struct {
+		name     string
+		start    time.Time
+		duration int
+		blocked  bool
+	}{
+		{
+			name:     "Event ending at block start (8:00)",
+			start:    time.Date(2026, 7, 30, 6, 0, 0, 0, events.INDIANAPOLIS), // Thursday
+			duration: 120, // 6:00 to 8:00
+			blocked:  false,
+		},
+		{
+			name:     "Event starting at block end (8:30)",
+			start:    time.Date(2026, 7, 30, 8, 30, 0, 0, events.INDIANAPOLIS),
+			duration: 30, // 8:30 to 9:00
+			blocked:  false,
+		},
+		{
+			name:     "Event overlapping middle (8:15)",
+			start:    time.Date(2026, 7, 30, 8, 15, 0, 0, events.INDIANAPOLIS),
+			duration: 30, // 8:15 to 8:45
+			blocked:  true,
+		},
+		{
+			name:     "Event exactly matching block (8:00-8:30)",
+			start:    time.Date(2026, 7, 30, 8, 0, 0, 0, events.INDIANAPOLIS),
+			duration: 30,
+			blocked:  true,
+		},
+		{
+			name:     "Event spanning across block (7:45-8:45)",
+			start:    time.Date(2026, 7, 30, 7, 45, 0, 0, events.INDIANAPOLIS),
+			duration: 60,
+			blocked:  true,
+		},
+		{
+			name:     "Midnight block boundary start (23:00)",
+			start:    time.Date(2026, 7, 30, 22, 0, 0, 0, events.INDIANAPOLIS),
+			duration: 60, // 22:00 to 23:00
+			blocked:  false,
+		},
+		{
+			name:     "Midnight block interior (00:00)",
+			start:    time.Date(2026, 7, 30, 23, 30, 0, 0, events.INDIANAPOLIS),
+			duration: 60, // 23:30 to 00:30
+			blocked:  true,
+		},
+		{
+			name:     "Midnight block boundary end (01:00)",
+			start:    time.Date(2026, 7, 31, 1, 0, 0, 0, events.INDIANAPOLIS),
+			duration: 60, // 01:00 to 02:00
+			blocked:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			event := &events.GenconEvent{
+				StartTime: tc.start,
+				Duration:  tc.duration,
+				EndTime:   tc.start.Add(time.Duration(tc.duration) * time.Minute),
+			}
+
+			isBlocked := OverlapsBlockedTime(event, constraints)
+			if isBlocked != tc.blocked {
+				t.Errorf("Expected blocked: %v, Got: %v", tc.blocked, isBlocked)
+			}
+		})
+	}
+}
+

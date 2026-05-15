@@ -40,7 +40,7 @@ func tierToScore(tier string) float64 {
 	}
 }
 
-func isTimeBlocked(checkTime time.Time, constraints []postgres.WishlistConstraint) bool {
+func IsTimeBlocked(checkTime time.Time, constraints []postgres.WishlistConstraint) bool {
 	dow := int(checkTime.Weekday())
 	totalMinutes := checkTime.Hour()*60 + checkTime.Minute()
 
@@ -58,12 +58,12 @@ func isTimeBlocked(checkTime time.Time, constraints []postgres.WishlistConstrain
 		}
 
 		if startTotal < endTotal {
-			if totalMinutes >= startTotal && totalMinutes < endTotal {
+			if totalMinutes > startTotal && totalMinutes < endTotal {
 				return true
 			}
 		} else {
 			// Crosses midnight within its own context (usually for "Every Day")
-			if totalMinutes >= startTotal || totalMinutes < endTotal {
+			if totalMinutes > startTotal || totalMinutes < endTotal {
 				return true
 			}
 		}
@@ -71,19 +71,19 @@ func isTimeBlocked(checkTime time.Time, constraints []postgres.WishlistConstrain
 	return false
 }
 
-func overlapsBlockedTime(e *events.GenconEvent, constraints []postgres.WishlistConstraint) bool {
+func OverlapsBlockedTime(e *events.GenconEvent, constraints []postgres.WishlistConstraint) bool {
 	if len(constraints) == 0 {
 		return false
 	}
 	// Check each 15-min interval of the event for precision
 	for m := 0; m <= e.Duration; m += 15 {
 		checkTime := e.StartTime.Add(time.Duration(m) * time.Minute)
-		if isTimeBlocked(checkTime, constraints) {
+		if IsTimeBlocked(checkTime, constraints) {
 			return true
 		}
 	}
 	// Also check final end time
-	if isTimeBlocked(e.EndTime, constraints) {
+	if IsTimeBlocked(e.EndTime, constraints) {
 		return true
 	}
 	return false
@@ -166,7 +166,7 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 		}
 
 		// Apply Time Constraints
-		if len(constraints) > 0 && overlapsBlockedTime(event, constraints) {
+		if len(constraints) > 0 && OverlapsBlockedTime(event, constraints) {
 			score -= 1000000 // Massive penalty for blocked times
 			reasoning = append(reasoning, "Blocked Time")
 		}
