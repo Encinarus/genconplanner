@@ -398,6 +398,23 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 				if peakStart < peakEnd {
 					score += float64(peakEnd - peakStart) // +1 point per minute in peak hours
 				}
+
+				// Off-Peak Penalty (before 9am [540 mins] or after 7pm [1140 mins])
+				if startMins < 540 {
+					before9End := endMins
+					if before9End > 540 {
+						before9End = 540
+					}
+					score -= float64(before9End - startMins) * 2.0 // -2 points per minute before 9am
+				}
+
+				if endMins > 1140 {
+					after7Start := startMins
+					if after7Start < 1140 {
+						after7Start = 1140
+					}
+					score -= float64(endMins - after7Start) * 2.0 // -2 points per minute after 7pm
+				}
 			}
 
 			// Gap Bonus (>= 10 mins gap between adjacent events on the same day)
