@@ -37,6 +37,7 @@ type StubRepository struct {
 	DeletePartyFn          func(int64) error
 	RemoveMemberFn         func(int64, string) error
 	JoinPartyFn            func(int64, string) error
+	LoadPartySharedInterestsFn func(int64, int) ([]*postgres.SharedInterestGroup, error)
 	UpdateDisplayNameFn    func(string, string) error
 	GetLastUpdateFn        func() (time.Time, error)
 	GetWishlistCacheFn     func(string, int) ([]postgres.WishlistCacheItem, bool, error)
@@ -147,6 +148,13 @@ func (s *StubRepository) JoinParty(partyId int64, email string) error {
 		return nil
 	}
 	return s.JoinPartyFn(partyId, email)
+}
+
+func (s *StubRepository) LoadPartySharedInterests(partyId int64, year int) ([]*postgres.SharedInterestGroup, error) {
+	if s.LoadPartySharedInterestsFn == nil {
+		return nil, nil
+	}
+	return s.LoadPartySharedInterestsFn(partyId, year)
 }
 func (s *StubRepository) UpdateDisplayName(email string, name string) error {
 	return s.UpdateDisplayNameFn(email, name)

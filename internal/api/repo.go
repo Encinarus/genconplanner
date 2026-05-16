@@ -39,6 +39,7 @@ type EventRepository interface {
 	DeleteParty(id int64) error
 	RemoveMember(partyId int64, email string) error
 	JoinParty(partyId int64, email string) error
+	LoadPartySharedInterests(partyId int64, year int) ([]*postgres.SharedInterestGroup, error)
 
 	// User related
 	UpdateDisplayName(email string, name string) error
@@ -158,6 +159,10 @@ func (r *PostgresRepository) RemoveMember(partyId int64, email string) error {
 
 func (r *PostgresRepository) JoinParty(partyId int64, email string) error {
 	return postgres.JoinParty(r.DB, partyId, email)
+}
+
+func (r *PostgresRepository) LoadPartySharedInterests(partyId int64, year int) ([]*postgres.SharedInterestGroup, error) {
+	return postgres.LoadPartySharedInterests(r.DB, partyId, year)
 }
 
 func (r *PostgresRepository) UpdateDisplayName(email string, name string) error {

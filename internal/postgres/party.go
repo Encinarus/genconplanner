@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"database/sql"
+	"encoding/json"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -251,3 +253,128 @@ ON CONFLICT DO NOTHING
 `, partyId, email)
 	return err
 }
+
+type MemberInterest struct {
+	Email       string `json:"email"`
+	DisplayName string `json:"displayName"`
+	Tier        string `json:"tier"`
+}
+
+type SharedInterestGroup struct {
+	ClusterId       string           `json:"clusterId"`
+	RepEventId      string           `json:"repEventId"`
+	Title           string           `json:"title"`
+	ShortCategory   string           `json:"shortCategory"`
+	GameSystem      string           `json:"gameSystem"`
+	TotalSessions   int              `json:"totalSessions"`
+	TotalTickets    int              `json:"totalTickets"`
+	MemberInterests []MemberInterest `json:"memberInterests"`
+	GroupScore      int              `json:"groupScore"`
+}
+
+func LoadPartySharedInterests(db *sql.DB, partyId int64, year int) ([]*SharedInterestGroup, error) {
+	rows, err := db.Query(`
+WITH cluster_summary AS (
+    SELECT 
+        e.cluster_id,
+        MIN(e.event_id) as rep_event_id,
+        e.title,
+        e.short_category,
+        e.game_system,
+        COUNT(DISTINCT e.event_id) as total_sessions,
+        SUM(e.tickets_available) as total_tickets
+    FROM events e
+    JOIN starred_events se ON e.event_id = se.event_id
+    JOIN party_members pm ON se.email = pm.email
+    WHERE pm.party_id = $1 AND e.year = $2 AND e.active = true AND se.tier != 'not_interested'
+    GROUP BY e.cluster_id, e.title, e.short_category, e.game_system
+),
+member_max_tier AS (
+    SELECT 
+        e.cluster_id,
+        pm.email,
+        u.display_name,
+        CASE 
+            WHEN bool_or(se.tier = 'must_have') THEN 'must_have'
+            WHEN bool_or(se.tier = 'very_interested') THEN 'very_interested'
+            WHEN bool_or(se.tier = 'somewhat_interested') THEN 'somewhat_interested'
+            WHEN bool_or(se.tier = 'not_interested') THEN 'not_interested'
+            ELSE 'not_interested'
+        END as max_tier
+    FROM party_members pm
+    JOIN starred_events se ON pm.email = se.email
+    JOIN events e ON se.event_id = e.event_id
+    JOIN users u ON pm.email = u.email
+    WHERE pm.party_id = $1 AND e.year = $2 AND e.active = true
+    GROUP BY e.cluster_id, pm.email, u.display_name
+)
+SELECT 
+    cs.cluster_id,
+    cs.rep_event_id,
+    cs.title,
+    cs.short_category,
+    cs.game_system,
+    cs.total_sessions,
+    cs.total_tickets,
+    JSON_AGG(
+        JSONB_BUILD_OBJECT(
+            'email', mmt.email,
+            'displayName', CASE WHEN length(mmt.display_name) > 0 THEN mmt.display_name ELSE split_part(mmt.email, '@', 1) END,
+            'tier', mmt.max_tier
+        )
+    ) as member_interests
+FROM cluster_summary cs
+JOIN member_max_tier mmt ON cs.cluster_id = mmt.cluster_id
+GROUP BY cs.cluster_id, cs.rep_event_id, cs.title, cs.short_category, cs.game_system, cs.total_sessions, cs.total_tickets
+`, partyId, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var groups []*SharedInterestGroup
+	for rows.Next() {
+		var g SharedInterestGroup
+		var memberInterestsJSON []byte
+		err := rows.Scan(
+			&g.ClusterId,
+			&g.RepEventId,
+			&g.Title,
+			&g.ShortCategory,
+			&g.GameSystem,
+			&g.TotalSessions,
+			&g.TotalTickets,
+			&memberInterestsJSON,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(memberInterestsJSON) > 0 {
+			if err := json.Unmarshal(memberInterestsJSON, &g.MemberInterests); err != nil {
+				return nil, err
+			}
+		}
+
+		// Calculate GroupScore
+		for _, m := range g.MemberInterests {
+			switch m.Tier {
+			case "must_have":
+				g.GroupScore += 100
+			case "very_interested":
+				g.GroupScore += 50
+			case "somewhat_interested":
+				g.GroupScore += 10
+			}
+		}
+
+		groups = append(groups, &g)
+	}
+
+	sort.Slice(groups, func(i, j int) bool {
+		return groups[i].GroupScore > groups[j].GroupScore
+	})
+
+	return groups, nil
+}
+

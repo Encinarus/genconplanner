@@ -105,6 +105,9 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 	groupStatsMap := make(map[string]*groupStats)
 
 	for _, se := range starred {
+		if se.Tier == "not_interested" {
+			continue
+		}
 		starredMap[se.EventId] = se
 		event, found := eventMap[se.EventId]
 		if !found {
@@ -134,6 +137,9 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 	var scoredSessions []scoredSession
 
 	for _, se := range starred {
+		if se.Tier == "not_interested" {
+			continue
+		}
 		event, found := eventMap[se.EventId]
 		if !found {
 			continue

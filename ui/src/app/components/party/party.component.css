@@ -1,6 +1,90 @@
-.party-container {
-    max-width: 1000px;
-    margin: 0 auto;
+.party-viewport {
+    display: flex;
+    min-height: calc(100vh - 50px);
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.party-navigation-rail {
+    position: fixed;
+    top: 50px; /* Below navbar */
+    left: 0;
+    bottom: 0;
+    width: 72px;
+    background-color: #ffffff;
+    border-right: 1px solid #dee2e6;
+    z-index: 1030;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 0;
+    padding-bottom: 1.5rem;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+}
+
+.rail-tab {
+    width: 100%;
+    border-radius: 0;
+    padding: 1.25rem 0;
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+    cursor: pointer;
+}
+
+.rail-tab:hover {
+    background-color: rgba(0,0,0,0.03);
+    color: #212529;
+}
+
+.rail-tab.active {
+    border-left: 4px solid var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.08);
+    color: var(--bs-primary);
+}
+
+.party-main-content {
+    margin-left: 72px; /* Offset by rail width */
+    flex-grow: 1;
+    width: calc(100% - 72px);
+    padding: 1.5rem 1.5rem;
+    min-width: 0;
+}
+
+.sticky-party-header {
+    position: sticky;
+    top: 50px; /* Aligned with navbar */
+    z-index: 1020;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.75rem 1.5rem;
+    margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+
+@media (max-width: 768px) {
+    .party-navigation-rail {
+        width: 60px;
+    }
+    .party-main-content {
+        margin-left: 60px;
+        width: calc(100% - 60px);
+        padding: 1rem 1rem;
+    }
+    .sticky-party-header {
+        margin: -1rem -1rem 1rem -1rem;
+        padding: 0.5rem 1rem;
+    }
 }
 
 .hover-scale {
@@ -62,13 +146,4 @@
 
 .badge {
     padding: 0.5em 1em;
-}
-
-.dropdown-item:active {
-    background-color: var(--bs-primary);
-}
-
-.dropdown-item i {
-    width: 20px;
-    text-align: center;
 }

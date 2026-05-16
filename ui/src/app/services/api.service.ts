@@ -106,6 +106,24 @@ export interface Party {
   members: PartyMember[];
 }
 
+export interface MemberInterest {
+  email: string;
+  displayName: string;
+  tier: string;
+}
+
+export interface SharedInterestGroup {
+  clusterId: string;
+  repEventId: string;
+  title: string;
+  shortCategory: string;
+  gameSystem: string;
+  totalSessions: number;
+  totalTickets: number;
+  memberInterests: MemberInterest[];
+  groupScore: number;
+}
+
 export interface Event {
   eventId: string;
   year: number;
@@ -250,6 +268,10 @@ export class ApiService {
 
   getParty(id: number | string): Observable<Party> {
     return this.http.get<Party>(`/api/v1/party/${id}`);
+  }
+
+  getPartyInterests(id: number | string, year: number): Observable<SharedInterestGroup[]> {
+    return this.http.get<SharedInterestGroup[]>(`/api/v1/party/${id}/interests`, { params: new HttpParams().set('year', year.toString()) });
   }
 
   renameParty(id: number, name: string): Observable<any> {

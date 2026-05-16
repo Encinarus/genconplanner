@@ -67,6 +67,7 @@ FROM starred_events se
 WHERE se.email = $1
   AND e.year = $2
   AND e.active
+  AND se.tier != 'not_interested'
 GROUP BY e.cluster_key, day_of_week
 `, userEmail, year)
 
@@ -161,7 +162,7 @@ WHERE e2.active AND e2.year = $2
   AND EXISTS (
       SELECT 1 FROM starred_events se
       JOIN events e1 ON se.event_id = e1.event_id
-      WHERE se.email = $1
+      WHERE se.email = $1 AND se.tier != 'not_interested'
         AND (
           (se.level = 'event' AND e1.event_id = e2.event_id)
           OR
@@ -202,7 +203,7 @@ WHERE e2.active AND e2.year = $2
   AND EXISTS (
       SELECT 1 FROM starred_events se
       JOIN events e1 ON se.event_id = e1.event_id
-      WHERE se.email = $1
+      WHERE se.email = $1 AND se.tier != 'not_interested'
         AND (
           (se.level = 'event' AND e1.event_id = e2.event_id)
           OR
@@ -345,15 +346,15 @@ WHERE s.email = $1
 		return nil, err
 	}
 
-	if !fullResponse {
-		// Mark wishlist as dirty
+	// Mark wishlist as dirty regardless of fullResponse
 	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	err = tx.Commit()
+	if !fullResponse {
+		err = tx.Commit()
 		if err != nil {
 			return nil, err
 		}

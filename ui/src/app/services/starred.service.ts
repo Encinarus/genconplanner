@@ -162,7 +162,7 @@ export class StarredService {
     });
   }
 
-  updateTier(eventId: string, year: number, tier: string): void {
+  updateTier(eventId: string, year: number, tier: string, starGroup: boolean = false): void {
     const user = this.auth.user();
     if (!user) return;
 
@@ -175,7 +175,7 @@ export class StarredService {
       this.starredPageData.set({ ...currentData, individualEvents: updatedEvents });
     }
 
-    this.api.starEvent(eventId, true, false, tier).subscribe({
+    this.api.starEvent(eventId, true, starGroup, tier).subscribe({
       next: () => {
         this.fetchStarred(year, true);
       },

@@ -30,7 +30,7 @@ export class UserComponent implements OnInit {
 
   // Form fields
   newPartyName = '';
-  newPartyYear = new Date().getFullYear();
+  newPartyYear = 2026;
 
   years = [2026, 2025, 2024, 2023, 2022, 2021, 2019];
 
@@ -56,8 +56,12 @@ export class UserComponent implements OnInit {
     });
   }
 
+  isAlreadyInPartyForYear(year: number): boolean {
+    return this.parties().some(p => p.year === Number(year));
+  }
+
   onCreateParty(): void {
-    if (!this.newPartyName.trim()) return;
+    if (!this.newPartyName.trim() || this.isAlreadyInPartyForYear(this.newPartyYear)) return;
 
     this.creatingParty.set(true);
     this.api.createParty(this.newPartyName, this.newPartyYear).subscribe({

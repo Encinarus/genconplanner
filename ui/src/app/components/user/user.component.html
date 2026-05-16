@@ -80,7 +80,7 @@
                                 <h3 class="h6 mb-1 fw-bold">{{ party.name }}</h3>
                                 <span class="badge bg-light text-dark border">{{ party.year }}</span>
                             </div>
-                            <a [routerLink]="['/party', party.id]" class="btn btn-sm btn-outline-primary rounded-pill">View Details</a>
+                            <a [routerLink]="['/party', party.year]" class="btn btn-sm btn-outline-primary rounded-pill">View Details</a>
                         </div>
                         <div class="party-members d-flex align-items-center mt-3">
                             <div class="member-avatars d-flex me-2">
@@ -131,14 +131,18 @@
                                 [(ngModel)]="newPartyYear">
                             <option *ngFor="let year of years" [value]="year">{{ year }}</option>
                         </select>
-                        <div class="form-text small mt-2">
+                        <div *ngIf="isAlreadyInPartyForYear(newPartyYear)" class="alert alert-warning small py-2 mt-2 mb-0 border-0 d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                            <span>You are already in a party for {{ newPartyYear }}. You can only be in one party per year.</span>
+                        </div>
+                        <div *ngIf="!isAlreadyInPartyForYear(newPartyYear)" class="form-text small mt-2">
                             Select which year this party is for.
                         </div>
                     </div>
                     
                     <button type="submit" 
                             class="btn btn-primary w-100 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center"
-                            [disabled]="creatingParty() || !newPartyName.trim()">
+                            [disabled]="creatingParty() || !newPartyName.trim() || isAlreadyInPartyForYear(newPartyYear)">
                         <span *ngIf="creatingParty()" class="spinner-border spinner-border-sm me-2" role="status"></span>
                         <i *ngIf="!creatingParty()" class="bi bi-rocket-takeoff me-2"></i>
                         {{ creatingParty() ? 'Creating...' : 'Create Party' }}

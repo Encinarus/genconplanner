@@ -1,4 +1,4 @@
-<div class="container-fluid">
+<div class="container">
     <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom d-flex justify-content-between align-items-center">
         <div>
             My Starred Events
@@ -115,6 +115,12 @@
                                                        autocomplete="off" [checked]="event.tier === 'somewhat_interested'" (change)="updateTier(event.eventId, 'somewhat_interested')">
                                                 <label class="btn btn-outline-secondary tier-btn" [for]="'some-' + event.eventId" title="Somewhat Interested">
                                                     <i class="bi" [class.bi-hand-thumbs-up-fill]="event.tier === 'somewhat_interested'" [class.bi-hand-thumbs-up]="event.tier !== 'somewhat_interested'"></i>
+                                                </label>
+
+                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'not-' + event.eventId" 
+                                                       autocomplete="off" [checked]="event.tier === 'not_interested'" (change)="updateTier(event.eventId, 'not_interested')">
+                                                <label class="btn btn-outline-dark tier-btn" [for]="'not-' + event.eventId" title="Not Interested">
+                                                    <i class="bi bi-slash-circle"></i>
                                                 </label>
                                             </div>
                                         </div>

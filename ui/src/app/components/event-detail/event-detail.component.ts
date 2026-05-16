@@ -98,4 +98,15 @@ export class EventDetailComponent implements OnInit {
   isSessionStarred(sid: string): boolean {
     return this.starredService.isStarred(sid);
   }
+
+  getEventTier(eventId: string): string {
+    const data = this.starredService.starredPageData();
+    if (!data) return '';
+    const found = data.individualEvents.find(e => e.eventId === eventId);
+    return found ? found.tier : '';
+  }
+
+  setTier(eventId: string, year: number, tier: string): void {
+    this.starredService.updateTier(eventId, year, tier, true); // true for starGroup
+  }
 }

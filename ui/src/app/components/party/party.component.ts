@@ -5,11 +5,12 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiService, Party, PartyMember } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { Title } from '@angular/platform-browser';
+import { PartyInterestsComponent } from '../party-interests/party-interests.component';
 
 @Component({
   selector: 'app-party',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, PartyInterestsComponent],
   templateUrl: './party.component.html',
   styleUrl: './party.component.css'
 })
@@ -32,6 +33,8 @@ export class PartyComponent implements OnInit {
   
   transferringLeadership = signal<boolean>(false);
   newLeaderEmail = signal<string>('');
+  
+  activeTab = signal<'events' | 'members' | 'calendar' | 'settings'>('events');
 
   ngOnInit() {
     this.route.params.subscribe(params => {
@@ -50,6 +53,11 @@ export class PartyComponent implements OnInit {
         this.titleService.setTitle(`Party: ${party.name}`);
         this.updateRoles();
         this.loading.set(false);
+
+        const currentParam = this.route.snapshot.params['id'];
+        if (this.isMember() && currentParam !== party.year.toString()) {
+          this.router.navigate(['/party', party.year], { replaceUrl: true });
+        }
       },
       error: (err) => {
         console.error('Error loading party:', err);
@@ -75,7 +83,9 @@ export class PartyComponent implements OnInit {
     const p = this.party();
     if (!p) return;
     this.api.joinParty(p.shortCode).subscribe({
-      next: () => this.loadParty(p.id),
+      next: () => {
+        this.router.navigate(['/party', p.year]);
+      },
       error: (err) => alert('Failed to join party: ' + (err.error?.error || err.message))
     });
   }

@@ -1,89 +1,131 @@
-<div class="container py-5">
-    <div *ngIf="loading()" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+<div *ngIf="loading()" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<div *ngIf="error()" class="container mt-4 alert alert-danger shadow-sm border-0 rounded-3" role="alert">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+        <div>
+            {{ error() }}
+            <button class="btn btn-link p-0 ms-2 text-decoration-none" (click)="loadParty(party()!.id)">Try again</button>
         </div>
     </div>
+</div>
 
-    <div *ngIf="error()" class="alert alert-danger shadow-sm border-0 rounded-3" role="alert">
-        <div class="d-flex align-items-center">
-            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-            <div>
-                {{ error() }}
-                <button class="btn btn-link p-0 ms-2 text-decoration-none" (click)="loadParty(party()!.id)">Try again</button>
-            </div>
-        </div>
+<div *ngIf="!loading() && party() as p" class="party-viewport animate-fade-in">
+    <!-- Pinned Navigation Rail -->
+    <div class="party-navigation-rail bg-white border-end shadow-sm">
+        <button class="rail-tab"
+                [class.active]="activeTab() === 'events'"
+                (click)="activeTab.set('events')"
+                title="Shared Interests (Events)">
+            <i class="bi bi-calendar-heart fs-4"></i>
+        </button>
+
+        <button class="rail-tab"
+                [class.active]="activeTab() === 'members'"
+                (click)="activeTab.set('members')"
+                title="Party Members">
+            <i class="bi bi-people fs-4"></i>
+        </button>
+
+        <button class="rail-tab"
+                [class.active]="activeTab() === 'calendar'"
+                (click)="activeTab.set('calendar')"
+                title="War Room Calendar">
+            <i class="bi bi-calendar-week fs-4"></i>
+        </button>
+
+        <button *ngIf="isLeader()" class="rail-tab mt-auto"
+                [class.active]="activeTab() === 'settings'"
+                (click)="activeTab.set('settings')"
+                title="Party Settings">
+            <i class="bi bi-gear fs-4"></i>
+        </button>
     </div>
 
-    <div *ngIf="!loading() && party() as p" class="party-container animate-fade-in">
-        <!-- Header Section -->
-        <div class="party-header mb-5 p-4 rounded-4 shadow-sm bg-white border">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-4">
-                <div class="flex-grow-1">
-                    <div *ngIf="!editingName()" class="d-flex align-items-center flex-wrap gap-2">
-                        <h1 class="h2 mb-0 fw-bold">{{ p.name }}</h1>
-                        <button *ngIf="isLeader()" (click)="onEditName()" class="btn btn-sm btn-outline-secondary border-0 rounded-circle p-1 hover-scale">
-                            <i class="bi bi-pencil-fill small"></i>
-                        </button>
-                    </div>
-                    
-                    <div *ngIf="editingName()" class="d-flex align-items-center gap-2 mb-2">
-                        <input type="text" 
-                               class="form-control form-control-lg fw-bold border-primary shadow-sm" 
-                               [(ngModel)]="tempName" 
-                               (keyup.enter)="onSaveName()" 
-                               (keyup.esc)="editingName.set(false)"
-                               style="max-width: 400px;">
-                        <button (click)="onSaveName()" class="btn btn-primary rounded-pill px-3">Save</button>
-                        <button (click)="editingName.set(false)" class="btn btn-light rounded-pill px-3">Cancel</button>
-                    </div>
-
-                    <p class="text-muted mb-0 mt-2 d-flex align-items-center gap-3">
-                        <span class="badge bg-light text-dark border px-3 py-2 rounded-pill fw-medium">
-                            <i class="bi bi-calendar-event me-1"></i> {{ p.year }}
-                        </span>
-                        <span class="text-secondary small fw-medium">
-                            <i class="bi bi-people-fill me-1"></i> {{ p.members.length }} members
-                        </span>
-                    </p>
+    <!-- Main Content Area (Full Width minus Rail) -->
+    <div class="party-main-content flex-grow-1" style="min-width: 0;">
+        <!-- Persistent Sticky Header Section -->
+        <div class="sticky-party-header">
+            <div class="d-flex align-items-center gap-3 flex-grow-1">
+                <div *ngIf="!editingName()" class="d-flex align-items-center gap-2">
+                    <h1 class="h4 mb-0 fw-bold text-dark">{{ p.name }}</h1>
+                    <button *ngIf="isLeader()" (click)="onEditName()" class="btn btn-sm btn-outline-secondary border-0 rounded-circle p-1 hover-scale" title="Rename Party">
+                        <i class="bi bi-pencil-fill small"></i>
+                    </button>
+                </div>
+                
+                <div *ngIf="editingName()" class="d-flex align-items-center gap-2">
+                    <input type="text" 
+                           class="form-control form-control-sm fw-bold border-primary shadow-sm" 
+                           [(ngModel)]="tempName" 
+                           (keyup.enter)="onSaveName()" 
+                           (keyup.esc)="editingName.set(false)"
+                           style="max-width: 250px;">
+                    <button (click)="onSaveName()" class="btn btn-primary btn-sm rounded-pill px-3">Save</button>
+                    <button (click)="editingName.set(false)" class="btn btn-light btn-sm rounded-pill px-3">Cancel</button>
                 </div>
 
-                <div class="actions d-flex gap-2">
-                    <button *ngIf="!isMember()" (click)="onJoin()" class="btn btn-primary rounded-pill px-4 shadow-sm hover-scale">
-                        <i class="bi bi-person-plus-fill me-2"></i>Join Party
-                    </button>
-                    
-                    <button *ngIf="isMember() && !isLeader()" (click)="onLeave()" class="btn btn-outline-danger rounded-pill px-4 hover-scale">
-                        <i class="bi bi-box-arrow-right me-2"></i>Leave Party
-                    </button>
-
-                    <div *ngIf="isLeader()" class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle rounded-pill px-4 hover-scale" type="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-gear-fill me-2"></i>Settings
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-2 rounded-3">
-                            <li><a class="dropdown-item py-2 rounded-2" href="javascript:void(0)" (click)="transferringLeadership.set(true)">
-                                <i class="bi bi-person-badge me-2 text-primary"></i>Transfer Leadership
-                            </a></li>
-                            <li><hr class="dropdown-divider mx-2"></li>
-                            <li><a class="dropdown-item py-2 rounded-2 text-danger" href="javascript:void(0)" (click)="onDelete()" [class.disabled]="p.members.length > 1">
-                                <i class="bi bi-trash3-fill me-2"></i>Delete Party
-                            </a></li>
-                            <li *ngIf="p.members.length > 1" class="px-3 pt-1"><small class="text-muted" style="font-size: 0.7rem;">Must be the last member to delete</small></li>
-                        </ul>
-                    </div>
+                <div class="d-flex align-items-center gap-2 ms-2">
+                    <span class="badge bg-light text-dark border rounded-pill fw-medium smaller">
+                        <i class="bi bi-calendar-event me-1"></i> {{ p.year }}
+                    </span>
+                    <span class="badge bg-light text-secondary border rounded-pill fw-medium smaller">
+                        <i class="bi bi-people-fill me-1"></i> {{ p.members.length }} members
+                    </span>
                 </div>
+            </div>
+            
+            <div *ngIf="!isMember()" class="d-flex align-items-center">
+                <button (click)="onJoin()" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm hover-scale">
+                    <i class="bi bi-person-plus-fill me-2"></i>Join Party
+                </button>
             </div>
         </div>
 
-        <div class="row g-4">
-            <!-- Members List -->
-            <div class="col-lg-8">
-                <div class="section-card p-4 rounded-4 shadow-sm bg-white border h-100">
-                    <h2 class="h4 mb-4 fw-bold d-flex align-items-center">
-                        <i class="bi bi-people text-primary me-2"></i>
-                        Members
-                    </h2>
+        <div *ngIf="!isMember()" class="alert alert-info shadow-sm rounded-4 p-4 mb-4 d-flex align-items-center justify-content-between animate-fade-in">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-envelope-paper-heart fs-1 text-primary"></i>
+                <div>
+                    <h2 class="h5 mb-1 fw-bold">You've been invited to join {{ p.name }}!</h2>
+                    <p class="mb-0 small text-muted">Join this party to collaborate on events, coordinate wishlists, and plan your Gen Con schedule together.</p>
+                </div>
+            </div>
+            <button (click)="onJoin()" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm hover-scale ms-3">
+                <i class="bi bi-person-plus-fill me-2"></i>Join Party Now
+            </button>
+        </div>
+
+        <!-- Tab 1: Shared Interests (Events) -->
+                <div *ngIf="activeTab() === 'events'">
+                    <app-party-interests [partyId]="p.id" [year]="p.year"></app-party-interests>
+                </div>
+
+                <!-- Tab 2: Members List -->
+                <div *ngIf="activeTab() === 'members'" class="section-card p-4 rounded-4 shadow-sm bg-white border animate-fade-in">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+                        <h2 class="h4 mb-0 fw-bold d-flex align-items-center">
+                            <i class="bi bi-people text-primary me-2"></i>
+                            Party Members
+                        </h2>
+                        
+                        <div *ngIf="isMember()" class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="invite-quick-copy d-flex align-items-center bg-light border rounded-pill pe-1 ps-3 py-1 shadow-sm">
+                                <span class="text-muted smaller me-2 d-none d-md-inline">Invite:</span>
+                                <input type="text" class="bg-transparent border-0 smaller text-muted me-2" [value]="p.inviteLink" readonly #quickInvite style="width: 180px; outline: none;">
+                                <button class="btn btn-sm btn-white rounded-circle shadow-sm p-1 d-flex align-items-center justify-content-center hover-scale" (click)="copyToClipboard(quickInvite.value)" title="Copy invite link">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                            
+                            <button *ngIf="!isLeader()" (click)="onLeave()" class="btn btn-outline-danger btn-sm rounded-pill px-3 hover-scale">
+                                <i class="bi bi-box-arrow-right me-1"></i>Leave Party
+                            </button>
+                        </div>
+                    </div>
                     
                     <div class="list-group list-group-flush">
                         <div *ngFor="let member of p.members" class="list-group-item px-0 py-3 border-light d-flex align-items-center animate-slide-up">
@@ -105,49 +147,53 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Sidebar / Invites -->
-            <div class="col-lg-4">
-                <div class="section-card p-4 rounded-4 shadow-sm bg-white border sticky-top h-auto" style="top: 100px;">
-                    <h2 class="h5 mb-4 fw-bold d-flex align-items-center">
-                        <i class="bi bi-share-fill text-success me-2"></i>
-                        Invite Friends
+                <!-- Tab 3: Calendar / War Room -->
+                <div *ngIf="activeTab() === 'calendar'" class="section-card p-5 rounded-4 shadow-sm bg-white border text-center animate-fade-in">
+                    <i class="bi bi-calendar2-week text-muted fs-1 mb-3 d-block"></i>
+                    <h2 class="h4 fw-bold text-dark mb-2">War Room Calendar</h2>
+                    <p class="text-muted small mb-0">The full real-time coordination calendar and event booking dashboard will be available in Phase 7!</p>
+                </div>
+
+                <!-- Tab 4: Settings -->
+                <div *ngIf="activeTab() === 'settings' && isLeader()" class="section-card p-4 rounded-4 shadow-sm bg-white border animate-fade-in">
+                    <h2 class="h4 mb-4 fw-bold d-flex align-items-center text-dark">
+                        <i class="bi bi-gear text-primary me-2"></i>
+                        Party Administration
                     </h2>
-                    <p class="text-muted small mb-3">Share this link with your friends so they can join your party and plan events together.</p>
-                    
-                    <div class="input-group mb-4 shadow-sm rounded-3 overflow-hidden">
-                        <input type="text" class="form-control bg-light border-0 py-2 small" [value]="p.inviteLink" readonly #inviteLink>
-                        <button class="btn btn-light border-0 py-2" type="button" (click)="copyToClipboard(inviteLink.value)" title="Copy to clipboard">
-                            <i class="bi bi-clipboard"></i>
-                        </button>
-                    </div>
 
-                    <div *ngIf="transferringLeadership()" class="mt-4 p-3 bg-light rounded-4 border animate-fade-in">
-                        <h3 class="h6 fw-bold mb-3 d-flex align-items-center">
-                            <i class="bi bi-person-badge text-primary me-2"></i>Transfer Leadership
-                        </h3>
-                        <p class="smaller text-muted mb-3">Select a member to transfer leadership to. You will remain a member but lose administrative rights.</p>
-                        <select class="form-select mb-3 border-0 shadow-sm" [(ngModel)]="newLeaderEmail">
-                            <option value="">Select a member...</option>
-                            <option *ngFor="let m of p.members" [value]="m.email" [disabled]="m.email === p.leaderEmail">
-                                {{ m.displayName }} ({{ m.email }})
-                            </option>
-                        </select>
-                        <div class="d-flex gap-2">
-                            <button (click)="onTransferLeadership()" class="btn btn-sm btn-primary flex-grow-1 rounded-pill" [disabled]="!newLeaderEmail()">Confirm</button>
-                            <button (click)="transferringLeadership.set(false)" class="btn btn-sm btn-light flex-grow-1 rounded-pill">Cancel</button>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="p-4 bg-light rounded-4 border h-100">
+                                <h3 class="h6 fw-bold mb-3 d-flex align-items-center text-dark">
+                                    <i class="bi bi-person-badge text-primary me-2"></i>Transfer Leadership
+                                </h3>
+                                <p class="smaller text-muted mb-3">Select a member to transfer leadership to. You will remain a member but lose administrative rights.</p>
+                                <select class="form-select mb-3 border-0 shadow-sm" [(ngModel)]="newLeaderEmail">
+                                    <option value="">Select a member...</option>
+                                    <option *ngFor="let m of p.members" [value]="m.email" [disabled]="m.email === p.leaderEmail">
+                                        {{ m.displayName }} ({{ m.email }})
+                                    </option>
+                                </select>
+                                <button (click)="onTransferLeadership()" class="btn btn-primary rounded-pill px-4 shadow-sm" [disabled]="!newLeaderEmail()">Confirm Transfer</button>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mt-4 p-3 bg-primary-subtle rounded-4 border border-primary-subtle">
-                        <p class="smaller text-primary-emphasis mb-0">
-                            <i class="bi bi-info-circle-fill me-1"></i>
-                            Members can see each other's starred events in the party's shared view.
-                        </p>
+                        <div class="col-md-6">
+                            <div class="p-4 bg-danger-subtle rounded-4 border border-danger-subtle h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <h3 class="h6 fw-bold mb-3 d-flex align-items-center text-danger">
+                                        <i class="bi bi-trash3-fill me-2"></i>Delete Party
+                                    </h3>
+                                    <p class="smaller text-danger-emphasis mb-3">Permanently delete this party. All shared lists and member associations will be removed.</p>
+                                </div>
+                                <div>
+                                    <button (click)="onDelete()" class="btn btn-danger rounded-pill px-4 shadow-sm" [disabled]="p.members.length > 1">Delete Party</button>
+                                    <p *ngIf="p.members.length > 1" class="smaller text-danger mt-2 mb-0">Must be the last member to delete</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
