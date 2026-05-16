@@ -1271,6 +1271,9 @@ func (s *Server) PartyStream(c *gin.Context) {
 		case ev := <-sub.C:
 			c.SSEvent("interest_update", ev)
 			return true
+		case <-time.After(15 * time.Second):
+			c.SSEvent("ping", map[string]string{"status": "heartbeat"})
+			return true
 		case <-c.Request.Context().Done():
 			return false
 		}

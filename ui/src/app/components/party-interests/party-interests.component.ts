@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, inject, Input, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, Input, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -59,6 +59,15 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
       const update = this.partyStream.latestInterestUpdate();
       if (update && update.party_id === this.partyId) {
         this.handleRealtimeUpdate(update);
+      }
+    });
+
+    // Listen for SSE stream resumption when tab becomes visible
+    effect(() => {
+      const count = this.partyStream.streamResumed();
+      if (count > 0) {
+        console.log('SSE stream resumed from background, reloading party interests to ensure fresh state.');
+        this.loadInterests();
       }
     });
   }
@@ -257,6 +266,14 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
     "WKS": "Workshop",
     "ZED": "Isle of Misfit Events"
   };
+
+  availableCategories = computed(() => {
+    const map = this.categoryMap;
+    return Object.keys(map).sort((a, b) => map[a].localeCompare(map[b])).map(code => ({
+      code,
+      name: map[code]
+    }));
+  });
 
   filteredGroupsByCategory() {
     let list = this.groups();

@@ -112,7 +112,8 @@ describe('PartyInterestsComponent', () => {
     mockPartyStreamService = {
       connect: vi.fn(),
       disconnect: vi.fn(),
-      latestInterestUpdate: signal<any>(null)
+      latestInterestUpdate: signal<any>(null),
+      streamResumed: signal<number>(0)
     };
 
     mockAuthService = {

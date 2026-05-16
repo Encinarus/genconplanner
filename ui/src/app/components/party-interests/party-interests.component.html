@@ -19,13 +19,9 @@
                 <span class="text-muted small fw-medium text-nowrap">Category:</span>
                 <select class="form-select form-select-sm border shadow-sm rounded-pill px-3 py-2 bg-white" [(ngModel)]="selectedCategory">
                     <option value="ALL">All Categories</option>
-                    <option value="BGM">Board Games (BGM)</option>
-                    <option value="RPG">Role Playing Games (RPG)</option>
-                    <option value="TCG">Trading Card Games (TCG)</option>
-                    <option value="LRP">LARP (LRP)</option>
-                    <option value="MIN">Miniatures (MIN)</option>
-                    <option value="WKS">Workshop (WKS)</option>
-                    <option value="ENT">Entertainment (ENT)</option>
+                    <option *ngFor="let cat of availableCategories()" [value]="cat.code">
+                        {{ cat.name }} ({{ cat.code }})
+                    </option>
                 </select>
             </div>
         </div>
