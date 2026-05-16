@@ -70,78 +70,85 @@
 
                 <ng-container *ngFor="let catGroup of catGroups">
                     <!-- Event Category Header -->
-                    <div class="sys-header bg-light border-bottom sticky-top px-3 py-2 d-flex align-items-center justify-content-between" style="top: 0; z-index: 5;">
-                        <h3 class="h6 fw-bold text-secondary mb-0 text-truncate">{{ catGroup.categoryName }}</h3>
+                    <div class="sys-header bg-light border-bottom sticky-top px-3 py-2 d-flex align-items-center justify-content-between cursor-pointer transition-all user-select-none" 
+                         style="top: 0; z-index: 5;"
+                         (click)="toggleCategoryCollapse(catGroup.categoryName, $event)">
+                        <div class="d-flex align-items-center gap-2 overflow-hidden flex-grow-1">
+                            <i class="bi text-secondary" [class.bi-chevron-down]="!isCategoryCollapsed(catGroup.categoryName)" [class.bi-chevron-right]="isCategoryCollapsed(catGroup.categoryName)"></i>
+                            <h3 class="h6 fw-bold text-secondary mb-0 text-truncate">{{ catGroup.categoryName }}</h3>
+                        </div>
                         <span class="badge bg-secondary-subtle text-secondary rounded-pill smaller">{{ catGroup.groups.length }}</span>
                     </div>
 
-                    <div *ngFor="let g of catGroup.groups; let i = index" 
-                         class="wishlist-item card border-0 border-bottom shadow-none mb-0 transition-all cursor-pointer position-relative"
-                         style="border-radius: 0;"
-                         [class.bg-primary-subtle]="selectedGroup()?.clusterId === g.clusterId"
-                         (click)="selectGroup(g)">
-                        <div class="card-body p-2 px-3">
-                            <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
-                                <div class="d-flex align-items-center gap-2 overflow-hidden flex-grow-1">
-                                    <div class="text-truncate">
-                                        <h4 class="mb-0 fw-bold text-dark text-truncate" style="font-size: 0.95rem;">
-                                            {{ g.title }}
-                                        </h4>
-                                        <div class="d-flex align-items-center gap-2 text-muted smaller mt-1">
-                                            <span class="timing-label">{{ g.shortCategory }} • {{ g.totalSessions }} sessions</span>
+                    <ng-container *ngIf="!isCategoryCollapsed(catGroup.categoryName)">
+                        <div *ngFor="let g of catGroup.groups; let i = index" 
+                             class="wishlist-item card border-0 border-bottom shadow-none mb-0 transition-all cursor-pointer position-relative"
+                             style="border-radius: 0;"
+                             [class.bg-primary-subtle]="selectedGroup()?.clusterId === g.clusterId"
+                             (click)="selectGroup(g)">
+                            <div class="card-body p-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                                    <div class="d-flex align-items-center gap-2 overflow-hidden flex-grow-1">
+                                        <div class="text-truncate">
+                                            <h4 class="mb-0 fw-bold text-dark text-truncate" style="font-size: 0.95rem;">
+                                                {{ g.title }}
+                                            </h4>
+                                            <div class="d-flex align-items-center gap-2 text-muted smaller mt-1">
+                                                <span class="timing-label">{{ g.shortCategory }} • {{ g.totalSessions }} sessions</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <!-- Right side: Party Consensus & My Rating Icon -->
-                                <div class="d-flex align-items-end gap-3 flex-shrink-0 pt-1">
-                                    <div class="my-rating d-flex flex-column align-items-center justify-content-end" [title]="'My Rating: ' + getUserTier(g)" style="min-height: 42px;">
-                                        <div class="fs-5 lh-1 mb-1">
-                                            <span *ngIf="getUserTier(g) === 'must_have'">❤️</span>
-                                            <span *ngIf="getUserTier(g) === 'very_interested'">⭐</span>
-                                            <span *ngIf="getUserTier(g) === 'somewhat_interested'">👍</span>
-                                            <span *ngIf="getUserTier(g) === 'not_interested'">🚫</span>
-                                            <span *ngIf="!getUserTier(g) || getUserTier(g) === ''" class="text-muted opacity-50">-</span>
+                                    <!-- Right side: Party Consensus & My Rating Icon -->
+                                    <div class="d-flex align-items-end gap-3 flex-shrink-0 pt-1">
+                                        <div class="my-rating d-flex flex-column align-items-center justify-content-end" [title]="'My Rating: ' + getUserTier(g)" style="min-height: 42px;">
+                                            <div class="fs-5 lh-1 mb-1">
+                                                <span *ngIf="getUserTier(g) === 'must_have'">❤️</span>
+                                                <span *ngIf="getUserTier(g) === 'very_interested'">⭐</span>
+                                                <span *ngIf="getUserTier(g) === 'somewhat_interested'">👍</span>
+                                                <span *ngIf="getUserTier(g) === 'not_interested'">🚫</span>
+                                                <span *ngIf="!getUserTier(g) || getUserTier(g) === ''" class="text-muted opacity-50">-</span>
+                                            </div>
+                                            <div class="text-muted fw-semibold" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1;">Me</div>
                                         </div>
-                                        <div class="text-muted fw-semibold" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1;">Me</div>
-                                    </div>
 
-                                    <div class="party-consensus-group d-flex flex-column align-items-center justify-content-end border-start ps-3" style="min-height: 42px;">
-                                        <div class="party-consensus d-flex align-items-center justify-content-center gap-3 mb-1 pe-2">
-                                            <div *ngIf="getOtherMemberCountByTier(g, 'must_have') as count" class="position-relative" title="Must Have">
-                                                <div style="font-size: 1.1rem; line-height: 1;">❤️</div>
-                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
-                                                    {{ count }}
-                                                </span>
+                                        <div class="party-consensus-group d-flex flex-column align-items-center justify-content-end border-start ps-3" style="min-height: 42px;">
+                                            <div class="party-consensus d-flex align-items-center justify-content-center gap-3 mb-1 pe-2">
+                                                <div *ngIf="getOtherMemberCountByTier(g, 'must_have') as count" class="position-relative" title="Must Have">
+                                                    <div style="font-size: 1.1rem; line-height: 1;">❤️</div>
+                                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
+                                                        {{ count }}
+                                                    </span>
+                                                </div>
+                                                <div *ngIf="getOtherMemberCountByTier(g, 'very_interested') as count" class="position-relative" title="Very Interested">
+                                                    <div style="font-size: 1.1rem; line-height: 1;">⭐</div>
+                                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
+                                                        {{ count }}
+                                                    </span>
+                                                </div>
+                                                <div *ngIf="getOtherMemberCountByTier(g, 'somewhat_interested') as count" class="position-relative" title="Somewhat Interested">
+                                                    <div style="font-size: 1.1rem; line-height: 1;">👍</div>
+                                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
+                                                        {{ count }}
+                                                    </span>
+                                                </div>
+                                                <div *ngIf="getOtherMemberCountByTier(g, 'not_interested') as count" class="position-relative" title="Not Interested">
+                                                    <div style="font-size: 1.1rem; line-height: 1;">🚫</div>
+                                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
+                                                        {{ count }}
+                                                    </span>
+                                                </div>
+                                                <div *ngIf="getOtherMembers(g).length === 0" class="text-muted smaller fst-italic py-1">
+                                                    No others
+                                                </div>
                                             </div>
-                                            <div *ngIf="getOtherMemberCountByTier(g, 'very_interested') as count" class="position-relative" title="Very Interested">
-                                                <div style="font-size: 1.1rem; line-height: 1;">⭐</div>
-                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
-                                                    {{ count }}
-                                                </span>
-                                            </div>
-                                            <div *ngIf="getOtherMemberCountByTier(g, 'somewhat_interested') as count" class="position-relative" title="Somewhat Interested">
-                                                <div style="font-size: 1.1rem; line-height: 1;">👍</div>
-                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
-                                                    {{ count }}
-                                                </span>
-                                            </div>
-                                            <div *ngIf="getOtherMemberCountByTier(g, 'not_interested') as count" class="position-relative" title="Not Interested">
-                                                <div style="font-size: 1.1rem; line-height: 1;">🚫</div>
-                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
-                                                    {{ count }}
-                                                </span>
-                                            </div>
-                                            <div *ngIf="getOtherMembers(g).length === 0" class="text-muted smaller fst-italic py-1">
-                                                No others
-                                            </div>
+                                            <div class="text-muted fw-semibold" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1;">Others</div>
                                         </div>
-                                        <div class="text-muted fw-semibold" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1;">Others</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </ng-container>
                 </ng-container>
             </div>
 

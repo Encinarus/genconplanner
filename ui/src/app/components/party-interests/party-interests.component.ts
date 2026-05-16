@@ -36,6 +36,22 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
   selectedCategory = signal<string>('ALL');
   sortBy = signal<'score' | 'title'>('title');
   myInterestFilter = signal<string>('all');
+  collapsedCategories = signal<Set<string>>(new Set<string>());
+
+  toggleCategoryCollapse(categoryName: string, event: MouseEvent) {
+    event.stopPropagation();
+    const current = new Set(this.collapsedCategories());
+    if (current.has(categoryName)) {
+      current.delete(categoryName);
+    } else {
+      current.add(categoryName);
+    }
+    this.collapsedCategories.set(current);
+  }
+
+  isCategoryCollapsed(categoryName: string): boolean {
+    return this.collapsedCategories().has(categoryName);
+  }
 
   constructor() {
     // Listen for real-time SSE updates
