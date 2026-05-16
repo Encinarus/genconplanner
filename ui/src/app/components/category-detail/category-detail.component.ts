@@ -97,7 +97,7 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
     "RPG": "Role Playing Games",
     "RPGA": "Role Playing Game Association",
     "SEM": "Seminiars",
-    "SPA": "Spousal Activities",
+    "SPA": "Supplemental Activities",
     "TCG": "Tradeable Card Game",
     "TDA": "True Dungeon",
     "TRD": "Trade Day Events",

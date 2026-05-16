@@ -102,6 +102,8 @@ export class StarredComponent implements OnInit {
             key,
             title: events[0].title,
             shortDescription: events[0].shortDescription,
+            groupTier: events[0].groupTier || 'not_interested',
+            repEventId: events[0].eventId,
             events: events.sort((a, b) => a.startTime.localeCompare(b.startTime))
         })).sort((a, b) => a.title.localeCompare(b.title))
       }))
@@ -620,6 +622,33 @@ export class StarredComponent implements OnInit {
 
   updateTier(eventId: string, tier: string): void {
     this.starredService.updateTier(eventId, this.year(), tier);
+  }
+
+  updateGroupTier(eventId: string, tier: string): void {
+    this.starredService.updateTier(eventId, this.year(), tier, true);
+  }
+
+  handleGroupTierClick(evGroup: any, clickedTier: string): void {
+    const firstEventId = evGroup.events[0]?.eventId;
+    if (!firstEventId) return;
+
+    if (evGroup.groupTier === clickedTier) {
+      this.starredService.removeGroupDefault(firstEventId, this.year());
+    } else {
+      this.updateGroupTier(firstEventId, clickedTier);
+    }
+  }
+
+  resetOverride(eventId: string): void {
+    this.starredService.removeOverride(eventId, this.year());
+  }
+
+  handleTierClick(event: any, clickedTier: string): void {
+    if (event.isOverride && event.tier === clickedTier) {
+      this.resetOverride(event.eventId);
+    } else if (!event.isOverride && event.tier === clickedTier) {
+      this.updateTier(event.eventId, clickedTier);
+    }
   }
 
   setTierFilter(tier: string): void {

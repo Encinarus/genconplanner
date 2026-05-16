@@ -82,14 +82,44 @@
                     <div [hidden]="isCategoryCollapsed(group.code)" class="ps-3 border-start ms-2">
                         <div *ngFor="let evGroup of group.eventGroups" class="mb-4">
                             <!-- Group Header -->
-                            <div class="event-group-header d-flex align-items-center mb-2" 
-                                 [style.cursor]="evGroup.events.length > 1 ? 'pointer' : 'default'"
-                                 (click)="evGroup.events.length > 1 ? toggleEventGroup(evGroup.key) : null">
-                                <i *ngIf="evGroup.events.length > 1" class="bi me-2 text-muted" [class.bi-plus-square]="isEventGroupCollapsed(evGroup.key)" [class.bi-dash-square]="!isEventGroupCollapsed(evGroup.key)"></i>
-                                <!-- Space for alignment if no icon -->
-                                <div *ngIf="evGroup.events.length === 1" class="me-2" style="width: 16px;"></div>
-                                <h4 class="h6 mb-0 fw-bold">{{ evGroup.title }}</h4>
-                                <span class="ms-2 badge rounded-pill bg-light text-muted border" style="font-size: 0.7rem;">{{ evGroup.events.length }}</span>
+                            <div class="event-group-header d-flex align-items-center mb-2 flex-wrap gap-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i *ngIf="evGroup.events.length > 1" class="bi text-muted" [style.cursor]="'pointer'" (click)="toggleEventGroup(evGroup.key)" [class.bi-plus-square]="isEventGroupCollapsed(evGroup.key)" [class.bi-dash-square]="!isEventGroupCollapsed(evGroup.key)"></i>
+                                    <div *ngIf="evGroup.events.length === 1" style="width: 16px;"></div>
+                                    
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <input type="radio" class="btn-check" [name]="'group-tier-' + evGroup.repEventId" [id]="'group-must-' + evGroup.repEventId" 
+                                               autocomplete="off" [checked]="evGroup.groupTier === 'must_have'" (change)="updateGroupTier(evGroup.repEventId, 'must_have')">
+                                        <label class="btn btn-outline-danger tier-btn" [for]="'group-must-' + evGroup.repEventId" (click)="handleGroupTierClick(evGroup, 'must_have')" title="Group Must Have">
+                                            <i class="bi" [class.bi-heart-fill]="evGroup.groupTier === 'must_have'" [class.bi-heart]="evGroup.groupTier !== 'must_have'"></i>
+                                        </label>
+                                
+                                        <input type="radio" class="btn-check" [name]="'group-tier-' + evGroup.repEventId" [id]="'group-very-' + evGroup.repEventId" 
+                                               autocomplete="off" [checked]="evGroup.groupTier === 'very_interested'" (change)="updateGroupTier(evGroup.repEventId, 'very_interested')">
+                                        <label class="btn btn-outline-primary tier-btn" [for]="'group-very-' + evGroup.repEventId" (click)="handleGroupTierClick(evGroup, 'very_interested')" title="Group Very Interested">
+                                            <i class="bi" [class.bi-star-fill]="evGroup.groupTier === 'very_interested'" [class.bi-star]="evGroup.groupTier !== 'very_interested'"></i>
+                                        </label>
+                                
+                                        <input type="radio" class="btn-check" [name]="'group-tier-' + evGroup.repEventId" [id]="'group-some-' + evGroup.repEventId" 
+                                               autocomplete="off" [checked]="evGroup.groupTier === 'somewhat_interested'" (change)="updateGroupTier(evGroup.repEventId, 'somewhat_interested')">
+                                        <label class="btn btn-outline-secondary tier-btn" [for]="'group-some-' + evGroup.repEventId" (click)="handleGroupTierClick(evGroup, 'somewhat_interested')" title="Group Somewhat Interested">
+                                            <i class="bi" [class.bi-hand-thumbs-up-fill]="evGroup.groupTier === 'somewhat_interested'" [class.bi-hand-thumbs-up]="evGroup.groupTier !== 'somewhat_interested'"></i>
+                                        </label>
+
+                                        <input type="radio" class="btn-check" [name]="'group-tier-' + evGroup.repEventId" [id]="'group-not-' + evGroup.repEventId" 
+                                               autocomplete="off" [checked]="evGroup.groupTier === 'not_interested'" (change)="updateGroupTier(evGroup.repEventId, 'not_interested')">
+                                        <label class="btn btn-outline-dark tier-btn" [for]="'group-not-' + evGroup.repEventId" (click)="handleGroupTierClick(evGroup, 'not_interested')" title="Group Not Interested">
+                                            <i class="bi bi-slash-circle"></i>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center"
+                                     [style.cursor]="evGroup.events.length > 1 ? 'pointer' : 'default'"
+                                     (click)="evGroup.events.length > 1 ? toggleEventGroup(evGroup.key) : null">
+                                    <h4 class="h6 mb-0 fw-bold">{{ evGroup.title }}</h4>
+                                    <span class="ms-2 badge rounded-pill bg-light text-muted border" style="font-size: 0.7rem;">{{ evGroup.events.length }}</span>
+                                </div>
                             </div>
                             
                             <div [hidden]="evGroup.events.length > 1 ? isEventGroupCollapsed(evGroup.key) : false" class="ps-4">
@@ -97,35 +127,35 @@
                                 
                                 <div *ngFor="let event of evGroup.events" class="event-row mb-2 py-2 border-bottom-dashed d-flex align-items-center justify-content-between flex-wrap gap-2">
                                     <div class="d-flex align-items-center gap-3">
-                                        <div class="tier-selector">
+                                        <div class="tier-selector" [style.opacity]="event.isOverride ? '1' : '0.5'">
                                             <div class="btn-group btn-group-sm" role="group">
                                                 <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'must-' + event.eventId" 
                                                        autocomplete="off" [checked]="event.tier === 'must_have'" (change)="updateTier(event.eventId, 'must_have')">
-                                                <label class="btn btn-outline-danger tier-btn" [for]="'must-' + event.eventId" title="Must Have">
+                                                <label class="btn btn-outline-danger tier-btn" [for]="'must-' + event.eventId" (click)="handleTierClick(event, 'must_have')" title="Must Have">
                                                     <i class="bi" [class.bi-heart-fill]="event.tier === 'must_have'" [class.bi-heart]="event.tier !== 'must_have'"></i>
                                                 </label>
                                         
                                                 <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'very-' + event.eventId" 
-                                                       autocomplete="off" [checked]="event.tier === 'very_interested' || !event.tier" (change)="updateTier(event.eventId, 'very_interested')">
-                                                <label class="btn btn-outline-primary tier-btn" [for]="'very-' + event.eventId" title="Very Interested">
-                                                    <i class="bi" [class.bi-star-fill]="event.tier === 'very_interested' || !event.tier" [class.bi-star]="event.tier !== 'very_interested' && event.tier"></i>
+                                                       autocomplete="off" [checked]="event.tier === 'very_interested'" (change)="updateTier(event.eventId, 'very_interested')">
+                                                <label class="btn btn-outline-primary tier-btn" [for]="'very-' + event.eventId" (click)="handleTierClick(event, 'very_interested')" title="Very Interested">
+                                                    <i class="bi" [class.bi-star-fill]="event.tier === 'very_interested'" [class.bi-star]="event.tier !== 'very_interested'"></i>
                                                 </label>
                                         
                                                 <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'some-' + event.eventId" 
                                                        autocomplete="off" [checked]="event.tier === 'somewhat_interested'" (change)="updateTier(event.eventId, 'somewhat_interested')">
-                                                <label class="btn btn-outline-secondary tier-btn" [for]="'some-' + event.eventId" title="Somewhat Interested">
+                                                <label class="btn btn-outline-secondary tier-btn" [for]="'some-' + event.eventId" (click)="handleTierClick(event, 'somewhat_interested')" title="Somewhat Interested">
                                                     <i class="bi" [class.bi-hand-thumbs-up-fill]="event.tier === 'somewhat_interested'" [class.bi-hand-thumbs-up]="event.tier !== 'somewhat_interested'"></i>
                                                 </label>
 
                                                 <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'not-' + event.eventId" 
                                                        autocomplete="off" [checked]="event.tier === 'not_interested'" (change)="updateTier(event.eventId, 'not_interested')">
-                                                <label class="btn btn-outline-dark tier-btn" [for]="'not-' + event.eventId" title="Not Interested">
+                                                <label class="btn btn-outline-dark tier-btn" [for]="'not-' + event.eventId" (click)="handleTierClick(event, 'not_interested')" title="Not Interested">
                                                     <i class="bi bi-slash-circle"></i>
                                                 </label>
                                             </div>
                                         </div>
 
-                                        <a [href]="event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                                        <a [href]="event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 flex-shrink-0" style="font-size: 0.75rem;">
                                             GenCon <i class="bi bi-box-arrow-up-right small"></i>
                                         </a>
 

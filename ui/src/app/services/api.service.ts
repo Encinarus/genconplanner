@@ -58,6 +58,8 @@ export interface StarredEventDetail {
   genconUrl: string;
   plannerUrl: string;
   tier: string;
+  groupTier: string;
+  isOverride: boolean;
 }
 
 export interface CalendarMetadata {

@@ -169,10 +169,28 @@ export class StarredService {
     // Optimistically update the tier in local state if possible
     const currentData = this.starredPageData();
     if (currentData) {
-      const updatedEvents = currentData.individualEvents.map(e => 
-        e.eventId === eventId ? { ...e, tier } : e
-      );
-      this.starredPageData.set({ ...currentData, individualEvents: updatedEvents });
+      if (starGroup) {
+        const target = currentData.individualEvents.find(e => e.eventId === eventId);
+        if (target) {
+          const updatedEvents = currentData.individualEvents.map(e => {
+            const isSameGroup = e.categoryCode === target.categoryCode && e.title === target.title && e.shortDescription === target.shortDescription;
+            if (isSameGroup) {
+              return {
+                ...e,
+                groupTier: tier,
+                tier: e.isOverride ? e.tier : tier
+              };
+            }
+            return e;
+          });
+          this.starredPageData.set({ ...currentData, individualEvents: updatedEvents });
+        }
+      } else {
+        const updatedEvents = currentData.individualEvents.map(e => 
+          e.eventId === eventId ? { ...e, tier, isOverride: true } : e
+        );
+        this.starredPageData.set({ ...currentData, individualEvents: updatedEvents });
+      }
     }
 
     this.api.starEvent(eventId, true, starGroup, tier).subscribe({
@@ -181,6 +199,82 @@ export class StarredService {
       },
       error: (err) => {
         console.error('Error updating tier', err);
+        this.fetchStarred(year, true);
+      }
+    });
+  }
+
+  removeOverride(eventId: string, year: number): void {
+    const user = this.auth.user();
+    if (!user) return;
+
+    const currentData = this.starredPageData();
+    if (currentData) {
+      const updatedEvents = currentData.individualEvents.map(e => 
+        e.eventId === eventId ? { ...e, isOverride: false, tier: e.groupTier || 'not_interested' } : e
+      );
+      this.starredPageData.set({ ...currentData, individualEvents: updatedEvents });
+    }
+
+    this.api.starEvent(eventId, false, false, '').subscribe({
+      next: () => {
+        this.fetchStarred(year, true);
+      },
+      error: (err) => {
+        console.error('Error removing override', err);
+        this.fetchStarred(year, true);
+      }
+    });
+  }
+
+  removeGroupDefault(eventId: string, year: number): void {
+    const user = this.auth.user();
+    if (!user) return;
+
+    const currentData = this.starredPageData();
+    if (currentData) {
+      const target = currentData.individualEvents.find(e => e.eventId === eventId);
+      if (target) {
+        const groupEvents = currentData.individualEvents.filter(e => e.categoryCode === target.categoryCode && e.title === target.title && e.shortDescription === target.shortDescription);
+        const override = groupEvents.find(e => e.isOverride);
+        
+        let updatedEvents;
+        if (override) {
+          updatedEvents = currentData.individualEvents.map(e => {
+            const isSameGroup = e.categoryCode === target.categoryCode && e.title === target.title && e.shortDescription === target.shortDescription;
+            if (isSameGroup) {
+              return {
+                ...e,
+                groupTier: override.tier,
+                isOverride: e.eventId === override.eventId ? false : e.isOverride,
+                tier: e.eventId === override.eventId ? override.tier : (e.isOverride ? e.tier : override.tier)
+              };
+            }
+            return e;
+          });
+        } else {
+          updatedEvents = currentData.individualEvents.map(e => {
+            const isSameGroup = e.categoryCode === target.categoryCode && e.title === target.title && e.shortDescription === target.shortDescription;
+            if (isSameGroup) {
+              return {
+                ...e,
+                groupTier: '',
+                tier: 'not_interested'
+              };
+            }
+            return e;
+          });
+        }
+        this.starredPageData.set({ ...currentData, individualEvents: updatedEvents });
+      }
+    }
+
+    this.api.starEvent(eventId, false, true, '').subscribe({
+      next: () => {
+        this.fetchStarred(year, true);
+      },
+      error: (err) => {
+        console.error('Error removing group default', err);
         this.fetchStarred(year, true);
       }
     });

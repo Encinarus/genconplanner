@@ -106,7 +106,37 @@ export class EventDetailComponent implements OnInit {
     return found ? found.tier : '';
   }
 
+  getGroupTier(eventId: string): string {
+    const data = this.starredService.starredPageData();
+    if (!data) return '';
+    const found = data.individualEvents.find(e => e.eventId === eventId);
+    return found ? (found.groupTier || '') : '';
+  }
+
+  isOverride(eventId: string): boolean {
+    const data = this.starredService.starredPageData();
+    if (!data) return false;
+    const found = data.individualEvents.find(e => e.eventId === eventId);
+    return found ? !!found.isOverride : false;
+  }
+
+  setGroupTier(eventId: string, year: number, tier: string): void {
+    this.starredService.updateTier(eventId, year, tier, true);
+  }
+
+  handleGroupTierClick(eventId: string, year: number, clickedTier: string): void {
+    if (this.getGroupTier(eventId) === clickedTier) {
+      this.starredService.removeGroupDefault(eventId, year);
+    } else {
+      this.setGroupTier(eventId, year, clickedTier);
+    }
+  }
+
   setTier(eventId: string, year: number, tier: string): void {
-    this.starredService.updateTier(eventId, year, tier, true); // true for starGroup
+    this.starredService.updateTier(eventId, year, tier, false);
+  }
+
+  resetOverride(eventId: string, year: number): void {
+    this.starredService.removeOverride(eventId, year);
   }
 }

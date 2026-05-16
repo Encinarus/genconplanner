@@ -16,17 +16,23 @@ type AgendaEntry struct {
 func LoadAgenda(db *sql.DB, userEmail string, year int) ([]*AgendaEntry, error) {
 	fields := "e2." + strings.Join(eventFields(), ", e2.")
 	rows, err := db.Query(fmt.Sprintf(`
-SELECT %s, true, o.id, se.tier
+SELECT %s, true, o.id, COALESCE(override.tier, grp.tier) as tier
 FROM events e2
 LEFT JOIN (
     SELECT lower(alias) as lower_alias, MAX(id) as id
     FROM orgs
     GROUP BY lower(alias)
 ) o ON o.lower_alias = lower(e2.org_group)
-JOIN starred_events se ON se.event_id = e2.event_id
+JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
+JOIN events e1 ON grp.event_id = e1.event_id 
+    AND e1.year = e2.year 
+    AND e1.short_category = e2.short_category 
+    AND e1.title = e2.title 
+    AND e1.short_description = e2.short_description
+LEFT JOIN starred_events override ON override.email = $1 AND override.event_id = e2.event_id AND override.level = 'event'
 WHERE e2.active 
   AND e2.year = $2
-  AND se.email = $1
+  AND COALESCE(override.tier, grp.tier) != 'not_interested'
 ORDER BY e2.start_time`, fields), userEmail, year)
 
 	if err != nil {

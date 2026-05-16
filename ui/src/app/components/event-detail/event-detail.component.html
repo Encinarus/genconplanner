@@ -1,13 +1,39 @@
 <div class="container mt-3">
 <ng-container *ngIf="event() as e">
-    <h1 class="pb-2 pt-3 mb-3 border-bottom d-flex align-items-center flex-wrap">
-        <div class="me-2">
-            <app-star-button [eventId]="e.eventId" [year]="e.year" [iconSize]="'1.5rem'" [relatedEventIds]="allSessionIds()" [isGroupMode]="true"></app-star-button>
+    <h1 class="pb-2 pt-3 mb-3 border-bottom">
+        <div>{{ e.title }}</div>
+        <div class="d-flex align-items-center mt-2 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" [name]="'group-tier-' + e.eventId" [id]="'group-must-' + e.eventId" 
+                           autocomplete="off" [checked]="getGroupTier(e.eventId) === 'must_have'" (change)="setGroupTier(e.eventId, e.year, 'must_have')">
+                    <label class="btn btn-outline-danger tier-btn" [for]="'group-must-' + e.eventId" (click)="handleGroupTierClick(e.eventId, e.year, 'must_have')" title="Group Must Have">
+                        <i class="bi" [class.bi-heart-fill]="getGroupTier(e.eventId) === 'must_have'" [class.bi-heart]="getGroupTier(e.eventId) !== 'must_have'"></i>
+                    </label>
+            
+                    <input type="radio" class="btn-check" [name]="'group-tier-' + e.eventId" [id]="'group-very-' + e.eventId" 
+                           autocomplete="off" [checked]="getGroupTier(e.eventId) === 'very_interested'" (change)="setGroupTier(e.eventId, e.year, 'very_interested')">
+                    <label class="btn btn-outline-primary tier-btn" [for]="'group-very-' + e.eventId" (click)="handleGroupTierClick(e.eventId, e.year, 'very_interested')" title="Group Very Interested">
+                        <i class="bi" [class.bi-star-fill]="getGroupTier(e.eventId) === 'very_interested'" [class.bi-star]="getGroupTier(e.eventId) !== 'very_interested'"></i>
+                    </label>
+            
+                    <input type="radio" class="btn-check" [name]="'group-tier-' + e.eventId" [id]="'group-some-' + e.eventId" 
+                           autocomplete="off" [checked]="getGroupTier(e.eventId) === 'somewhat_interested'" (change)="setGroupTier(e.eventId, e.year, 'somewhat_interested')">
+                    <label class="btn btn-outline-secondary tier-btn" [for]="'group-some-' + e.eventId" (click)="handleGroupTierClick(e.eventId, e.year, 'somewhat_interested')" title="Group Somewhat Interested">
+                        <i class="bi" [class.bi-hand-thumbs-up-fill]="getGroupTier(e.eventId) === 'somewhat_interested'" [class.bi-hand-thumbs-up]="getGroupTier(e.eventId) !== 'somewhat_interested'"></i>
+                    </label>
+
+                    <input type="radio" class="btn-check" [name]="'group-tier-' + e.eventId" [id]="'group-not-' + e.eventId" 
+                           autocomplete="off" [checked]="getGroupTier(e.eventId) === 'not_interested'" (change)="setGroupTier(e.eventId, e.year, 'not_interested')">
+                    <label class="btn btn-outline-dark tier-btn" [for]="'group-not-' + e.eventId" (click)="handleGroupTierClick(e.eventId, e.year, 'not_interested')" title="Group Not Interested">
+                        <i class="bi bi-slash-circle"></i>
+                    </label>
+                </div>
+            </div>
+            <small class="text-muted" style="font-size: 1.2rem; font-weight: normal; line-height: 1.2">
+                {{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}: {{ e.ticketsAvailable }} tickets, ${{ e.cost }} each
+            </small>
         </div>
-        <span class="flex-grow-1">{{ e.title }}</span>
-        <small class="text-muted w-100 mt-2" style="font-size: 1.2rem; font-weight: normal; line-height: 1.2">
-            {{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}: {{ e.ticketsAvailable }} tickets, ${{ e.cost }} each
-        </small>
     </h1>
 
     <nav aria-label="breadcrumb">
@@ -106,24 +132,22 @@
         </div>
 
         <div class="col-md-12 mt-3" *ngIf="groupedEvents().length > 0">
-            <h3 class="pb-2">Other Sessions</h3>
+            <h3 class="pb-2">All Sessions</h3>
             <div class="row">
-                <div *ngFor="let dayGroup of groupedEvents()" class="col-md-3 col-sm-6">
-                    <h4 class="mt-2">{{ dayGroup.day }}</h4>
-                    <ul class="otherSessions">
+                <div *ngFor="let dayGroup of groupedEvents()" class="col-md-3 col-sm-6 mb-3">
+                    <h4 class="mt-2 border-bottom pb-1">{{ dayGroup.day }}</h4>
+                    <ul class="otherSessions list-unstyled">
                         <li *ngFor="let session of dayGroup.events" 
                             [class.thisSession]="session.eventId === e.eventId"
                             class="otherSession py-2">
-                            <div style="display:inline-block; vertical-align: top; margin-right: .5em; margin-top:.1rem">
-                                <app-star-button [eventId]="session.eventId" [year]="e.year" [isGroup]="false" [iconSize]="'1.2rem'" [relatedEventIds]="allSessionIds()"></app-star-button>
-                            </div>
                             <div style="display:inline-block;">
-                                <span *ngIf="session.eventId === e.eventId">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }} (This session)</span>
+                                <span *ngIf="session.eventId === e.eventId">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}</span>
                                 <a *ngIf="session.eventId !== e.eventId" [routerLink]="linkService.getEventRouterLink(session.eventId)">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}</a>
-                                <br>
-                                <strong *ngIf="session.ticketsAvailable > 0">{{ session.ticketsAvailable }}</strong>
-                                <span *ngIf="session.ticketsAvailable === 0">{{ session.ticketsAvailable }}</span>
-                                ticket{{ session.ticketsAvailable !== 1 ? 's' : '' }} available
+                                <span class="small" style="display: block; color: #555;">
+                                    <strong *ngIf="session.ticketsAvailable > 0" style="color: #28a745;">{{ session.ticketsAvailable }}</strong>
+                                    <span *ngIf="session.ticketsAvailable === 0" style="color: #dc3545;">0</span>
+                                    ticket{{ session.ticketsAvailable !== 1 ? 's' : '' }} available
+                                </span>
                             </div>
                         </li>
                     </ul>

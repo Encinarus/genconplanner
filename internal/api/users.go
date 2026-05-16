@@ -41,6 +41,8 @@ type StarredEventDetail struct {
 	GenconUrl        string `json:"genconUrl"`
 	PlannerUrl       string `json:"plannerUrl"`
 	Tier             string `json:"tier"`
+	GroupTier        string `json:"groupTier"`
+	IsOverride       bool   `json:"isOverride"`
 }
 
 type StarredPageData struct {
@@ -312,14 +314,15 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 
 	results := make([]StarredEventDetail, 0)
 	starredIds, _ := s.Repo.GetStarredIds(email, year)
-	tiers := make(map[string]string)
+	starredMap := make(map[string]postgres.StarredEvent)
 	if starredIds != nil {
 		for _, s := range starredIds.StarredEvents {
-			tiers[s.EventId] = s.Tier
+			starredMap[s.EventId] = s
 		}
 	}
 
 	for _, e := range dbEvents {
+		se := starredMap[e.EventId]
 		results = append(results, StarredEventDetail{
 			EventId:          e.EventId,
 			Title:            e.Title,
@@ -329,7 +332,9 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 			EndTime:          e.EndTime.Format("2006-01-02T15:04:05Z07:00"),
 			GenconUrl:        e.GenconLink(),
 			PlannerUrl:       e.PlannerLink(),
-			Tier:             tiers[e.EventId],
+			Tier:             se.Tier,
+			GroupTier:        se.GroupTier,
+			IsOverride:       se.IsOverride,
 		})
 	}
 
@@ -387,10 +392,14 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 
 	for _, e := range dbEvents {
 		tier := ""
+		groupTier := ""
+		isOverride := false
 		if starredIds != nil {
 			for _, s := range starredIds.StarredEvents {
 				if s.EventId == e.EventId {
 					tier = s.Tier
+					groupTier = s.GroupTier
+					isOverride = s.IsOverride
 					break
 				}
 			}
@@ -406,6 +415,8 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 			GenconUrl:        e.GenconLink(),
 			PlannerUrl:       e.PlannerLink(),
 			Tier:             tier,
+			GroupTier:        groupTier,
+			IsOverride:       isOverride,
 		})
 	}
 
@@ -571,6 +582,8 @@ func (s *Server) GetAgenda(c *gin.Context) {
 			GenconUrl:        entry.Event.GenconLink(),
 			PlannerUrl:       entry.Event.PlannerLink(),
 			Tier:             entry.Tier,
+			GroupTier:        entry.Tier,
+			IsOverride:       true,
 		})
 	}
 

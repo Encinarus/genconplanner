@@ -17,9 +17,11 @@ type User struct {
 }
 
 type StarredEvent struct {
-	EventId string
-	Level   string // "group" or "event"
-	Tier    string // "must_have", "very_interested", "somewhat_interested"
+	EventId    string
+	Level      string // "group" or "event"
+	Tier       string // "must_have", "very_interested", "somewhat_interested", "not_interested"
+	GroupTier  string
+	IsOverride bool
 }
 
 type UserStarredEvents struct {
@@ -61,14 +63,19 @@ SELECT
 		WHEN 6 THEN 'sat'
 		WHEN 0 THEN 'sun'
 	END AS day_of_week,
-    ARRAY_AGG(se.event_id) event_ids
-FROM starred_events se 
-     JOIN events e ON e.event_id = se.event_id
-WHERE se.email = $1
-  AND e.year = $2
+    ARRAY_AGG(e.event_id) event_ids
+FROM events e 
+JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
+JOIN events e1 ON grp.event_id = e1.event_id 
+    AND e1.year = e.year 
+    AND e1.short_category = e.short_category 
+    AND e1.title = e.title 
+    AND e1.short_description = e.short_description
+LEFT JOIN starred_events override ON override.email = $1 AND override.event_id = e.event_id AND override.level = 'event'
+WHERE e.year = $2
   AND e.active
-  AND se.tier != 'not_interested'
-GROUP BY e.cluster_key, day_of_week
+  AND COALESCE(override.tier, grp.tier) != 'not_interested'
+GROUP BY e.cluster_key, e.day_of_week
 `, userEmail, year)
 
 	if err != nil {
@@ -162,12 +169,8 @@ WHERE e2.active AND e2.year = $2
   AND EXISTS (
       SELECT 1 FROM starred_events se
       JOIN events e1 ON se.event_id = e1.event_id
-      WHERE se.email = $1 AND se.tier != 'not_interested'
-        AND (
-          (se.level = 'event' AND e1.event_id = e2.event_id)
-          OR
-          (se.level = 'group' AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description)
-        )
+      WHERE se.email = $1
+        AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description
   )
 GROUP BY
   e2.year, e2.short_category, e2.title, e2.short_description, e2.game_system, e2.org_group
@@ -203,12 +206,8 @@ WHERE e2.active AND e2.year = $2
   AND EXISTS (
       SELECT 1 FROM starred_events se
       JOIN events e1 ON se.event_id = e1.event_id
-      WHERE se.email = $1 AND se.tier != 'not_interested'
-        AND (
-          (se.level = 'event' AND e1.event_id = e2.event_id)
-          OR
-          (se.level = 'group' AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description)
-        )
+      WHERE se.email = $1
+        AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description
   )
 ORDER BY e2.start_time, e2.event_id`, fields), userEmail, year)
 
@@ -244,112 +243,120 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Rollback()
 
 	if starGroup {
-		// Delete all similar events first, regardless
-		_, err = tx.Exec(`
-DELETE FROM starred_events s
-WHERE s.email = $1
-  AND s.event_id in (
-	  SELECT e2.event_id
-	  FROM events e1 join events e2 on e1.year = e2.year
-          AND e1.short_category = e2.short_category
-	      AND e1.title = e2.title
-          AND e1.short_description = e2.short_description
-	  WHERE e1.event_id = $2
-  )
-`, email, eventId)
+		if add {
+			// Update the group default tier
+			// 1. Check if there's already a level = 'group' row for this group
+			res, err := tx.Exec(`
+				UPDATE starred_events SET tier = $3 
+				WHERE email = $1 AND level = 'group' AND event_id IN (
+					SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description WHERE e1.event_id = $2
+				)`, email, eventId, tier)
+			if err != nil {
+				return nil, err
+			}
+			rowsAffected, _ := res.RowsAffected()
+			if rowsAffected == 0 {
+				// No group default row existed yet, insert one
+				_, err = tx.Exec(`
+					INSERT INTO starred_events (email, event_id, level, tier) VALUES ($1, $2, 'group', $3)
+					ON CONFLICT (event_id, email) DO UPDATE SET level = 'group', tier = $3
+				`, email, eventId, tier)
+				if err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			// Unstar group (user clicked the same value for the group default).
+			// Check if there are any specific instances with an override (level = 'event').
+			var overrideEventId string
+			var overrideTier string
+			err := tx.QueryRow(`
+				SELECT se.event_id, se.tier 
+				FROM starred_events se
+				JOIN events e1 ON se.event_id = e1.event_id
+				JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description
+				WHERE e2.event_id = $2 AND se.email = $1 AND se.level = 'event'
+				ORDER BY e1.event_id LIMIT 1
+			`, email, eventId).Scan(&overrideEventId, &overrideTier)
 
-		if err == nil && add {
-			// insert via select related ids
-			_, err = tx.Exec(`
-INSERT INTO starred_events(email, event_id, level, tier)
-SELECT $1, e2.event_id, 'group', $3
-FROM events e1 join events e2 on e1.year = e2.year
-    AND e1.short_category = e2.short_category
-    AND e1.title = e2.title   
-    AND e1.short_description = e2.short_description
-WHERE e1.event_id = $2
-ON CONFLICT (event_id, email) DO UPDATE SET tier = EXCLUDED.tier
-`, email, eventId, tier)
+			if err == sql.ErrNoRows {
+				// If no specific instances have an override, this should remove it entirely from the schedule.
+				_, err = tx.Exec(`
+					DELETE FROM starred_events WHERE email = $1 AND event_id IN (
+						SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description WHERE e1.event_id = $2
+					)`, email, eventId)
+				if err != nil {
+					return nil, err
+				}
+			} else if err != nil {
+				return nil, err
+			} else {
+				// If there are specific instances with an override, the default should be updated to match the instance with the override, and the override on that specific instance should be removed.
+				// 1. Delete the old group default row(s).
+				_, err = tx.Exec(`
+					DELETE FROM starred_events WHERE email = $1 AND level = 'group' AND event_id IN (
+						SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description WHERE e1.event_id = $2
+					)`, email, eventId)
+				if err != nil {
+					return nil, err
+				}
+				// 2. Update the override instance to become the new group default.
+				_, err = tx.Exec(`
+					UPDATE starred_events SET level = 'group' WHERE email = $1 AND event_id = $2
+				`, email, overrideEventId)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
-	} else if add {
-		// insert/update one record
-		// But first, if this was part of a group star, demote the group star to individual stars
-		// so that only this one gets the new tier
-		_, err = tx.Exec(`
-INSERT INTO starred_events (email, event_id, level, tier)
-SELECT DISTINCT $1, e_target.event_id, 'event', se.tier
-FROM events e_clicked
-JOIN events e_group_member ON e_clicked.year = e_group_member.year
-    AND e_clicked.short_category = e_group_member.short_category
-    AND e_clicked.title = e_group_member.title
-    AND e_clicked.short_description = e_group_member.short_description
-JOIN starred_events se ON se.event_id = e_group_member.event_id
-JOIN events e_target ON e_clicked.year = e_target.year
-    AND e_clicked.short_category = e_target.short_category
-    AND e_clicked.title = e_target.title
-    AND e_clicked.short_description = e_target.short_description
-WHERE e_clicked.event_id = $2
-  AND se.email = $1
-  AND se.level = 'group'
-ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level
-`, email, eventId)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		_, err = tx.Exec(`
-INSERT INTO starred_events(email, event_id, level, tier)
-VALUES ($1, $2, 'event', $3)
-ON CONFLICT (event_id, email) DO UPDATE SET tier = EXCLUDED.tier, level = EXCLUDED.level
-`, email, eventId, tier)
 	} else {
-		// unstar individual session
-		// 1. Demote any group star for this cluster to individual stars
-		// We expand the group star into individual stars for all OTHER sessions
-		// before deleting the specific one.
-		_, err = tx.Exec(`
-INSERT INTO starred_events (email, event_id, level, tier)
-SELECT DISTINCT $1, e_target.event_id, 'event', se.tier
-FROM events e_clicked
-JOIN events e_group_member ON e_clicked.year = e_group_member.year
-    AND e_clicked.short_category = e_group_member.short_category
-    AND e_clicked.title = e_group_member.title
-    AND e_clicked.short_description = e_group_member.short_description
-JOIN starred_events se ON se.event_id = e_group_member.event_id
-JOIN events e_target ON e_clicked.year = e_target.year
-    AND e_clicked.short_category = e_target.short_category
-    AND e_clicked.title = e_target.title
-    AND e_clicked.short_description = e_target.short_description
-WHERE e_clicked.event_id = $2
-  AND se.email = $1
-  AND se.level = 'group'
-ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level
-`, email, eventId)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
+		if add {
+			// First, check if eventId is currently the group default row
+			var currentLevel string
+			var currentTier string
+			err := tx.QueryRow("SELECT level, tier FROM starred_events WHERE email = $1 AND event_id = $2", email, eventId).Scan(&currentLevel, &currentTier)
+			if err == nil && currentLevel == "group" {
+				// It was the group default row! We need to move the group default to another event in the group before making this one an event override.
+				_, err = tx.Exec(`
+					INSERT INTO starred_events (email, event_id, level, tier)
+					SELECT $1, e2.event_id, 'group', $3
+					FROM events e1 JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description 
+					WHERE e1.event_id = $2 AND e2.event_id != $2 AND NOT EXISTS (SELECT 1 FROM starred_events se WHERE se.email = $1 AND se.event_id = e2.event_id)
+					ORDER BY e2.event_id LIMIT 1
+				`, email, eventId, currentTier)
+				if err != nil {
+					return nil, err
+				}
+			}
 
-		// 2. Delete the specific one
-		_, err = tx.Exec(`
-DELETE FROM starred_events s
-WHERE s.email = $1
-  AND s.event_id = $2
-`, email, eventId)
+			// Upsert explicit override
+			_, err = tx.Exec(`
+				INSERT INTO starred_events (email, event_id, level, tier) VALUES ($1, $2, 'event', $3)
+				ON CONFLICT (event_id, email) DO UPDATE SET level = 'event', tier = $3
+			`, email, eventId, tier)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// Remove explicit override
+			_, err = tx.Exec("DELETE FROM starred_events WHERE email = $1 AND event_id = $2 AND level = 'event'", email, eventId)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
+	err = NormalizeUserStarredEvents(tx, email, 0)
 	if err != nil {
-		tx.Rollback()
 		return nil, err
 	}
 
-	// Mark wishlist as dirty regardless of fullResponse
+	// Mark wishlist as dirty
 	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
 	if err != nil {
-		tx.Rollback()
 		return nil, err
 	}
 
@@ -365,20 +372,24 @@ WHERE s.email = $1
 		return &UserStarredEvents{
 			Email: email,
 			StarredEvents: []StarredEvent{{
-				EventId: eventId,
-				Level:   level,
-				Tier:    tier,
+				EventId:    eventId,
+				Level:      level,
+				Tier:       tier,
+				GroupTier:  tier,
+				IsOverride: !starGroup,
 			}},
 		}, nil
 	}
 
-	starredEvents, err := fetchStarredInternal(tx, email, 0) // 0 means all years
+	starredEvents, err := fetchStarredInternal(tx, email, 0)
 	if err != nil {
-		tx.Rollback()
 		return nil, err
 	}
 
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
 	return starredEvents, nil
 }
 
@@ -388,6 +399,7 @@ DELETE FROM starred_events se
 USING events e
 WHERE se.event_id = e.event_id
   AND se.email = $1
+  AND e.year = $2
 `, email, year)
 	if err != nil {
 		return err
@@ -436,6 +448,11 @@ ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level, tier = EXCLU
 		}
 	}
 
+	err = NormalizeUserStarredEvents(tx, email, year)
+	if err != nil {
+		return err
+	}
+
 	// Mark wishlist as dirty
 	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
 	if err != nil {
@@ -455,13 +472,10 @@ func GetAllStarredIds(db *sql.DB, email string) (*UserStarredEvents, error) {
 
 type queryable interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
+	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
-func fetchStarredInternal(q queryable, email string, year int) (*UserStarredEvents, error) {
-	starredEvents := UserStarredEvents{
-		Email: email,
-	}
-
+func NormalizeUserStarredEvents(q queryable, email string, year int) error {
 	yearFilter := ""
 	args := []interface{}{email}
 	if year > 0 {
@@ -470,17 +484,180 @@ func fetchStarredInternal(q queryable, email string, year int) (*UserStarredEven
 	}
 
 	query := fmt.Sprintf(`
-SELECT DISTINCT e2.event_id, 
-       CASE WHEN se.level = 'group' THEN 'group' ELSE 'event' END as level,
-       se.tier
-FROM starred_events se
-JOIN events e1 ON se.event_id = e1.event_id
-JOIN events e2 ON (
-    (se.level = 'event' AND e1.event_id = e2.event_id)
-    OR
-    (se.level = 'group' AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description)
-)
-WHERE se.email = $1 %s AND e2.active
+SELECT e.year, e.short_category, e.title, e.short_description,
+       ARRAY_AGG(e.event_id ORDER BY e.event_id) as all_event_ids,
+       ARRAY_AGG(se.level ORDER BY e.event_id) as starred_levels,
+       ARRAY_AGG(se.tier ORDER BY e.event_id) as starred_tiers
+FROM events e
+JOIN (
+    SELECT DISTINCT e1.year, e1.short_category, e1.title, e1.short_description
+    FROM starred_events se1
+    JOIN events e1 ON se1.event_id = e1.event_id
+    WHERE se1.email = $1 %s
+) active_groups ON e.year = active_groups.year 
+    AND e.short_category = active_groups.short_category 
+    AND e.title = active_groups.title 
+    AND e.short_description = active_groups.short_description
+LEFT JOIN starred_events se ON se.event_id = e.event_id AND se.email = $1
+GROUP BY e.year, e.short_category, e.title, e.short_description
+`, yearFilter)
+
+	rows, err := q.Query(query, args...)
+	if err != nil {
+		return err
+	}
+
+	type groupData struct {
+		allEventIds   []string
+		starredLevels []sql.NullString
+		starredTiers  []sql.NullString
+	}
+	var groups []groupData
+
+	for rows.Next() {
+		var g groupData
+		var y int
+		var cat, title, desc string
+		if err := rows.Scan(&y, &cat, &title, &desc, pq.Array(&g.allEventIds), pq.Array(&g.starredLevels), pq.Array(&g.starredTiers)); err != nil {
+			rows.Close()
+			return err
+		}
+		groups = append(groups, g)
+	}
+	rows.Close()
+
+	tierPriority := func(tier string) int {
+		switch tier {
+		case "must_have":
+			return 4
+		case "very_interested":
+			return 3
+		case "somewhat_interested":
+			return 2
+		case "not_interested":
+			return 1
+		default:
+			return 0
+		}
+	}
+
+	for _, g := range groups {
+		var groupLevelIndices []int
+		var starredIndices []int
+		maxTier := ""
+		maxTierPriority := -1
+		hasNonNotInterested := false
+
+		for i := range g.allEventIds {
+			if g.starredLevels[i].Valid {
+				starredIndices = append(starredIndices, i)
+				if g.starredLevels[i].String == "group" {
+					groupLevelIndices = append(groupLevelIndices, i)
+				}
+				t := g.starredTiers[i].String
+				if t != "not_interested" {
+					hasNonNotInterested = true
+				}
+				p := tierPriority(t)
+				if p > maxTierPriority {
+					maxTierPriority = p
+					maxTier = t
+				}
+			}
+		}
+
+		if len(groupLevelIndices) == 0 && !hasNonNotInterested {
+			// Clean up ghost rows so the group is correctly considered unset!
+			for _, idx := range starredIndices {
+				_, err := q.Exec("DELETE FROM starred_events WHERE email = $1 AND event_id = $2", email, g.allEventIds[idx])
+				if err != nil {
+					return err
+				}
+			}
+			continue
+		}
+
+		if len(groupLevelIndices) > 1 {
+			// Property 1: two or more instances are considered to be representing the group.
+			// The one with higher rating should be considered the group default, lower priority demoted to instance override.
+			bestIdx := groupLevelIndices[0]
+			bestPrio := tierPriority(g.starredTiers[bestIdx].String)
+
+			for _, idx := range groupLevelIndices[1:] {
+				p := tierPriority(g.starredTiers[idx].String)
+				if p > bestPrio {
+					bestPrio = p
+					bestIdx = idx
+				}
+			}
+
+			// Demote all others
+			for _, idx := range groupLevelIndices {
+				if idx != bestIdx {
+					_, err := q.Exec("UPDATE starred_events SET level = 'event' WHERE email = $1 AND event_id = $2", email, g.allEventIds[idx])
+					if err != nil {
+						return err
+					}
+				}
+			}
+		} else if len(groupLevelIndices) == 0 {
+			// Property 2: no event group currently set up, but there are active starred event instances.
+			// Add a default star rating for the group equal to the highest rating among the events that are starred.
+			// By default it should be the one with the event id that sorts the lowest among unstarred events in the group.
+			if maxTier == "" {
+				maxTier = "very_interested"
+			}
+			if len(g.allEventIds) > 0 {
+				defaultEventId := g.allEventIds[0]
+				for i, id := range g.allEventIds {
+					if !g.starredLevels[i].Valid {
+						defaultEventId = id
+						break
+					}
+				}
+				_, err := q.Exec("INSERT INTO starred_events (email, event_id, level, tier) VALUES ($1, $2, 'group', $3) ON CONFLICT (event_id, email) DO UPDATE SET level = 'group', tier = $3", email, defaultEventId, maxTier)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func fetchStarredInternal(q queryable, email string, year int) (*UserStarredEvents, error) {
+	err := NormalizeUserStarredEvents(q, email, year)
+	if err != nil {
+		return nil, err
+	}
+
+	starredEvents := UserStarredEvents{
+		Email: email,
+	}
+
+	yearFilter := ""
+	args := []interface{}{email}
+	if year > 0 {
+		yearFilter = " AND e2.year = $2"
+		args = append(args, year)
+	}
+
+	query := fmt.Sprintf(`
+SELECT e2.event_id,
+       CASE WHEN override.event_id IS NOT NULL THEN 'event' ELSE 'group' END as level,
+       CASE WHEN override.event_id IS NOT NULL THEN override.tier ELSE grp.tier END as tier,
+       grp.tier as group_tier,
+       CASE WHEN override.event_id IS NOT NULL THEN true ELSE false END as is_override
+FROM events e2
+JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
+JOIN events e1 ON grp.event_id = e1.event_id 
+    AND e1.year = e2.year 
+    AND e1.short_category = e2.short_category 
+    AND e1.title = e2.title 
+    AND e1.short_description = e2.short_description
+LEFT JOIN starred_events override ON override.email = $1 AND override.event_id = e2.event_id AND override.level = 'event'
+WHERE e2.active %s
 ORDER BY e2.event_id`, yearFilter)
 
 	rows, err := q.Query(query, args...)
@@ -491,7 +668,7 @@ ORDER BY e2.event_id`, yearFilter)
 
 	for rows.Next() {
 		var starred StarredEvent
-		err = rows.Scan(&starred.EventId, &starred.Level, &starred.Tier)
+		err = rows.Scan(&starred.EventId, &starred.Level, &starred.Tier, &starred.GroupTier, &starred.IsOverride)
 		if err != nil {
 			return nil, err
 		}
