@@ -153,9 +153,12 @@ As Gen Con processes wishlists, members update their status in real-time:
 *   Scoring adjustments based on the interest of other party members.
 *   System/User defaults for these modifiers.
 
-### Phase 4: Collaborative Group Prioritization
-*   The "Wishlist Prioritization" tab in the Party view.
-*   Algorithm refinements: Anti-spam (capping instances) and Altruistic filling.
+### Phase 4: Collaborative Group View & Shared Interests
+*   **Full-Page Party Hub**: Refactoring the Party view into a dense, multi-tabbed coordination hub with an ultra-compact, icon-only vertical navigation rail (`Events`, `Members`, `Calendar`, `Settings`).
+*   **Master-Detail Split Pane**: A scannable master list of event group cards on the left paired with a rich drilldown detail panel on the right (reusing standalone Event Details UI components without sub-instance clutter).
+*   **Shared Interests Aggregation**: Combining event groups (`cluster_id`) and member interest tiers (`Must Have`, `Very Interested`, `Somewhat Interested`) into a unified consensus view.
+*   **Real-Time Synchronization**: Leveraging Server-Sent Events (SSE) and Postgres `LISTEN/NOTIFY` to instantly reflect member interest updates across all active client screens without HTTP polling.
+*   **Collaborative Group Wishlist**: The "Wishlist Prioritization" tab in the Party view with algorithm refinements (Anti-spam capping and Altruistic filling).
 
 ### Phase 5: Ticket Management & Claims
 *   The "Purchased" vs. "Claimed" tracking system.
