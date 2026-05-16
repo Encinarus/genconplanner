@@ -51,3 +51,11 @@ CREATE TABLE IF NOT EXISTS public.user_wishlist_cache (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_wishlist_cache_email_year ON public.user_wishlist_cache(email, year);
+
+-- Phase 3: Party Join Links
+ALTER TABLE public.parties ADD COLUMN IF NOT EXISTS short_code TEXT UNIQUE;
+
+-- Generate random 8 character hex strings for any existing parties
+UPDATE public.parties 
+SET short_code = encode(gen_random_bytes(4), 'hex')
+WHERE short_code IS NULL;

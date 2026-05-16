@@ -117,7 +117,7 @@
                     <p class="text-muted small mb-3">Share this link with your friends so they can join your party and plan events together.</p>
                     
                     <div class="input-group mb-4 shadow-sm rounded-3 overflow-hidden">
-                        <input type="text" class="form-control bg-light border-0 py-2 small" [value]="'http://localhost:8080/v2/party/' + p.id" readonly #inviteLink>
+                        <input type="text" class="form-control bg-light border-0 py-2 small" [value]="p.inviteLink" readonly #inviteLink>
                         <button class="btn btn-light border-0 py-2" type="button" (click)="copyToClipboard(inviteLink.value)" title="Copy to clipboard">
                             <i class="bi bi-clipboard"></i>
                         </button>

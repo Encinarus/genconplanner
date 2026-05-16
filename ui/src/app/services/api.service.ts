@@ -101,6 +101,8 @@ export interface Party {
   name: string;
   year: number;
   leaderEmail: string;
+  shortCode: string;
+  inviteLink: string;
   members: PartyMember[];
 }
 
@@ -246,7 +248,7 @@ export class ApiService {
     return this.http.post<Party>(`/api/v1/user/parties`, { name, year });
   }
 
-  getParty(id: number): Observable<Party> {
+  getParty(id: number | string): Observable<Party> {
     return this.http.get<Party>(`/api/v1/party/${id}`);
   }
 
@@ -258,7 +260,7 @@ export class ApiService {
     return this.http.post<any>(`/api/v1/party/${id}/transfer`, { newLeaderEmail });
   }
 
-  joinParty(id: number): Observable<any> {
+  joinParty(id: string): Observable<any> {
     return this.http.post<any>(`/api/v1/party/${id}/join`, {});
   }
 

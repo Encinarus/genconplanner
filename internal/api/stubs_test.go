@@ -30,6 +30,7 @@ type StubRepository struct {
 	UpdateWishlistConstraintsFn func(string, []postgres.WishlistConstraint) error
 	LoadPartiesFn          func(*postgres.User) ([]*postgres.Party, error)
 	LoadPartyFn            func(int64) (*postgres.Party, error)
+	LoadPartyByCodeFn      func(string) (*postgres.Party, error)
 	NewPartyFn             func(string, int64, string) (*postgres.Party, error)
 	UpdatePartyLeaderFn    func(int64, string) error
 	RenamePartyFn          func(int64, string) error
@@ -107,6 +108,12 @@ func (s *StubRepository) LoadParty(id int64) (*postgres.Party, error) {
 		return nil, nil
 	}
 	return s.LoadPartyFn(id)
+}
+func (s *StubRepository) LoadPartyByCode(code string) (*postgres.Party, error) {
+	if s.LoadPartyByCodeFn == nil {
+		return nil, nil
+	}
+	return s.LoadPartyByCodeFn(code)
 }
 func (s *StubRepository) NewParty(name string, year int64, founderEmail string) (*postgres.Party, error) {
 	return s.NewPartyFn(name, year, founderEmail)

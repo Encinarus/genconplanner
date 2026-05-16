@@ -32,6 +32,7 @@ type EventRepository interface {
 	// Party related
 	LoadParties(user *postgres.User) ([]*postgres.Party, error)
 	LoadParty(id int64) (*postgres.Party, error)
+	LoadPartyByCode(code string) (*postgres.Party, error)
 	NewParty(name string, year int64, founderEmail string) (*postgres.Party, error)
 	UpdatePartyLeader(id int64, newLeaderEmail string) error
 	RenameParty(id int64, name string) error
@@ -133,6 +134,10 @@ func (r *PostgresRepository) NewParty(name string, year int64, founderEmail stri
 
 func (r *PostgresRepository) LoadParty(id int64) (*postgres.Party, error) {
 	return postgres.LoadParty(r.DB, id)
+}
+
+func (r *PostgresRepository) LoadPartyByCode(code string) (*postgres.Party, error) {
+	return postgres.LoadPartyByCode(r.DB, code)
 }
 
 func (r *PostgresRepository) UpdatePartyLeader(id int64, newLeaderEmail string) error {

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"fmt"
+	"os"
 
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
@@ -61,7 +62,17 @@ type Party struct {
 	Name        string        `json:"name"`
 	Year        int64         `json:"year"`
 	LeaderEmail string        `json:"leaderEmail"`
+	ShortCode   string        `json:"shortCode"`
+	InviteLink  string        `json:"inviteLink"`
 	Members     []PartyMember `json:"members"`
+}
+
+func getInviteLink(shortCode string) string {
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+	return fmt.Sprintf("%s/party/%s", baseURL, shortCode)
 }
 
 type PartyMember struct {
@@ -591,10 +602,13 @@ func (s *Server) GetParties(c *gin.Context) {
 			})
 		}
 		apiParties = append(apiParties, Party{
-			Id:      p.Id,
-			Name:    p.Name,
-			Year:    p.Year,
-			Members: members,
+			Id:          p.Id,
+			Name:        p.Name,
+			Year:        p.Year,
+			LeaderEmail: p.LeaderEmail,
+			ShortCode:   p.ShortCode,
+			InviteLink:  getInviteLink(p.ShortCode),
+			Members:     members,
 		})
 	}
 
@@ -644,6 +658,8 @@ func (s *Server) CreateParty(c *gin.Context) {
 		Name:        dbParty.Name,
 		Year:        dbParty.Year,
 		LeaderEmail: dbParty.LeaderEmail,
+		ShortCode:   dbParty.ShortCode,
+		InviteLink:  getInviteLink(dbParty.ShortCode),
 		Members:     members,
 	}
 
@@ -651,17 +667,37 @@ func (s *Server) CreateParty(c *gin.Context) {
 }
 
 func (s *Server) GetParty(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("party_id"), 10, 64)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid party ID"})
-		return
+	idParam := c.Param("party_id")
+	var dbParty *postgres.Party
+	var err error
+
+	id, parseErr := strconv.ParseInt(idParam, 10, 64)
+	if parseErr == nil {
+		dbParty, err = s.Repo.LoadParty(id)
+	} else {
+		dbParty, err = s.Repo.LoadPartyByCode(idParam)
 	}
 
-	dbParty, err := s.Repo.LoadParty(id)
 	if err != nil {
 		log.Printf("error loading party: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
+	}
+
+	email := GetUserEmail(c)
+	if parseErr == nil {
+		// Loaded by numeric ID. Verify membership.
+		isMember := false
+		for _, m := range dbParty.Members {
+			if m.Email == email {
+				isMember = true
+				break
+			}
+		}
+		if !isMember {
+			c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+			return
+		}
 	}
 
 	members := make([]PartyMember, 0, len(dbParty.Members))
@@ -677,6 +713,8 @@ func (s *Server) GetParty(c *gin.Context) {
 		Name:        dbParty.Name,
 		Year:        dbParty.Year,
 		LeaderEmail: dbParty.LeaderEmail,
+		ShortCode:   dbParty.ShortCode,
+		InviteLink:  getInviteLink(dbParty.ShortCode),
 		Members:     members,
 	}
 
@@ -794,13 +832,19 @@ func (s *Server) JoinParty(c *gin.Context) {
 		return
 	}
 
-	id, err := strconv.ParseInt(c.Param("party_id"), 10, 64)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid party ID"})
+	idParam := c.Param("party_id")
+	if _, err := strconv.ParseInt(idParam, 10, 64); err == nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Join requests must use the party invite code"})
 		return
 	}
 
-	err = s.Repo.JoinParty(id, email)
+	dbParty, err := s.Repo.LoadPartyByCode(idParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+		return
+	}
+
+	err = s.Repo.JoinParty(dbParty.Id, email)
 	if err != nil {
 		log.Printf("error joining party: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})

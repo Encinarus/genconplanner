@@ -186,26 +186,25 @@ func TestExclusiveBlockedTimes(t *testing.T) {
 }
 
 func TestFlexibleBlockedTimes(t *testing.T) {
-	// Constraint: Need 1 hour (60m) gap between 10 AM and 2 PM (14:00)
-	constraints := []postgres.WishlistConstraint{
-		{
-			DayOfWeek:          int(time.Thursday),
-			StartHour:          10,
-			StartMinute:        0,
-			EndHour:            14,
-			EndMinute:          0,
-			MinDurationMinutes: 60,
-		},
-	}
-
 	testCases := []struct {
-		name       string
-		candidate  *events.GenconEvent
-		primary    []WishlistItem
-		shouldPass bool
+		name        string
+		constraints []postgres.WishlistConstraint
+		candidate   *events.GenconEvent
+		primary     []WishlistItem
+		shouldPass  bool
 	}{
 		{
 			name: "Single event leaving large gap (10-12, gap 12-14)",
+			constraints: []postgres.WishlistConstraint{
+				{
+					DayOfWeek:          int(time.Thursday),
+					StartHour:          10,
+					StartMinute:        0,
+					EndHour:            14,
+					EndMinute:          0,
+					MinDurationMinutes: 60,
+				},
+			},
 			candidate: &events.GenconEvent{
 				StartTime: time.Date(2026, 7, 30, 10, 0, 0, 0, events.INDIANAPOLIS),
 				Duration:  120, // 10:00 to 12:00
@@ -216,6 +215,16 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 		},
 		{
 			name: "Event too long for window (10-13:30, gap only 30m)",
+			constraints: []postgres.WishlistConstraint{
+				{
+					DayOfWeek:          int(time.Thursday),
+					StartHour:          10,
+					StartMinute:        0,
+					EndHour:            14,
+					EndMinute:          0,
+					MinDurationMinutes: 60,
+				},
+			},
 			candidate: &events.GenconEvent{
 				StartTime: time.Date(2026, 7, 30, 10, 0, 0, 0, events.INDIANAPOLIS),
 				Duration:  210, // 10:00 to 13:30
@@ -226,6 +235,16 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 		},
 		{
 			name: "Two events leaving gap in middle (10-11 and 12-14, gap 11-12)",
+			constraints: []postgres.WishlistConstraint{
+				{
+					DayOfWeek:          int(time.Thursday),
+					StartHour:          10,
+					StartMinute:        0,
+					EndHour:            14,
+					EndMinute:          0,
+					MinDurationMinutes: 60,
+				},
+			},
 			candidate: &events.GenconEvent{
 				StartTime: time.Date(2026, 7, 30, 10, 0, 0, 0, events.INDIANAPOLIS),
 				Duration:  60, // 10:00 to 11:00
@@ -245,6 +264,16 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 		},
 		{
 			name: "Three events breaking all gaps (10:30-11, 11:30-12, 12:30-13:30)",
+			constraints: []postgres.WishlistConstraint{
+				{
+					DayOfWeek:          int(time.Thursday),
+					StartHour:          10,
+					StartMinute:        0,
+					EndHour:            14,
+					EndMinute:          0,
+					MinDurationMinutes: 60,
+				},
+			},
 			candidate: &events.GenconEvent{
 				StartTime: time.Date(2026, 7, 30, 11, 30, 0, 0, events.INDIANAPOLIS),
 				Duration:  30, // 11:30 to 12:00
@@ -269,6 +298,35 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 				},
 			},
 			shouldPass: false,
+		},
+		{
+			name: "Permissive start/end bounds (7-8 and 8:30-9, gap 8-8:30)",
+			constraints: []postgres.WishlistConstraint{
+				{
+					DayOfWeek:          int(time.Thursday),
+					StartHour:          7,
+					StartMinute:        0,
+					EndHour:            9,
+					EndMinute:          0,
+					MinDurationMinutes: 30,
+				},
+			},
+			candidate: &events.GenconEvent{
+				StartTime: time.Date(2026, 7, 30, 8, 30, 0, 0, events.INDIANAPOLIS),
+				Duration:  30, // 8:30 to 9:00
+				EndTime:   time.Date(2026, 7, 30, 9, 0, 0, 0, events.INDIANAPOLIS),
+			},
+			primary: []WishlistItem{
+				{
+					Status: "Primary",
+					Event: &events.GenconEvent{
+						StartTime: time.Date(2026, 7, 30, 7, 0, 0, 0, events.INDIANAPOLIS),
+						Duration:  60, // 7:00 to 8:00
+						EndTime:   time.Date(2026, 7, 30, 8, 0, 0, 0, events.INDIANAPOLIS),
+					},
+				},
+			},
+			shouldPass: true,
 		},
 	}
 
@@ -299,7 +357,7 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 				allEvents = append(allEvents, p.Event)
 			}
 
-			wishlist := GeneratePersonalWishlist(starred, allEvents, constraints)
+			wishlist := GeneratePersonalWishlist(starred, allEvents, tc.constraints)
 			
 			foundCandidate := false
 			for _, item := range wishlist {

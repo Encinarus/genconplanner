@@ -35,14 +35,14 @@ export class PartyComponent implements OnInit {
 
   ngOnInit() {
     this.route.params.subscribe(params => {
-      const id = +params['id'];
+      const id = params['id'];
       if (id) {
         this.loadParty(id);
       }
     });
   }
 
-  loadParty(id: number) {
+  loadParty(id: string | number) {
     this.loading.set(true);
     this.api.getParty(id).subscribe({
       next: (party) => {
@@ -74,7 +74,7 @@ export class PartyComponent implements OnInit {
   onJoin() {
     const p = this.party();
     if (!p) return;
-    this.api.joinParty(p.id).subscribe({
+    this.api.joinParty(p.shortCode).subscribe({
       next: () => this.loadParty(p.id),
       error: (err) => alert('Failed to join party: ' + (err.error?.error || err.message))
     });

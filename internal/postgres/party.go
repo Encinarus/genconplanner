@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"database/sql"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -12,6 +14,7 @@ type Party struct {
 	Name        string
 	Year        int64
 	LeaderEmail string
+	ShortCode   string
 	Members     []*User
 }
 
@@ -22,7 +25,8 @@ func LoadParties(db *sql.DB, currentUser *User) ([]*Party, error) {
 SELECT p.party_id,
        p.name,
        p.year,
-       p.leader_email
+       p.leader_email,
+       p.short_code
 FROM parties p
     JOIN party_members pm ON p.party_id = pm.party_id
 WHERE pm.email = $1
@@ -37,7 +41,7 @@ WHERE pm.email = $1
 	for rows.Next() {
 		var p Party
 		var leaderEmail sql.NullString
-		err = rows.Scan(&p.Id, &p.Name, &p.Year, &leaderEmail)
+		err = rows.Scan(&p.Id, &p.Name, &p.Year, &leaderEmail, &p.ShortCode)
 		if err != nil {
 			return nil, err
 		}
@@ -96,9 +100,11 @@ func NewParty(db *sql.DB, name string, year int64, founderEmail string) (*Party,
 
 	defer func() { CleanupTransaction(err, tx) }()
 
+	shortCode := strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
+
 	var partyId int64
 	err = tx.QueryRow(`
-INSERT INTO parties(name, year, leader_email) VALUES ($1, $2, $3) RETURNING party_id`, name, year, founder.Email).Scan(&partyId)
+INSERT INTO parties(name, year, leader_email, short_code) VALUES ($1, $2, $3, $4) RETURNING party_id`, name, year, founder.Email, shortCode).Scan(&partyId)
 
 	if err != nil {
 		return nil, err
@@ -115,6 +121,7 @@ INSERT INTO party_members (party_id, email) VALUES ($1, $2)`, partyId, founder.E
 		Name:        name,
 		Year:        year,
 		LeaderEmail: founder.Email,
+		ShortCode:   shortCode,
 		Members:     []*User{founder},
 	}, nil
 }
@@ -123,10 +130,10 @@ func LoadParty(db *sql.DB, id int64) (*Party, error) {
 	var p Party
 	var leaderEmail sql.NullString
 	err := db.QueryRow(`
-SELECT party_id, name, year, leader_email
+SELECT party_id, name, year, leader_email, short_code
 FROM parties
 WHERE party_id = $1
-`, id).Scan(&p.Id, &p.Name, &p.Year, &leaderEmail)
+`, id).Scan(&p.Id, &p.Name, &p.Year, &leaderEmail, &p.ShortCode)
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +149,46 @@ FROM party_members pm
 JOIN users u ON u.email = pm.email
 WHERE pm.party_id = $1
 `, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var u User
+		err = rows.Scan(&u.Email, &u.DisplayName)
+		if err != nil {
+			return nil, err
+		}
+		p.Members = append(p.Members, &u)
+	}
+
+	return &p, nil
+}
+
+func LoadPartyByCode(db *sql.DB, code string) (*Party, error) {
+	var p Party
+	var leaderEmail sql.NullString
+	err := db.QueryRow(`
+SELECT party_id, name, year, leader_email, short_code
+FROM parties
+WHERE short_code = $1
+`, code).Scan(&p.Id, &p.Name, &p.Year, &leaderEmail, &p.ShortCode)
+	if err != nil {
+		return nil, err
+	}
+	p.LeaderEmail = leaderEmail.String
+
+	rows, err := db.Query(`
+SELECT u.email, 
+       CASE WHEN length(u.display_name) > 0
+            THEN u.display_name
+            ELSE split_part(u.email, '@', 1)
+            END
+FROM party_members pm 
+JOIN users u ON u.email = pm.email
+WHERE pm.party_id = $1
+`, p.Id)
 	if err != nil {
 		return nil, err
 	}
