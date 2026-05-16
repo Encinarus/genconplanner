@@ -141,10 +141,12 @@ func splitId(rawEventId string) (string, int, string, string) {
 
 	twoDigitYear, err := strconv.Atoi(rawYear)
 	if err != nil {
-		log.Fatalf("Unable to parse year out of %s, %v", rawEventId, err)
+		log.Printf("Unable to parse year out of %s, %v", rawEventId, err)
+		return category, 0, locale, rawId
 	}
 	if 15 > twoDigitYear {
-		log.Fatalf("Unsupported year being parsed! rawEventId %s", rawEventId)
+		log.Printf("Unsupported year being parsed! rawEventId %s", rawEventId)
+		return category, 0, locale, rawId
 	}
 
 	return category, 2000 + twoDigitYear, locale, rawId

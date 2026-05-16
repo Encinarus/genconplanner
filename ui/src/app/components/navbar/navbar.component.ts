@@ -4,6 +4,7 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { LinkService } from '../../services/link.service';
+import { PartyService } from '../../services/party.service';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -17,6 +18,7 @@ export class NavbarComponent implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   public linkService = inject(LinkService);
+  public partyService = inject(PartyService);
   
   year = signal<number>(new Date().getFullYear());
   supportedYears = computed(() => {
@@ -29,6 +31,10 @@ export class NavbarComponent implements OnInit {
   });
   displayName = this.authService.displayName;
   searchQuery = signal<string>('');
+  partyForCurrentYear = computed(() => {
+    const currentYear = this.year();
+    return this.partyService.parties().find(p => p.year === currentYear) || null;
+  });
 
   ngOnInit() {
     this.syncYearFromUrl();

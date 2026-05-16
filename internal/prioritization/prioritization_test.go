@@ -374,4 +374,34 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 	}
 }
 
+func TestRearrangementPass(t *testing.T) {
+	now := time.Date(2026, 7, 30, 0, 0, 0, 0, events.INDIANAPOLIS) // Thursday midnight
 
+	// Group A: Must have. Two sessions available.
+	// A1: 9:30pm (21:30) to 11:30pm (23:30) - Late night
+	eA1 := &events.GenconEvent{
+		EventId: "A1", Title: "Group A", StartTime: now.Add(21*time.Hour + 30*time.Minute), EndTime: now.Add(23*time.Hour + 30*time.Minute), TicketsAvailable: 10,
+	}
+	// A2: 12:00pm (12:00) to 2:00pm (14:00) - Peak hours (10am-5pm)
+	eA2 := &events.GenconEvent{
+		EventId: "A2", Title: "Group A", StartTime: now.Add(12 * time.Hour), EndTime: now.Add(14 * time.Hour), TicketsAvailable: 10,
+	}
+
+	allEvents := []*events.GenconEvent{eA1, eA2}
+	starred := []postgres.StarredEvent{
+		{EventId: "A1", Tier: "must_have"},
+		{EventId: "A2", Tier: "must_have"},
+	}
+
+	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{})
+
+	if len(wishlist) == 0 {
+		t.Fatal("Expected non-empty wishlist")
+	}
+
+	// Because A1 < A2, Pass 1 initially picks A1 due to tie-breaking.
+	// But the Rearrangement Pass should swap it for A2 because A2 falls in peak hours!
+	if wishlist[0].Event.EventId != "A2" {
+		t.Errorf("Expected A2 (peak hours) to be selected, got %s", wishlist[0].Event.EventId)
+	}
+}

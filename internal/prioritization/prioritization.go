@@ -372,6 +372,116 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 		}
 	}
 
+	// 4.5 Rearrangement Pass: Optimize Perfect Calendar for Peak Hours (10am-5pm) and Travel Gaps (>= 10 mins)
+	if len(wishlist) > 0 {
+		calcCalendarScore := func(calendar []WishlistItem) float64 {
+			score := 0.0
+			// Base score
+			for _, item := range calendar {
+				score += item.Score
+			}
+
+			// Peak Hours Bonus (10am to 5pm is 600 to 1020 minutes from midnight)
+			for _, item := range calendar {
+				e := item.Event
+				startMins := e.StartTime.Hour()*60 + e.StartTime.Minute()
+				endMins := e.EndTime.Hour()*60 + e.EndTime.Minute()
+
+				peakStart := startMins
+				if peakStart < 600 {
+					peakStart = 600
+				}
+				peakEnd := endMins
+				if peakEnd > 1020 {
+					peakEnd = 1020
+				}
+				if peakStart < peakEnd {
+					score += float64(peakEnd - peakStart) // +1 point per minute in peak hours
+				}
+			}
+
+			// Gap Bonus (>= 10 mins gap between adjacent events on the same day)
+			eventsByDay := make(map[int][]*events.GenconEvent)
+			for _, item := range calendar {
+				dow := int(item.Event.StartTime.Weekday())
+				eventsByDay[dow] = append(eventsByDay[dow], item.Event)
+			}
+
+			for _, dayEvents := range eventsByDay {
+				if len(dayEvents) < 2 {
+					continue
+				}
+				sort.Slice(dayEvents, func(i, j int) bool {
+					return dayEvents[i].StartTime.Before(dayEvents[j].StartTime)
+				})
+
+				for i := 0; i < len(dayEvents)-1; i++ {
+					gap := dayEvents[i+1].StartTime.Sub(dayEvents[i].EndTime).Minutes()
+					if gap >= 10 {
+						score += 50.0 // +50 points for a healthy travel gap
+					}
+				}
+			}
+
+			return score
+		}
+
+		currentScore := calcCalendarScore(wishlist)
+		improved := true
+		iterations := 0
+
+		for improved && iterations < 10 {
+			improved = false
+			iterations++
+
+			for i := range wishlist {
+				targetItem := wishlist[i]
+				targetKey := getClusterKey(targetItem.Event)
+
+				// Create temp calendar without targetItem
+				var tempCalendar []WishlistItem
+				for j := range wishlist {
+					if j != i {
+						tempCalendar = append(tempCalendar, wishlist[j])
+					}
+				}
+
+				bestCandidate := targetItem
+				bestScore := currentScore
+
+				// Find all candidate sessions for this group
+				for k := range scoredSessions {
+					s := &scoredSessions[k]
+					if s.ClusterKey != targetKey || s.Score <= 0 {
+						continue
+					}
+
+					if !hasConflict(s.Event, tempCalendar) {
+						candidateItem := WishlistItem{
+							Event:     s.Event,
+							Status:    "Primary",
+							Reasoning: append(s.Reasoning, "Perfect Fit"),
+							Score:     s.Score,
+						}
+						testCalendar := append(append([]WishlistItem(nil), tempCalendar...), candidateItem)
+						testScore := calcCalendarScore(testCalendar)
+
+						if testScore > bestScore {
+							bestScore = testScore
+							bestCandidate = candidateItem
+							improved = true
+						}
+					}
+				}
+
+				if improved && bestCandidate.Event.EventId != targetItem.Event.EventId {
+					wishlist[i] = bestCandidate
+					currentScore = bestScore
+				}
+			}
+		}
+	}
+
 	// 5. Pass 2: Backups
 	// Fill remaining up to 50 items or 3 per group
 	// We'll pick them one by one to dynamically account for overlaps

@@ -44,7 +44,7 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
       if (update && update.party_id === this.partyId) {
         this.handleRealtimeUpdate(update);
       }
-    }, { allowSignalWrites: true });
+    });
   }
 
   ngOnInit() {

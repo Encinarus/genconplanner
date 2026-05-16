@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ApiService, Party } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { PartyService } from '../../services/party.service';
 import { Title } from '@angular/platform-browser';
 import { AgendaComponent } from '../agenda/agenda.component';
 
@@ -17,12 +18,13 @@ import { AgendaComponent } from '../agenda/agenda.component';
 export class UserComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
+  public partyService = inject(PartyService);
   private titleService = inject(Title);
 
   user = this.auth.user;
   displayName = this.auth.displayName;
-  parties = signal<Party[]>([]);
-  loading = signal<boolean>(true);
+  parties = this.partyService.parties;
+  loading = this.partyService.loading;
   creatingParty = signal<boolean>(false);
   editingName = signal<boolean>(false);
   tempDisplayName = signal<string>('');
@@ -39,21 +41,13 @@ export class UserComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadParties();
+    if (this.parties().length === 0) {
+      this.partyService.fetchParties();
+    }
   }
 
   loadParties(): void {
-    this.loading.set(true);
-    this.api.getParties().subscribe({
-      next: (parties) => {
-        this.parties.set(parties);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Error loading parties:', err);
-        this.loading.set(false);
-      }
-    });
+    this.partyService.fetchParties();
   }
 
   isAlreadyInPartyForYear(year: number): boolean {
@@ -66,7 +60,7 @@ export class UserComponent implements OnInit {
     this.creatingParty.set(true);
     this.api.createParty(this.newPartyName, this.newPartyYear).subscribe({
       next: (newParty) => {
-        this.parties.update(p => [newParty, ...p]);
+        this.partyService.addParty(newParty);
         this.newPartyName = '';
         this.creatingParty.set(false);
       },

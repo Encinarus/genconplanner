@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiService, Party, PartyMember } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { PartyService } from '../../services/party.service';
 import { Title } from '@angular/platform-browser';
 import { PartyInterestsComponent } from '../party-interests/party-interests.component';
 
@@ -19,6 +20,7 @@ export class PartyComponent implements OnInit {
   private router = inject(Router);
   private api = inject(ApiService);
   public auth = inject(AuthService);
+  private partyService = inject(PartyService);
   private titleService = inject(Title);
 
   party = signal<Party | null>(null);
@@ -84,6 +86,7 @@ export class PartyComponent implements OnInit {
     if (!p) return;
     this.api.joinParty(p.shortCode).subscribe({
       next: () => {
+        this.partyService.fetchParties();
         this.router.navigate(['/party', p.year]);
       },
       error: (err) => alert('Failed to join party: ' + (err.error?.error || err.message))
@@ -95,7 +98,10 @@ export class PartyComponent implements OnInit {
     if (!p) return;
     if (confirm('Are you sure you want to leave this party?')) {
       this.api.leaveParty(p.id).subscribe({
-        next: () => this.router.navigate(['/user']),
+        next: () => {
+          this.partyService.removeParty(p.id);
+          this.router.navigate(['/user']);
+        },
         error: (err) => alert('Failed to leave party: ' + (err.error?.error || err.message))
       });
     }
@@ -106,7 +112,10 @@ export class PartyComponent implements OnInit {
     if (!p) return;
     if (confirm('Are you sure you want to delete this party? This action cannot be undone.')) {
       this.api.deleteParty(p.id).subscribe({
-        next: () => this.router.navigate(['/user']),
+        next: () => {
+          this.partyService.removeParty(p.id);
+          this.router.navigate(['/user']);
+        },
         error: (err) => alert('Failed to delete party: ' + (err.error?.error || err.message))
       });
     }
@@ -127,6 +136,7 @@ export class PartyComponent implements OnInit {
     }
     this.api.renameParty(p.id, newName).subscribe({
       next: () => {
+        this.partyService.fetchParties();
         this.loadParty(p.id);
         this.editingName.set(false);
       },
@@ -143,6 +153,7 @@ export class PartyComponent implements OnInit {
     if (confirm(`Are you sure you want to transfer leadership to ${targetEmail}? You will lose leader privileges.`)) {
       this.api.transferLeadership(p.id, targetEmail).subscribe({
         next: () => {
+          this.partyService.fetchParties();
           this.loadParty(p.id);
           this.transferringLeadership.set(false);
         },

@@ -94,35 +94,49 @@
                                 </div>
 
                                 <!-- Right side: Party Consensus & My Rating Icon -->
-                                <div class="d-flex align-items-center gap-3 flex-shrink-0">
-                                    <div class="my-rating-icon fs-5" [title]="'My Rating: ' + getUserTier(g)">
-                                        <span *ngIf="getUserTier(g) === 'must_have'">❤️</span>
-                                        <span *ngIf="getUserTier(g) === 'very_interested'">⭐</span>
-                                        <span *ngIf="getUserTier(g) === 'somewhat_interested'">👍</span>
-                                        <span *ngIf="getUserTier(g) === 'not_interested'">🚫</span>
-                                        <span *ngIf="!getUserTier(g) || getUserTier(g) === ''" class="text-muted opacity-50">-</span>
+                                <div class="d-flex align-items-end gap-3 flex-shrink-0 pt-1">
+                                    <div class="my-rating d-flex flex-column align-items-center justify-content-end" [title]="'My Rating: ' + getUserTier(g)" style="min-height: 42px;">
+                                        <div class="fs-5 lh-1 mb-1">
+                                            <span *ngIf="getUserTier(g) === 'must_have'">❤️</span>
+                                            <span *ngIf="getUserTier(g) === 'very_interested'">⭐</span>
+                                            <span *ngIf="getUserTier(g) === 'somewhat_interested'">👍</span>
+                                            <span *ngIf="getUserTier(g) === 'not_interested'">🚫</span>
+                                            <span *ngIf="!getUserTier(g) || getUserTier(g) === ''" class="text-muted opacity-50">-</span>
+                                        </div>
+                                        <div class="text-muted fw-semibold" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1;">Me</div>
                                     </div>
 
-                                    <div class="party-consensus d-flex align-items-center gap-2 border-start ps-3">
-                                        <div *ngIf="getOtherMemberCountByTier(g, 'must_have') as count" class="text-center px-1" title="Must Have">
-                                            <div style="font-size: 0.85rem;">❤️</div>
-                                            <div class="text-muted fw-bold" style="font-size: 0.65rem;">{{ count }}</div>
+                                    <div class="party-consensus-group d-flex flex-column align-items-center justify-content-end border-start ps-3" style="min-height: 42px;">
+                                        <div class="party-consensus d-flex align-items-center justify-content-center gap-3 mb-1 pe-2">
+                                            <div *ngIf="getOtherMemberCountByTier(g, 'must_have') as count" class="position-relative" title="Must Have">
+                                                <div style="font-size: 1.1rem; line-height: 1;">❤️</div>
+                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
+                                                    {{ count }}
+                                                </span>
+                                            </div>
+                                            <div *ngIf="getOtherMemberCountByTier(g, 'very_interested') as count" class="position-relative" title="Very Interested">
+                                                <div style="font-size: 1.1rem; line-height: 1;">⭐</div>
+                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
+                                                    {{ count }}
+                                                </span>
+                                            </div>
+                                            <div *ngIf="getOtherMemberCountByTier(g, 'somewhat_interested') as count" class="position-relative" title="Somewhat Interested">
+                                                <div style="font-size: 1.1rem; line-height: 1;">👍</div>
+                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
+                                                    {{ count }}
+                                                </span>
+                                            </div>
+                                            <div *ngIf="getOtherMemberCountByTier(g, 'not_interested') as count" class="position-relative" title="Not Interested">
+                                                <div style="font-size: 1.1rem; line-height: 1;">🚫</div>
+                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
+                                                    {{ count }}
+                                                </span>
+                                            </div>
+                                            <div *ngIf="getOtherMembers(g).length === 0" class="text-muted smaller fst-italic py-1">
+                                                No others
+                                            </div>
                                         </div>
-                                        <div *ngIf="getOtherMemberCountByTier(g, 'very_interested') as count" class="text-center px-1" title="Very Interested">
-                                            <div style="font-size: 0.85rem;">⭐</div>
-                                            <div class="text-muted fw-bold" style="font-size: 0.65rem;">{{ count }}</div>
-                                        </div>
-                                        <div *ngIf="getOtherMemberCountByTier(g, 'somewhat_interested') as count" class="text-center px-1" title="Somewhat Interested">
-                                            <div style="font-size: 0.85rem;">👍</div>
-                                            <div class="text-muted fw-bold" style="font-size: 0.65rem;">{{ count }}</div>
-                                        </div>
-                                        <div *ngIf="getOtherMemberCountByTier(g, 'not_interested') as count" class="text-center px-1" title="Not Interested">
-                                            <div style="font-size: 0.85rem;">🚫</div>
-                                            <div class="text-muted fw-bold" style="font-size: 0.65rem;">{{ count }}</div>
-                                        </div>
-                                        <div *ngIf="getOtherMembers(g).length === 0" class="text-muted smaller fst-italic ps-1">
-                                            No others
-                                        </div>
+                                        <div class="text-muted fw-semibold" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1;">Others</div>
                                     </div>
                                 </div>
                             </div>
@@ -213,6 +227,11 @@
                         <!-- Website -->
                         <div *ngIf="details.website" class="mb-2 small">
                             <strong class="text-muted">Website:</strong> <a [href]="details.website.startsWith('http') ? details.website : 'http://' + details.website" target="_blank" class="text-decoration-none ms-1">{{ details.website }}</a>
+                        </div>
+
+                        <!-- Duration -->
+                        <div class="mb-2 small">
+                            <strong class="text-muted">Duration:</strong> <span class="text-dark fw-medium ms-1">{{ details.duration }} minutes</span>
                         </div>
 
                         <!-- Players -->
