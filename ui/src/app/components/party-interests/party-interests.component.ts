@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, inject, Input, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ApiService, SharedInterestGroup, Event } from '../../services/api.service';
 import { PartyStreamService } from '../../services/party-stream.service';
 import { AuthService } from '../../services/auth.service';
@@ -18,6 +18,8 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
   @Input() partyId!: number;
   @Input() year!: number;
 
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private api = inject(ApiService);
   private partyStream = inject(PartyStreamService);
   public auth = inject(AuthService);
@@ -87,7 +89,21 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
       next: (groups) => {
         this.groups.set(groups || []);
         if (groups && groups.length > 0) {
-          this.selectGroup(groups[0]);
+          const fragment = this.route.snapshot.fragment;
+          if (fragment) {
+            const matched = groups.find(g => g.repEventId === fragment || (g.allEventIds && g.allEventIds.includes(fragment)));
+            if (matched) {
+              this.selectGroup(matched, false);
+              this.loading.set(false);
+              return;
+            }
+          }
+          const filtered = this.filteredGroupsByCategory();
+          if (filtered.length > 0 && filtered[0].groups.length > 0) {
+            this.selectGroup(filtered[0].groups[0], true);
+          } else {
+            this.selectGroup(groups[0], true);
+          }
         }
         this.loading.set(false);
       },
@@ -99,9 +115,12 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
     });
   }
 
-  selectGroup(group: SharedInterestGroup) {
+  selectGroup(group: SharedInterestGroup, updateUrl = true) {
     this.selectedGroup.set(group);
     this.loadingDetails.set(true);
+    if (updateUrl) {
+      this.router.navigate([], { fragment: group.repEventId, replaceUrl: true, relativeTo: this.route });
+    }
     this.api.getEvent(group.repEventId).subscribe({
       next: (event) => {
         this.selectedEventDetails.set(event);

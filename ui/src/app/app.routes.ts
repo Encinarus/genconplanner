@@ -36,8 +36,9 @@ export const routes: Routes = [
     loadComponent: () => import('./components/user/user.component').then(m => m.UserComponent),
     canActivate: [authGuard]
   },
+  { path: 'party/:id', redirectTo: 'party/:id/events', pathMatch: 'full' },
   { 
-    path: 'party/:id', 
+    path: 'party/:id/:tab', 
     loadComponent: () => import('./components/party/party.component').then(m => m.PartyComponent),
     canActivate: [authGuard]
   },

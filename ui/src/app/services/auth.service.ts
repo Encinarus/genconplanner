@@ -39,7 +39,6 @@ export class AuthService {
     }
 
     onAuthStateChanged(this.auth, (user) => {
-      this.user.set(user);
       if (user) {
         // Prioritize the name we already have (from server or manual update)
         if (!this.displayName()) {
@@ -48,6 +47,7 @@ export class AuthService {
 
         user.getIdToken(true).then(token => {
           Cookies.set('signinToken', token, { path: '/' });
+          this.user.set(user);
           this.authLoaded.set(true);
 
           // Fetch latest user profile from backend
@@ -63,6 +63,7 @@ export class AuthService {
           }).catch(err => console.error('Error fetching user profile', err));
         });
       } else {
+        this.user.set(null);
         this.displayName.set(null);
         this.genconName.set(null);
         this.genconId.set(null);

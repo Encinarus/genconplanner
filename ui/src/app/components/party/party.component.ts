@@ -51,7 +51,23 @@ export class PartyComponent implements OnInit {
       if (id) {
         this.loadParty(id);
       }
+      const tab = params['tab'];
+      if (tab && ['events', 'members', 'calendar', 'settings'].includes(tab)) {
+        this.activeTab.set(tab as any);
+      }
     });
+  }
+
+  setTab(tab: 'events' | 'members' | 'calendar' | 'settings') {
+    const p = this.party();
+    if (p) {
+      this.router.navigate(['/party', p.year, tab]);
+    } else {
+      const id = this.route.snapshot.params['id'];
+      if (id) {
+        this.router.navigate(['/party', id, tab]);
+      }
+    }
   }
 
   loadParty(id: string | number) {
@@ -65,7 +81,7 @@ export class PartyComponent implements OnInit {
 
         const currentParam = this.route.snapshot.params['id'];
         if (this.isMember() && currentParam !== party.year.toString()) {
-          this.router.navigate(['/party', party.year], { replaceUrl: true });
+          this.router.navigate(['/party', party.year, this.activeTab()], { replaceUrl: true });
         }
       },
       error: (err) => {
