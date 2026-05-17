@@ -127,53 +127,80 @@
                         </div>
                     </div>
                     
-                    <div class="list-group list-group-flush">
-                        <div *ngFor="let member of p.members" class="list-group-item px-0 py-3 border-light d-flex align-items-start animate-slide-up">
-                            <div class="member-avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm mt-1" style="width: 48px; height: 48px;">
-                                <span class="fw-bold">{{ member.displayName.charAt(0) }}</span>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div *ngIf="editingMemberEmail() !== member.email">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <h3 class="h6 mb-0 fw-bold me-2">{{ member.displayName }}</h3>
-                                        <span *ngIf="member.email === auth.user()?.email" class="badge bg-light text-dark border fw-normal smaller me-2">You</span>
-                                        <button *ngIf="canEditMember(member)" (click)="onEditMember(member)" class="btn btn-sm btn-outline-secondary border-0 rounded-circle p-1" title="Edit Member Info">
-                                            <i class="bi bi-pencil-fill small"></i>
+                    <div class="row g-4 mt-2">
+                        <div *ngFor="let member of p.members" class="col-md-6 col-xl-4 animate-slide-up">
+                            <div class="contact-card card h-100 border-0 shadow-sm position-relative">
+                                <div class="contact-card-header d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                        <div class="contact-card-avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm">
+                                            <span>{{ member.displayName.charAt(0) }}</span>
+                                        </div>
+                                        <div class="overflow-hidden">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <h3 class="h6 mb-0 fw-bold text-dark text-truncate">{{ member.displayName }}</h3>
+                                                <span *ngIf="member.email === auth.user()?.email" class="badge bg-light text-dark border fw-normal smaller flex-shrink-0">You</span>
+                                            </div>
+                                            <p class="text-muted small mb-0 text-truncate" [title]="member.email">{{ member.email }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                        <span *ngIf="member.email === p.leaderEmail" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill py-1 px-2 smaller" title="Party Leader">
+                                            <i class="bi bi-star-fill"></i>
+                                        </span>
+                                        <button *ngIf="canEditMember(member) && editingMemberEmail() !== member.email" (click)="onEditMember(member)" class="btn btn-sm btn-white border rounded-circle shadow-sm p-1 d-flex align-items-center justify-content-center hover-scale ms-1" title="Edit Member Info" style="width: 32px; height: 32px;">
+                                            <i class="bi bi-pencil-fill small text-primary"></i>
                                         </button>
                                     </div>
-                                    <p class="text-muted small mb-1">{{ member.email }}</p>
-                                    <p class="text-muted mb-1 small"><i class="bi bi-person me-2"></i>Gen Con Name: <span class="fw-medium text-dark">{{ member.genconName || 'Not set' }}</span></p>
-                                    <p class="text-muted mb-1 small"><i class="bi bi-person-badge me-2"></i>Gen Con ID: <span class="fw-medium text-dark">{{ member.genconId || 'Not set' }}</span></p>
-                                    <p class="text-muted mb-0 small"><i class="bi bi-envelope-paper me-2"></i>Gen Con Email: <span class="fw-medium text-dark">{{ member.genconEmail || 'Not set' }}</span></p>
                                 </div>
-                                
-                                <div *ngIf="editingMemberEmail() === member.email" class="d-flex flex-column gap-3 my-2" style="max-width: 400px;">
-                                    <div>
-                                        <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Display Name</label>
-                                        <input type="text" class="form-control fw-bold border-primary" [(ngModel)]="tempMemberDisplayName" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()">
+
+                                <div class="contact-card-body flex-grow-1">
+                                    <div *ngIf="editingMemberEmail() !== member.email" class="d-flex flex-column gap-2">
+                                        <div class="contact-meta-row">
+                                            <div class="contact-meta-icon"><i class="bi bi-person"></i></div>
+                                            <div class="overflow-hidden">
+                                                <div class="contact-meta-label">Gen Con Name</div>
+                                                <div class="contact-meta-value text-truncate">{{ member.genconName || 'Not set' }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="contact-meta-row">
+                                            <div class="contact-meta-icon"><i class="bi bi-person-badge"></i></div>
+                                            <div class="overflow-hidden">
+                                                <div class="contact-meta-label">Gen Con ID</div>
+                                                <div class="contact-meta-value text-truncate">{{ member.genconId || 'Not set' }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="contact-meta-row">
+                                            <div class="contact-meta-icon"><i class="bi bi-envelope-paper"></i></div>
+                                            <div class="overflow-hidden">
+                                                <div class="contact-meta-label">Gen Con Email</div>
+                                                <div class="contact-meta-value text-truncate">{{ member.genconEmail || 'Not set' }}</div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Gen Con Name</label>
-                                        <input type="text" class="form-control border-primary" [(ngModel)]="tempMemberGenconName" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="Name on gencon.com">
-                                    </div>
-                                    <div>
-                                        <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Gen Con ID</label>
-                                        <input type="text" class="form-control border-primary" [(ngModel)]="tempMemberGenconId" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="e.g. 123456">
-                                    </div>
-                                    <div>
-                                        <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Gen Con Email</label>
-                                        <input type="email" class="form-control border-primary" [(ngModel)]="tempMemberGenconEmail" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="e.g. user@example.com">
-                                    </div>
-                                    <div class="d-flex gap-2 mt-1">
-                                        <button (click)="onSaveMember(member)" class="btn btn-primary px-4">Save</button>
-                                        <button (click)="onCancelEditMember()" class="btn btn-light px-4">Cancel</button>
+
+                                    <div *ngIf="editingMemberEmail() === member.email" class="d-flex flex-column gap-3 py-1">
+                                        <div>
+                                            <label class="form-label small text-muted mb-1 fw-bold text-uppercase smaller">Display Name</label>
+                                            <input type="text" class="form-control form-control-sm fw-bold border-primary shadow-sm" [(ngModel)]="tempMemberDisplayName" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()">
+                                        </div>
+                                        <div>
+                                            <label class="form-label small text-muted mb-1 fw-bold text-uppercase smaller">Gen Con Name</label>
+                                            <input type="text" class="form-control form-control-sm border-primary shadow-sm" [(ngModel)]="tempMemberGenconName" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="Name on gencon.com">
+                                        </div>
+                                        <div>
+                                            <label class="form-label small text-muted mb-1 fw-bold text-uppercase smaller">Gen Con ID</label>
+                                            <input type="text" class="form-control form-control-sm border-primary shadow-sm" [(ngModel)]="tempMemberGenconId" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="e.g. 123456">
+                                        </div>
+                                        <div>
+                                            <label class="form-label small text-muted mb-1 fw-bold text-uppercase smaller">Gen Con Email</label>
+                                            <input type="email" class="form-control form-control-sm border-primary shadow-sm" [(ngModel)]="tempMemberGenconEmail" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="e.g. user@example.com">
+                                        </div>
+                                        <div class="d-flex gap-2 mt-2 pt-2 border-top">
+                                            <button (click)="onSaveMember(member)" class="btn btn-primary btn-sm px-3 rounded-pill shadow-sm flex-grow-1 fw-medium">Save</button>
+                                            <button (click)="onCancelEditMember()" class="btn btn-light btn-sm px-3 rounded-pill shadow-sm flex-grow-1 fw-medium">Cancel</button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="badges ms-2 mt-1">
-                                <span *ngIf="member.email === p.leaderEmail" class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2">
-                                    <i class="bi bi-star-fill me-1"></i>Party Leader
-                                </span>
                             </div>
                         </div>
                     </div>
