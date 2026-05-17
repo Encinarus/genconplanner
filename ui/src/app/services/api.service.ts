@@ -72,6 +72,7 @@ export interface WishlistItem {
   status: string;
   reasoning: string[];
   score: number;
+  partyMembers?: string[];
 }
 
 export interface WishlistConstraint {
@@ -117,6 +118,7 @@ export interface MemberInterest {
 export interface SharedInterestGroup {
   clusterId: string;
   repEventId: string;
+  allEventIds?: string[];
   title: string;
   shortCategory: string;
   gameSystem: string;

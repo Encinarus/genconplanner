@@ -235,6 +235,10 @@
                                                             GenCon <i class="bi bi-box-arrow-up-right" style="font-size: 0.6rem;"></i>
                                                         </a>
                                                     </div>
+                                                    <div *ngIf="item.partyMembers?.length" class="d-flex align-items-center gap-1 mt-1 small text-muted">
+                                                        <i class="bi bi-people-fill me-1 small"></i>
+                                                        <span style="font-size: 0.75rem;">Interested: {{ item.partyMembers!.join(', ') }}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center gap-3 flex-shrink-0">
@@ -287,6 +291,10 @@
                                                         <a [href]="item.event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.65rem; height: 1.2rem; line-height: 1;">
                                                             GenCon <i class="bi bi-box-arrow-up-right" style="font-size: 0.6rem;"></i>
                                                         </a>
+                                                    </div>
+                                                    <div *ngIf="item.partyMembers?.length" class="d-flex align-items-center gap-1 mt-1 small text-muted">
+                                                        <i class="bi bi-people-fill me-1 small"></i>
+                                                        <span style="font-size: 0.75rem;">Interested: {{ item.partyMembers!.join(', ') }}</span>
                                                     </div>
                                                 </div>
                                             </div>

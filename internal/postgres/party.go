@@ -263,6 +263,7 @@ type MemberInterest struct {
 type SharedInterestGroup struct {
 	ClusterId       string           `json:"clusterId"`
 	RepEventId      string           `json:"repEventId"`
+	AllEventIds     []string         `json:"allEventIds"`
 	Title           string           `json:"title"`
 	ShortCategory   string           `json:"shortCategory"`
 	GameSystem      string           `json:"gameSystem"`
@@ -278,6 +279,7 @@ WITH cluster_summary AS (
     SELECT 
         e.cluster_id,
         MIN(e.event_id) as rep_event_id,
+        ARRAY_AGG(DISTINCT e.event_id) as all_event_ids,
         e.title,
         e.short_category,
         e.game_system,
@@ -311,6 +313,7 @@ member_max_tier AS (
 SELECT 
     cs.cluster_id,
     cs.rep_event_id,
+    cs.all_event_ids,
     cs.title,
     cs.short_category,
     cs.game_system,
@@ -325,7 +328,7 @@ SELECT
     ) as member_interests
 FROM cluster_summary cs
 JOIN member_max_tier mmt ON cs.cluster_id = mmt.cluster_id
-GROUP BY cs.cluster_id, cs.rep_event_id, cs.title, cs.short_category, cs.game_system, cs.total_sessions, cs.total_tickets
+GROUP BY cs.cluster_id, cs.rep_event_id, cs.all_event_ids, cs.title, cs.short_category, cs.game_system, cs.total_sessions, cs.total_tickets
 `, partyId, year)
 	if err != nil {
 		return nil, err
@@ -339,6 +342,7 @@ GROUP BY cs.cluster_id, cs.rep_event_id, cs.title, cs.short_category, cs.game_sy
 		err := rows.Scan(
 			&g.ClusterId,
 			&g.RepEventId,
+			pq.Array(&g.AllEventIds),
 			&g.Title,
 			&g.ShortCategory,
 			&g.GameSystem,

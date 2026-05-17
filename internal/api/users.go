@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Encinarus/genconplanner/internal/events"
@@ -56,10 +57,11 @@ type StarredPageData struct {
 }
 
 type WishlistItem struct {
-	Event     StarredEventDetail `json:"event"`
-	Status    string             `json:"status"`
-	Reasoning []string           `json:"reasoning"`
-	Score     float64            `json:"score"`
+	Event        StarredEventDetail `json:"event"`
+	Status       string             `json:"status"`
+	Reasoning    []string           `json:"reasoning"`
+	Score        float64            `json:"score"`
+	PartyMembers []string           `json:"partyMembers"`
 }
 
 type Party struct {
@@ -1038,10 +1040,12 @@ func (s *Server) GetWishlist(c *gin.Context) {
 		return
 	}
 
+	var results []WishlistItem
+
 	cache, dirty, err := s.Repo.GetWishlistCache(email, year)
 	if err == nil && !dirty {
 		// Convert cache to results
-		results := make([]WishlistItem, 0, len(cache))
+		results = make([]WishlistItem, 0, len(cache))
 		for _, item := range cache {
 			dbEvents, _ := s.Repo.LoadSimilarEvents(item.EventId, "")
 			var entry *events.GenconEvent
@@ -1072,59 +1076,105 @@ func (s *Server) GetWishlist(c *gin.Context) {
 				Score:     item.Score,
 			})
 		}
-		c.JSON(http.StatusOK, results)
-		return
+	} else {
+		allStarredEvents, err := s.Repo.LoadStarredEvents(email, year)
+		if err != nil {
+			log.Printf("error loading starred events: %v\n", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+			return
+		}
+
+		constraints, err := s.Repo.GetWishlistConstraints(email)
+		if err != nil {
+			log.Printf("error loading wishlist constraints: %v\n", err)
+			// Fallback to defaults rather than failing
+			constraints = []postgres.WishlistConstraint{{DayOfWeek: -1, StartHour: 23, EndHour: 6}}
+		}
+
+		// Use the prioritization package
+		optimized := prioritization.GeneratePersonalWishlist(starred.StarredEvents, allStarredEvents, constraints)
+
+		// Save to cache
+		cacheItems := make([]postgres.WishlistCacheItem, 0, len(optimized))
+		for i, item := range optimized {
+			cacheItems = append(cacheItems, postgres.WishlistCacheItem{
+				EventId:   item.Event.EventId,
+				Rank:      i + 1,
+				Status:    item.Status,
+				Reasoning: item.Reasoning,
+				Score:     item.Score,
+			})
+		}
+		s.Repo.SaveWishlistCache(email, year, cacheItems)
+
+		results = make([]WishlistItem, 0, len(optimized))
+		for _, item := range optimized {
+			results = append(results, WishlistItem{
+				Event: StarredEventDetail{
+					EventId:          item.Event.EventId,
+					Title:            item.Event.Title,
+					ShortDescription: item.Event.ShortDescription,
+					CategoryCode:     item.Event.ShortCategory,
+					StartTime:        item.Event.StartTime.Format("2006-01-02T15:04:05Z07:00"),
+					EndTime:          item.Event.EndTime.Format("2006-01-02T15:04:05Z07:00"),
+					GenconUrl:        item.Event.GenconLink(),
+					PlannerUrl:       item.Event.PlannerLink(),
+					Tier:             starred.GetTier(item.Event.EventId),
+				},
+				Status:    item.Status,
+				Reasoning: item.Reasoning,
+				Score:     item.Score,
+			})
+		}
 	}
 
+	user, err := s.Repo.LoadOrCreateUser(email)
+	if err == nil {
+		dbParties, err := s.Repo.LoadParties(user)
+		if err == nil {
+			var partyId int64
+			for _, p := range dbParties {
+				if p.Year == int64(year) {
+					partyId = p.Id
+					break
+				}
+			}
+			if partyId != 0 {
+				partyInterests, err := s.Repo.LoadPartySharedInterests(partyId, year)
+				if err == nil {
+					eventToPartyMembers := make(map[string][]string)
+					for _, group := range partyInterests {
+						var memberNames []string
+						for _, m := range group.MemberInterests {
+							if strings.ToLower(m.Email) != strings.ToLower(email) && m.Tier != "not_interested" {
+								memberNames = append(memberNames, m.DisplayName)
+							}
+						}
+						if len(memberNames) == 0 {
+							memberNames = make([]string, 0)
+						}
+						for _, eventId := range group.AllEventIds {
+							eventToPartyMembers[eventId] = memberNames
+						}
+					}
 
-	allStarredEvents, err := s.Repo.LoadStarredEvents(email, year)
-	if err != nil {
-		log.Printf("error loading starred events: %v\n", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
-		return
+					for i := range results {
+						if members, found := eventToPartyMembers[results[i].Event.EventId]; found {
+							results[i].PartyMembers = members
+						} else {
+							results[i].PartyMembers = make([]string, 0)
+						}
+					}
+				}
+			}
+		}
 	}
 
-	constraints, err := s.Repo.GetWishlistConstraints(email)
-	if err != nil {
-		log.Printf("error loading wishlist constraints: %v\n", err)
-		// Fallback to defaults rather than failing
-		constraints = []postgres.WishlistConstraint{{DayOfWeek: -1, StartHour: 23, EndHour: 6}}
-	}
-
-	// Use the prioritization package
-	optimized := prioritization.GeneratePersonalWishlist(starred.StarredEvents, allStarredEvents, constraints)
-
-	// Save to cache
-	cacheItems := make([]postgres.WishlistCacheItem, 0, len(optimized))
-	for i, item := range optimized {
-		cacheItems = append(cacheItems, postgres.WishlistCacheItem{
-			EventId:   item.Event.EventId,
-			Rank:      i + 1,
-			Status:    item.Status,
-			Reasoning: item.Reasoning,
-			Score:     item.Score,
-		})
-	}
-	s.Repo.SaveWishlistCache(email, year, cacheItems)
-
-	results := make([]WishlistItem, 0, len(optimized))
-	for _, item := range optimized {
-		results = append(results, WishlistItem{
-			Event: StarredEventDetail{
-				EventId:          item.Event.EventId,
-				Title:            item.Event.Title,
-				ShortDescription: item.Event.ShortDescription,
-				CategoryCode:     item.Event.ShortCategory,
-				StartTime:        item.Event.StartTime.Format("2006-01-02T15:04:05Z07:00"),
-				EndTime:          item.Event.EndTime.Format("2006-01-02T15:04:05Z07:00"),
-				GenconUrl:        item.Event.GenconLink(),
-				PlannerUrl:       item.Event.PlannerLink(),
-				Tier:             starred.GetTier(item.Event.EventId),
-			},
-			Status:    item.Status,
-			Reasoning: item.Reasoning,
-			Score:     item.Score,
-		})
+	// Ensure PartyMembers is initialized to empty slice for all items if party lookup didn't happen
+	for i := range results {
+		if results[i].PartyMembers == nil {
+			results[i].PartyMembers = make([]string, 0)
+		}
 	}
 
 	c.JSON(http.StatusOK, results)
