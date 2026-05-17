@@ -51,13 +51,13 @@
     <div *ngIf="!loading() && filteredGroupsByCategory() as catGroups" class="row g-4">
         <!-- Master List (Left Column - Narrower 5 cols) -->
         <div class="col-lg-5 position-relative">
-            <div *ngIf="catGroups.length === 0" class="text-center py-5 bg-white rounded-4 shadow-sm border p-4">
+            <div *ngIf="catGroups.length === 0" class="text-center py-5 bg-white rounded-4 shadow-sm border p-4 flex-shrink-0">
                 <i class="bi bi-calendar-x text-muted fs-1 mb-3 d-block"></i>
                 <h3 class="h5 fw-bold text-dark">No shared events found</h3>
                 <p class="text-muted small mb-0">Try adjusting your category filters, or star some events in the convention catalog!</p>
             </div>
 
-            <div class="event-cards-list d-flex flex-column pe-1 position-relative" style="max-height: calc(100vh - 250px); overflow-y: auto;" (scroll)="onListScroll($event)">
+            <div class="event-cards-list d-flex flex-column pe-1 position-relative" style="height: calc(100vh - 309px); overflow-y: auto;" (scroll)="onListScroll($event)">
                 <!-- Top Scroll Indicator -->
                 <div *ngIf="showTopScrollIndicator() && getTotalFilteredCount() > 0" class="position-absolute top-0 start-0 end-0 bg-secondary text-white text-center py-1 small fw-medium shadow-sm d-flex align-items-center justify-content-center gap-2" style="z-index: 20; opacity: 0.95; pointer-events: none;">
                     <i class="bi bi-arrow-up-circle animate-bounce"></i>
@@ -67,7 +67,7 @@
 
                 <ng-container *ngFor="let catGroup of catGroups">
                     <!-- Event Category Header -->
-                    <div class="sys-header bg-light border-bottom sticky-top px-3 py-2 d-flex align-items-center justify-content-between cursor-pointer transition-all user-select-none" 
+                    <div class="sys-header bg-light border-bottom sticky-top px-3 py-2 d-flex align-items-center justify-content-between cursor-pointer transition-all user-select-none flex-shrink-0" 
                          style="top: 0; z-index: 5;"
                          (click)="toggleCategoryCollapse(catGroup.categoryName, $event)">
                         <div class="d-flex align-items-center gap-2 overflow-hidden flex-grow-1">
@@ -79,7 +79,7 @@
 
                     <ng-container *ngIf="!isCategoryCollapsed(catGroup.categoryName)">
                         <div *ngFor="let g of catGroup.groups; let i = index" 
-                             class="wishlist-item card border-0 border-bottom shadow-none mb-0 transition-all cursor-pointer position-relative"
+                             class="wishlist-item card border-0 border-bottom shadow-none mb-0 transition-all cursor-pointer position-relative flex-shrink-0"
                              style="border-radius: 0;"
                              [class.bg-primary-subtle]="selectedGroup()?.clusterId === g.clusterId"
                              (click)="selectGroup(g)">
@@ -166,8 +166,8 @@
 
         <!-- Drilldown Panel (Right Column - Wider 7 cols) -->
         <div class="col-lg-7">
-            <div class="section-card p-4 rounded-4 shadow-sm bg-white border sticky-top h-auto" style="top: 100px;">
-                <div *ngIf="!selectedGroup()" class="text-center py-5 text-muted">
+            <div class="section-card p-4 rounded-4 shadow-sm bg-white border" style="height: calc(100vh - 309px); overflow-y: auto;">
+                <div *ngIf="!selectedGroup()" class="text-center py-5 text-muted flex-shrink-0">
                     <i class="bi bi-hand-index fs-1 mb-3 d-block"></i>
                     <p class="mb-0 small">Select an event card from the left to view group details and party consensus.</p>
                 </div>

@@ -1,6 +1,6 @@
 .party-viewport {
     display: flex;
-    min-height: calc(100vh - 50px);
+    min-height: 0;
     width: 100%;
     margin: 0;
     padding: 0;
