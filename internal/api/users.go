@@ -158,10 +158,11 @@ func (s *Server) LoadUserEvents(c *gin.Context) {
 }
 
 type StarEventRequest struct {
-	EventId string `json:"eventId"`
-	Add     bool   `json:"add"`
-	Related bool   `json:"related"`
-	Tier    string `json:"tier"`
+	EventId   string `json:"eventId"`
+	Add       bool   `json:"add"`
+	Related   bool   `json:"related"`
+	Tier      string `json:"tier"`
+	RemoveAll bool   `json:"removeAll"`
 }
 
 func (s *Server) StarEvent(c *gin.Context) {
@@ -177,7 +178,14 @@ func (s *Server) StarEvent(c *gin.Context) {
 		return
 	}
 
-	starred, err := s.Repo.UpdateStarredEventMinimal(email, req.EventId, req.Tier, req.Related, req.Add)
+	var starred *postgres.UserStarredEvents
+	var err error
+	if req.RemoveAll {
+		starred, err = s.Repo.RemoveStarredEventGroup(email, req.EventId)
+	} else {
+		starred, err = s.Repo.UpdateStarredEventMinimal(email, req.EventId, req.Tier, req.Related, req.Add)
+	}
+
 	if err != nil {
 		log.Printf("error updating starred event: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})

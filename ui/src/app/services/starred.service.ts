@@ -162,6 +162,34 @@ export class StarredService {
     });
   }
 
+  unstarGroup(eventId: string, year: number): void {
+    const user = this.auth.user();
+    if (!user) return;
+
+    const currentData = this.starredPageData();
+    if (currentData) {
+      const target = currentData.individualEvents.find(e => e.eventId === eventId);
+      if (target) {
+        const updatedEvents = currentData.individualEvents.filter(e => !(e.categoryCode === target.categoryCode && e.title === target.title && e.shortDescription === target.shortDescription));
+        this.starredPageData.set({ ...currentData, individualEvents: updatedEvents });
+
+        const groupEventIds = currentData.individualEvents.filter(e => e.categoryCode === target.categoryCode && e.title === target.title && e.shortDescription === target.shortDescription).map(e => e.eventId);
+        this.starredIds.update(ids => ids.filter(id => !groupEventIds.includes(id)));
+        this.groupStarredIds.update(ids => ids.filter(id => !groupEventIds.includes(id)));
+      }
+    }
+
+    this.api.starEvent(eventId, false, true, '', true).subscribe({
+      next: () => {
+        this.fetchStarred(year, true);
+      },
+      error: (err) => {
+        console.error('Error unstarring group', err);
+        this.fetchStarred(year, true);
+      }
+    });
+  }
+
   updateTier(eventId: string, year: number, tier: string, starGroup: boolean = false): void {
     const user = this.auth.user();
     if (!user) return;

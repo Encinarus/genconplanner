@@ -230,8 +230,8 @@ export class ApiService {
     return this.http.get<EventSummary[]>(`/api/v1/user/starred/${year}`);
   }
 
-  starEvent(eventId: string, add: boolean, related: boolean, tier: string = ''): Observable<any> {
-    return this.http.post<any>(`/api/v1/user/star`, { eventId, add, related, tier });
+  starEvent(eventId: string, add: boolean, related: boolean, tier: string = '', removeAll: boolean = false): Observable<any> {
+    return this.http.post<any>(`/api/v1/user/star`, { eventId, add, related, tier, removeAll });
   }
 
   getAgenda(year: number): Observable<StarredEventDetail[]> {

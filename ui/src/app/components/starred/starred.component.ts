@@ -751,6 +751,12 @@ export class StarredComponent implements OnInit {
     }
   }
 
+  unstarEventGroup(evGroup: any): void {
+    if (confirm(`Are you sure you want to unstar all sessions of "${evGroup.title}"?`)) {
+        this.starredService.unstarGroup(evGroup.repEventId, this.year());
+    }
+  }
+
   formatTiming(start: string, end: string): string {
     const s = new Date(start);
     const e = new Date(end);

@@ -235,6 +235,30 @@ func UpdateStarredEventMinimal(db *sql.DB, email string, eventId string, tier st
 	return updateStarredEventInternal(db, email, eventId, tier, starGroup, add, false)
 }
 
+func RemoveStarredEventGroup(db *sql.DB, email string, eventId string) (*UserStarredEvents, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		DELETE FROM starred_events WHERE email = $1 AND event_id IN (
+			SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.cluster_id = e2.cluster_id WHERE e1.event_id = $2
+		)`, email, eventId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return GetStarredIds(db, email, events.YearFromEvent(eventId))
+}
+
+
 func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier string, starGroup bool, add bool, fullResponse bool) (*UserStarredEvents, error) {
 	if tier == "" {
 		tier = "very_interested"
@@ -252,7 +276,7 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 			res, err := tx.Exec(`
 				UPDATE starred_events SET tier = $3 
 				WHERE email = $1 AND level = 'group' AND event_id IN (
-					SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description WHERE e1.event_id = $2
+					SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.cluster_id = e2.cluster_id WHERE e1.event_id = $2
 				)`, email, eventId, tier)
 			if err != nil {
 				return nil, err
@@ -277,7 +301,7 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 				SELECT se.event_id, se.tier 
 				FROM starred_events se
 				JOIN events e1 ON se.event_id = e1.event_id
-				JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description
+				JOIN events e2 ON e1.cluster_id = e2.cluster_id
 				WHERE e2.event_id = $2 AND se.email = $1 AND se.level = 'event'
 				ORDER BY e1.event_id LIMIT 1
 			`, email, eventId).Scan(&overrideEventId, &overrideTier)
@@ -286,7 +310,7 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 				// If no specific instances have an override, this should remove it entirely from the schedule.
 				_, err = tx.Exec(`
 					DELETE FROM starred_events WHERE email = $1 AND event_id IN (
-						SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description WHERE e1.event_id = $2
+						SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.cluster_id = e2.cluster_id WHERE e1.event_id = $2
 					)`, email, eventId)
 				if err != nil {
 					return nil, err
@@ -298,7 +322,7 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 				// 1. Delete the old group default row(s).
 				_, err = tx.Exec(`
 					DELETE FROM starred_events WHERE email = $1 AND level = 'group' AND event_id IN (
-						SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description WHERE e1.event_id = $2
+						SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.cluster_id = e2.cluster_id WHERE e1.event_id = $2
 					)`, email, eventId)
 				if err != nil {
 					return nil, err
@@ -323,7 +347,7 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 				_, err = tx.Exec(`
 					INSERT INTO starred_events (email, event_id, level, tier)
 					SELECT $1, e2.event_id, 'group', $3
-					FROM events e1 JOIN events e2 ON e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description 
+					FROM events e1 JOIN events e2 ON e1.cluster_id = e2.cluster_id 
 					WHERE e1.event_id = $2 AND e2.event_id != $2 AND NOT EXISTS (SELECT 1 FROM starred_events se WHERE se.email = $1 AND se.event_id = e2.event_id)
 					ORDER BY e2.event_id LIMIT 1
 				`, email, eventId, currentTier)
@@ -337,6 +361,7 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 				INSERT INTO starred_events (email, event_id, level, tier) VALUES ($1, $2, 'event', $3)
 				ON CONFLICT (event_id, email) DO UPDATE SET level = 'event', tier = $3
 			`, email, eventId, tier)
+
 			if err != nil {
 				return nil, err
 			}
