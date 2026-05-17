@@ -140,14 +140,23 @@
                         <li *ngFor="let session of dayGroup.events" 
                             [class.thisSession]="session.eventId === e.eventId"
                             class="otherSession py-2">
-                            <div style="display:inline-block;">
-                                <span *ngIf="session.eventId === e.eventId">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}</span>
-                                <a *ngIf="session.eventId !== e.eventId" [routerLink]="linkService.getEventRouterLink(session.eventId)">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}</a>
-                                <span class="small" style="display: block; color: #555;">
-                                    <strong *ngIf="session.ticketsAvailable > 0" style="color: #28a745;">{{ session.ticketsAvailable }}</strong>
-                                    <span *ngIf="session.ticketsAvailable === 0" style="color: #dc3545;">0</span>
-                                    ticket{{ session.ticketsAvailable !== 1 ? 's' : '' }} available
-                                </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <input type="radio" class="btn-check" [name]="'session-tier-' + session.eventId" [id]="'session-purchased-' + session.eventId" 
+                                           autocomplete="off" [checked]="getEventTier(session.eventId) === 'purchased'" (change)="setTier(session.eventId, e.year, 'purchased')">
+                                    <label class="btn btn-outline-warning tier-btn py-0 px-1" [for]="'session-purchased-' + session.eventId" (click)="handleTierClick(session.eventId, e.year, 'purchased')" title="Purchased Ticket" style="font-size: 0.75rem;">
+                                        <i class="bi" [class.bi-ticket-perforated-fill]="getEventTier(session.eventId) === 'purchased'" [class.bi-ticket-perforated]="getEventTier(session.eventId) !== 'purchased'"></i>
+                                    </label>
+                                </div>
+                                <div style="display:inline-block;">
+                                    <span *ngIf="session.eventId === e.eventId">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}</span>
+                                    <a *ngIf="session.eventId !== e.eventId" [routerLink]="linkService.getEventRouterLink(session.eventId)">{{ session.startTime | date:'h:mm a' }} - {{ session.endTime | date:'h:mm a' }}</a>
+                                    <span class="small" style="display: block; color: #555;">
+                                        <strong *ngIf="session.ticketsAvailable > 0" style="color: #28a745;">{{ session.ticketsAvailable }}</strong>
+                                        <span *ngIf="session.ticketsAvailable === 0" style="color: #dc3545;">0</span>
+                                        ticket{{ session.ticketsAvailable !== 1 ? 's' : '' }} available
+                                    </span>
+                                </div>
                             </div>
                         </li>
                     </ul>

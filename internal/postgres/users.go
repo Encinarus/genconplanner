@@ -63,7 +63,8 @@ SELECT
 		WHEN 6 THEN 'sat'
 		WHEN 0 THEN 'sun'
 	END AS day_of_week,
-    ARRAY_AGG(e.event_id) event_ids
+    ARRAY_AGG(e.event_id) event_ids,
+    ARRAY_AGG(COALESCE(override.tier, grp.tier)) tiers
 FROM events e 
 JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
 JOIN events e1 ON grp.event_id = e1.event_id 
@@ -91,10 +92,16 @@ GROUP BY e.cluster_key, e.day_of_week
 	groupedEvents := make([]*CalendarEventCluster, 0)
 	for rows.Next() {
 		eventIds := make([]string, 0)
+		tiers := make([]string, 0)
 		var dayOfWeek string
-		err = rows.Scan(&dayOfWeek, pq.Array(&eventIds))
+		err = rows.Scan(&dayOfWeek, pq.Array(&eventIds), pq.Array(&tiers))
 		if err != nil {
 			return nil, err
+		}
+
+		eventTiers := make(map[string]string)
+		for i, id := range eventIds {
+			eventTiers[id] = tiers[i]
 		}
 
 		dayGroupEvents := make([]*events.GenconEvent, 0, len(eventIds))
@@ -114,14 +121,17 @@ GROUP BY e.cluster_key, e.day_of_week
 		})
 
 		cluster := newClusterForEvent(dayGroupEvents[0])
+		clusterTier := eventTiers[cluster.EventId]
 
 		for _, event := range dayGroupEvents[1:] {
-			if event.StartTime.After(cluster.EndTime) {
+			eventTier := eventTiers[event.EventId]
+			if event.StartTime.After(cluster.EndTime) || eventTier == "purchased" || clusterTier == "purchased" {
 				if cluster.SimilarCount > 1 {
 					cluster.Title = fmt.Sprintf("%s\n\n(%d similar)", cluster.Title, cluster.SimilarCount)
 				}
 				groupedEvents = append(groupedEvents, cluster)
 				cluster = newClusterForEvent(event)
+				clusterTier = eventTier
 			} else {
 				if event.EndTime.After(cluster.EndTime) {
 					cluster.EndTime = event.EndTime
@@ -286,7 +296,7 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 				// No group default row existed yet, insert one
 				_, err = tx.Exec(`
 					INSERT INTO starred_events (email, event_id, level, tier) VALUES ($1, $2, 'group', $3)
-					ON CONFLICT (event_id, email) DO UPDATE SET level = 'group', tier = $3
+					ON CONFLICT (event_id, email, level) DO UPDATE SET tier = $3
 				`, email, eventId, tier)
 				if err != nil {
 					return nil, err
@@ -338,28 +348,10 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 		}
 	} else {
 		if add {
-			// First, check if eventId is currently the group default row
-			var currentLevel string
-			var currentTier string
-			err := tx.QueryRow("SELECT level, tier FROM starred_events WHERE email = $1 AND event_id = $2", email, eventId).Scan(&currentLevel, &currentTier)
-			if err == nil && currentLevel == "group" {
-				// It was the group default row! We need to move the group default to another event in the group before making this one an event override.
-				_, err = tx.Exec(`
-					INSERT INTO starred_events (email, event_id, level, tier)
-					SELECT $1, e2.event_id, 'group', $3
-					FROM events e1 JOIN events e2 ON e1.cluster_id = e2.cluster_id 
-					WHERE e1.event_id = $2 AND e2.event_id != $2 AND NOT EXISTS (SELECT 1 FROM starred_events se WHERE se.email = $1 AND se.event_id = e2.event_id)
-					ORDER BY e2.event_id LIMIT 1
-				`, email, eventId, currentTier)
-				if err != nil {
-					return nil, err
-				}
-			}
-
 			// Upsert explicit override
 			_, err = tx.Exec(`
 				INSERT INTO starred_events (email, event_id, level, tier) VALUES ($1, $2, 'event', $3)
-				ON CONFLICT (event_id, email) DO UPDATE SET level = 'event', tier = $3
+				ON CONFLICT (event_id, email, level) DO UPDATE SET tier = $3
 			`, email, eventId, tier)
 
 			if err != nil {
@@ -433,7 +425,7 @@ WHERE se.event_id = e.event_id
 	return err
 }
 
-func BulkStarEvents(db *sql.DB, email string, year int, eventIds []string, overwrite bool, asGroups bool) error {
+func BulkStarEvents(db *sql.DB, email string, year int, eventIds []string, overwrite bool, asGroups bool, asPurchased bool) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -457,16 +449,20 @@ WHERE se.event_id = e.event_id
 	// 2. Insert new ones
 	if len(eventIds) > 0 {
 		level := "event"
-		if asGroups {
+		tier := "very_interested"
+		if asPurchased {
+			level = "event"
+			tier = "purchased"
+		} else if asGroups {
 			level = "group"
 		}
 
 		for _, id := range eventIds {
 			_, err = tx.Exec(`
 INSERT INTO starred_events (email, event_id, level, tier)
-VALUES ($1, $2, $3, 'very_interested')
-ON CONFLICT (event_id, email) DO UPDATE SET level = EXCLUDED.level, tier = EXCLUDED.tier
-`, email, id, level)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (event_id, email, level) DO UPDATE SET tier = EXCLUDED.tier
+`, email, id, level, tier)
 			if err != nil {
 				return err
 			}
@@ -553,6 +549,8 @@ GROUP BY e.year, e.short_category, e.title, e.short_description
 
 	tierPriority := func(tier string) int {
 		switch tier {
+		case "purchased":
+			return 5
 		case "must_have":
 			return 4
 		case "very_interested":
@@ -582,6 +580,9 @@ GROUP BY e.year, e.short_category, e.title, e.short_description
 				t := g.starredTiers[i].String
 				if t != "not_interested" {
 					hasNonNotInterested = true
+				}
+				if t == "purchased" {
+					continue // Purchased state is only valid on an override, ignored when picking group default.
 				}
 				p := tierPriority(t)
 				if p > maxTierPriority {
@@ -619,7 +620,13 @@ GROUP BY e.year, e.short_category, e.title, e.short_description
 			// Demote all others
 			for _, idx := range groupLevelIndices {
 				if idx != bestIdx {
-					_, err := q.Exec("UPDATE starred_events SET level = 'event' WHERE email = $1 AND event_id = $2", email, g.allEventIds[idx])
+					// Check if an 'event' row already exists. If so, just delete the 'group' row. Otherwise update 'group' to 'event'.
+					_, err := q.Exec(`
+						INSERT INTO starred_events (email, event_id, level, tier)
+						SELECT email, event_id, 'event', tier FROM starred_events WHERE email = $1 AND event_id = $2 AND level = 'group'
+						ON CONFLICT (event_id, email, level) DO NOTHING;
+						DELETE FROM starred_events WHERE email = $1 AND event_id = $2 AND level = 'group';
+					`, email, g.allEventIds[idx])
 					if err != nil {
 						return err
 					}
@@ -640,7 +647,7 @@ GROUP BY e.year, e.short_category, e.title, e.short_description
 						break
 					}
 				}
-				_, err := q.Exec("INSERT INTO starred_events (email, event_id, level, tier) VALUES ($1, $2, 'group', $3) ON CONFLICT (event_id, email) DO UPDATE SET level = 'group', tier = $3", email, defaultEventId, maxTier)
+				_, err := q.Exec("INSERT INTO starred_events (email, event_id, level, tier) VALUES ($1, $2, 'group', $3) ON CONFLICT (event_id, email, level) DO UPDATE SET tier = $3", email, defaultEventId, maxTier)
 				if err != nil {
 					return err
 				}

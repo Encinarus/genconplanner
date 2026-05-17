@@ -43,7 +43,7 @@ func TestNormalizeUserStarredEvents_Property1(t *testing.T) {
 
 	// Since BGM26ND100002 has 'must_have' (priority 4) vs BGM26ND100001 'very_interested' (priority 3),
 	// BGM26ND100001 should be demoted to 'event'
-	mock.ExpectExec("UPDATE starred_events SET level = 'event'").
+	mock.ExpectExec("INSERT INTO starred_events").
 		WithArgs(email, "BGM26ND100001").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 

@@ -142,7 +142,8 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
     // Recalculate score
     let newScore = 0;
     memberInterests.forEach(m => {
-      if (m.tier === 'must_have') newScore += 100;
+      if (m.tier === 'purchased') newScore += 500;
+      else if (m.tier === 'must_have') newScore += 100;
       else if (m.tier === 'very_interested') newScore += 50;
       else if (m.tier === 'somewhat_interested') newScore += 10;
     });
@@ -181,7 +182,8 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
 
         let newScore = 0;
         memberInterests.forEach(m => {
-          if (m.tier === 'must_have') newScore += 100;
+          if (m.tier === 'purchased') newScore += 500;
+          else if (m.tier === 'must_have') newScore += 100;
           else if (m.tier === 'very_interested') newScore += 50;
           else if (m.tier === 'somewhat_interested') newScore += 10;
         });

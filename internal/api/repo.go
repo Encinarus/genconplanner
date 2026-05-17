@@ -23,7 +23,7 @@ type EventRepository interface {
 	LoadStarredEventGroups(email string, year int) ([]*postgres.EventGroup, error)
 	LoadStarredEventClusters(email string, year int, starredEvents []*events.GenconEvent) ([]*postgres.CalendarEventCluster, error)
 	ClearStarredEvents(email string, year int) error
-	BulkStarEvents(email string, year int, eventIds []string, overwrite bool, asGroups bool) error
+	BulkStarEvents(email string, year int, eventIds []string, overwrite bool, asGroups bool, asPurchased bool) error
 	LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error)
 	GetWishlistConstraints(email string) ([]postgres.WishlistConstraint, error)
 	UpdateWishlistConstraints(email string, constraints []postgres.WishlistConstraint) error
@@ -106,8 +106,8 @@ func (r *PostgresRepository) ClearStarredEvents(email string, year int) error {
 	return postgres.ClearStarredEvents(r.DB, email, year)
 }
 
-func (r *PostgresRepository) BulkStarEvents(email string, year int, eventIds []string, overwrite bool, asGroups bool) error {
-	return postgres.BulkStarEvents(r.DB, email, year, eventIds, overwrite, asGroups)
+func (r *PostgresRepository) BulkStarEvents(email string, year int, eventIds []string, overwrite bool, asGroups bool, asPurchased bool) error {
+	return postgres.BulkStarEvents(r.DB, email, year, eventIds, overwrite, asGroups, asPurchased)
 }
 
 func (r *PostgresRepository) LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error) {

@@ -7,6 +7,7 @@
                 <div class="btn-group shadow-sm rounded-pill p-1 bg-white border" role="group">
                     <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'all'" [class.btn-light]="myInterestFilter() !== 'all'" (click)="myInterestFilter.set('all')">All</button>
                     <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'unrated'" [class.btn-light]="myInterestFilter() !== 'unrated'" (click)="myInterestFilter.set('unrated')">Unrated</button>
+                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'purchased'" [class.btn-light]="myInterestFilter() !== 'purchased'" (click)="myInterestFilter.set('purchased')">🎟️</button>
                     <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'must_have'" [class.btn-light]="myInterestFilter() !== 'must_have'" (click)="myInterestFilter.set('must_have')">❤️</button>
                     <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'very_interested'" [class.btn-light]="myInterestFilter() !== 'very_interested'" (click)="myInterestFilter.set('very_interested')">⭐</button>
                     <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'somewhat_interested'" [class.btn-light]="myInterestFilter() !== 'somewhat_interested'" (click)="myInterestFilter.set('somewhat_interested')">👍</button>
@@ -99,6 +100,7 @@
                                     <div class="d-flex align-items-end gap-3 flex-shrink-0 pt-1">
                                         <div class="my-rating d-flex flex-column align-items-center justify-content-end" [title]="'My Rating: ' + getUserTier(g)" style="min-height: 42px;">
                                             <div class="fs-5 lh-1 mb-1">
+                                                <span *ngIf="getUserTier(g) === 'purchased'">🎟️</span>
                                                 <span *ngIf="getUserTier(g) === 'must_have'">❤️</span>
                                                 <span *ngIf="getUserTier(g) === 'very_interested'">⭐</span>
                                                 <span *ngIf="getUserTier(g) === 'somewhat_interested'">👍</span>
@@ -110,6 +112,12 @@
 
                                         <div class="party-consensus-group d-flex flex-column align-items-center justify-content-end border-start ps-3" style="min-height: 42px;">
                                             <div class="party-consensus d-flex align-items-center justify-content-center gap-3 mb-1 pe-2">
+                                                <div *ngIf="getOtherMemberCountByTier(g, 'purchased') as count" class="position-relative" title="Purchased">
+                                                    <div style="font-size: 1.1rem; line-height: 1;">🎟️</div>
+                                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
+                                                        {{ count }}
+                                                    </span>
+                                                </div>
                                                 <div *ngIf="getOtherMemberCountByTier(g, 'must_have') as count" class="position-relative" title="Must Have">
                                                     <div style="font-size: 1.1rem; line-height: 1;">❤️</div>
                                                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
@@ -180,6 +188,12 @@
                         <div class="d-flex align-items-center gap-2 flex-shrink-0 mt-1">
                             <span class="text-muted small fw-bold px-2">My Interest:</span>
                             <div class="btn-group btn-group-sm shadow-sm" role="group">
+                                <input type="radio" class="btn-check" [name]="'tier-' + g.clusterId" [id]="'purchased-' + g.clusterId" 
+                                       autocomplete="off" [checked]="getUserTier(g) === 'purchased'" (change)="onStar(g, 'purchased')">
+                                <label class="btn btn-outline-warning tier-btn" [for]="'purchased-' + g.clusterId" title="Purchased">
+                                    <i class="bi" [class.bi-ticket-perforated-fill]="getUserTier(g) === 'purchased'" [class.bi-ticket-perforated]="getUserTier(g) !== 'purchased'"></i>
+                                </label>
+
                                 <input type="radio" class="btn-check" [name]="'tier-' + g.clusterId" [id]="'must-' + g.clusterId" 
                                        autocomplete="off" [checked]="getUserTier(g) === 'must_have'" (change)="onStar(g, 'must_have')">
                                 <label class="btn btn-outline-danger tier-btn" [for]="'must-' + g.clusterId" title="Must Have">
@@ -267,6 +281,20 @@
                         </div>
 
                         <div *ngIf="g.memberInterests && g.memberInterests.length > 0" class="d-flex flex-column gap-3">
+                            <!-- Purchased -->
+                            <div *ngIf="getMembersByTier(g, 'purchased').length > 0" class="tier-group bg-light p-3 rounded-4 border animate-slide-up">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="fs-6">🎟️</span>
+                                    <span class="fw-bold small text-dark">Purchased</span>
+                                    <span class="badge bg-secondary rounded-pill ms-auto">{{ getMembersByTier(g, 'purchased').length }}</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span *ngFor="let m of getMembersByTier(g, 'purchased')" class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm small fw-medium">
+                                        {{ m.displayName }}
+                                    </span>
+                                </div>
+                            </div>
+
                             <!-- Must Have -->
                             <div *ngIf="getMembersByTier(g, 'must_have').length > 0" class="tier-group bg-light p-3 rounded-4 border animate-slide-up">
                                 <div class="d-flex align-items-center gap-2 mb-2">

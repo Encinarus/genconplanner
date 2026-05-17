@@ -18,11 +18,18 @@ WHERE leader_email IS NULL;
 -- Phase 2: Personal Interest Tiers & Solo Optimization
 
 -- Define the interest tier enum
-CREATE TYPE public.interest_tier AS ENUM ('must_have', 'very_interested', 'somewhat_interested', 'not_interested');
+CREATE TYPE public.interest_tier AS ENUM ('must_have', 'very_interested', 'somewhat_interested', 'not_interested', 'purchased');
 ALTER TYPE public.interest_tier ADD VALUE IF NOT EXISTS 'not_interested';
+ALTER TYPE public.interest_tier ADD VALUE IF NOT EXISTS 'purchased';
 
 -- Add the tier column to starred_events
 ALTER TABLE public.starred_events ADD COLUMN tier public.interest_tier NOT NULL DEFAULT 'very_interested';
+
+-- Update primary key of starred_events to include level
+UPDATE public.starred_events SET level = 'event' WHERE level IS NULL;
+ALTER TABLE public.starred_events DROP CONSTRAINT IF EXISTS starred_events_pkey;
+ALTER TABLE public.starred_events ALTER COLUMN level SET NOT NULL;
+ALTER TABLE public.starred_events ADD CONSTRAINT starred_events_pkey PRIMARY KEY (event_id, email, level);
 
 -- Phase 2.6: Wishlist Constraints
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS wishlist_constraints_initialized BOOLEAN NOT NULL DEFAULT FALSE;
@@ -75,6 +82,7 @@ BEGIN
     -- Calculate max tier for this user and cluster
     SELECT 
         CASE 
+            WHEN bool_or(se.tier = 'purchased') THEN 'purchased'
             WHEN bool_or(se.tier = 'must_have') THEN 'must_have'
             WHEN bool_or(se.tier = 'very_interested') THEN 'very_interested'
             WHEN bool_or(se.tier = 'somewhat_interested') THEN 'somewhat_interested'

@@ -26,6 +26,11 @@
     background-color: rgba(108, 117, 125, 0.02) !important;
 }
 
+.tier-purchased {
+    border-left-color: #ffc107 !important;
+    background-color: rgba(255, 193, 7, 0.05) !important;
+}
+
 .tier-icon {
     font-size: 1.1rem;
     line-height: 1;

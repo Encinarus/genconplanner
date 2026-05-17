@@ -297,6 +297,7 @@ member_max_tier AS (
         pm.email,
         u.display_name,
         CASE 
+            WHEN bool_or(se.tier = 'purchased') THEN 'purchased'
             WHEN bool_or(se.tier = 'must_have') THEN 'must_have'
             WHEN bool_or(se.tier = 'very_interested') THEN 'very_interested'
             WHEN bool_or(se.tier = 'somewhat_interested') THEN 'somewhat_interested'

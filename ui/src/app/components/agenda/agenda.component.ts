@@ -60,6 +60,7 @@ export class AgendaComponent implements OnInit {
 
   getTierIconClass(tier: string): string {
     switch (tier) {
+      case 'purchased': return 'bi-ticket-perforated-fill text-warning';
       case 'must_have': return 'bi-heart-fill text-danger';
       case 'very_interested': return 'bi-star-fill text-primary';
       case 'somewhat_interested': return 'bi-hand-thumbs-up-fill text-secondary';
@@ -69,6 +70,7 @@ export class AgendaComponent implements OnInit {
 
   getTierClass(tier: string): string {
     switch (tier) {
+      case 'purchased': return 'tier-purchased';
       case 'must_have': return 'tier-must';
       case 'very_interested': return 'tier-very';
       case 'somewhat_interested': return 'tier-some';

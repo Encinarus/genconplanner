@@ -42,7 +42,7 @@ export class StarredComponent implements OnInit {
   viewMode = signal<'list' | 'calendar' | 'bulk' | 'wishlist' | 'wishlist_calendar'>('calendar');
   tierFilter = signal<string>('all');
   bulkInput = signal<string>('');
-  importAsGroups = signal<boolean>(false);
+  importMode = signal<'groups' | 'events' | 'purchased'>('events');
   wishlistItems = signal<any[]>([]);
   wishlistLoading = signal<boolean>(false);
   hideBackups = signal<boolean>(false);
@@ -597,7 +597,7 @@ export class StarredComponent implements OnInit {
   }
 
   isTierReason(reason: string): boolean {
-    const tiers = ['Must Have', 'Very Interested', 'Somewhat Interested'];
+    const tiers = ['Purchased', 'Must Have', 'Very Interested', 'Somewhat Interested'];
     return tiers.includes(reason);
   }
 
@@ -688,7 +688,9 @@ export class StarredComponent implements OnInit {
     }
 
     if (confirm(confirmMsg)) {
-      this.starredService.bulkReplace(year, text, overwrite, this.importAsGroups()).subscribe({
+      const asGroups = this.importMode() === 'groups';
+      const asPurchased = this.importMode() === 'purchased';
+      this.starredService.bulkReplace(year, text, overwrite, asGroups, asPurchased).subscribe({
         next: () => {
           this.bulkInput.set('');
           this.viewMode.set('list');
@@ -768,7 +770,7 @@ export class StarredComponent implements OnInit {
     let currentCluster: any = null;
 
     for (const event of sorted) {
-      if (!currentCluster || event.startTime > currentCluster.end) {
+      if (!currentCluster || event.startTime > currentCluster.end || event.tier === 'purchased' || currentCluster.extendedProps.tier === 'purchased') {
         if (currentCluster) {
           if (currentCluster.extendedProps.similarCount > 1) {
             currentCluster.title = `${currentCluster.title}\n\n(${currentCluster.extendedProps.similarCount} similar)`;

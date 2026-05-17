@@ -29,6 +29,8 @@ func getClusterKey(e *events.GenconEvent) string {
 
 func tierToScore(tier string) float64 {
 	switch tier {
+	case "purchased":
+		return 50000
 	case "must_have":
 		return 10000
 	case "very_interested":
@@ -150,7 +152,9 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 		score := tierToScore(se.Tier)
 		reasoning := []string{}
 
-		if se.Tier == "must_have" {
+		if se.Tier == "purchased" {
+			reasoning = append(reasoning, "Purchased")
+		} else if se.Tier == "must_have" {
 			reasoning = append(reasoning, "Must Have")
 		} else if se.Tier == "very_interested" {
 			reasoning = append(reasoning, "Very Interested")

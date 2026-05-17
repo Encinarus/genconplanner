@@ -314,8 +314,8 @@ export class StarredService {
     );
   }
 
-  bulkReplace(year: number, text: string, overwrite: boolean, asGroups: boolean) {
-    return this.api.bulkReplaceStarred(year, text, overwrite, asGroups).pipe(
+  bulkReplace(year: number, text: string, overwrite: boolean, asGroups: boolean, asPurchased: boolean = false) {
+    return this.api.bulkReplaceStarred(year, text, overwrite, asGroups, asPurchased).pipe(
       tap(() => this.fetchStarred(year, true))
     );
   }

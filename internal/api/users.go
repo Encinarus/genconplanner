@@ -486,9 +486,10 @@ func (s *Server) BulkClearStarredEvents(c *gin.Context) {
 }
 
 type BulkReplaceRequest struct {
-	Text      string `json:"text"`
-	Overwrite bool   `json:"overwrite"`
-	AsGroups  bool   `json:"asGroups"`
+	Text        string `json:"text"`
+	Overwrite   bool   `json:"overwrite"`
+	AsGroups    bool   `json:"asGroups"`
+	AsPurchased bool   `json:"asPurchased"`
 }
 
 func (s *Server) BulkReplaceStarredEvents(c *gin.Context) {
@@ -548,7 +549,7 @@ func (s *Server) BulkReplaceStarredEvents(c *gin.Context) {
 		}
 	}
 
-	err = s.Repo.BulkStarEvents(email, year, validIds, req.Overwrite, req.AsGroups)
+	err = s.Repo.BulkStarEvents(email, year, validIds, req.Overwrite, req.AsGroups, req.AsPurchased)
 	if err != nil {
 		log.Printf("error bulk replacing starred events: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})

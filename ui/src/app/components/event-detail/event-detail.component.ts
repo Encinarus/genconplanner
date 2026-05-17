@@ -139,4 +139,12 @@ export class EventDetailComponent implements OnInit {
   resetOverride(eventId: string, year: number): void {
     this.starredService.removeOverride(eventId, year);
   }
+
+  handleTierClick(eventId: string, year: number, clickedTier: string): void {
+    if (this.isOverride(eventId) && this.getEventTier(eventId) === clickedTier) {
+      this.resetOverride(eventId, year);
+    } else if (!this.isOverride(eventId) && this.getEventTier(eventId) === clickedTier) {
+      this.setTier(eventId, year, clickedTier);
+    }
+  }
 }

@@ -32,6 +32,12 @@
                        [checked]="tierFilter() === 'all'" (change)="setTierFilter('all')">
                 <label class="btn btn-outline-secondary tier-btn" for="tierAll" title="All">All</label>
 
+                <input type="radio" class="btn-check" name="tierFilter" id="tierPurchased" 
+                       [checked]="tierFilter() === 'purchased'" (change)="setTierFilter('purchased')">
+                <label class="btn btn-outline-warning tier-btn" for="tierPurchased" title="Purchased">
+                    <i class="bi" [class.bi-ticket-perforated-fill]="tierFilter() === 'purchased'" [class.bi-ticket-perforated]="tierFilter() !== 'purchased'"></i>
+                </label>
+
                 <input type="radio" class="btn-check" name="tierFilter" id="tierMust" 
                        [checked]="tierFilter() === 'must_have'" (change)="setTierFilter('must_have')">
                 <label class="btn btn-outline-danger tier-btn" for="tierMust" title="Must Have">
@@ -133,6 +139,12 @@
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="tier-selector" [style.opacity]="event.isOverride ? '1' : '0.5'">
                                             <div class="btn-group btn-group-sm" role="group">
+                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'purchased-' + event.eventId" 
+                                                       autocomplete="off" [checked]="event.tier === 'purchased'" (change)="updateTier(event.eventId, 'purchased')">
+                                                <label class="btn btn-outline-warning tier-btn" [for]="'purchased-' + event.eventId" (click)="handleTierClick(event, 'purchased')" title="Purchased Ticket">
+                                                    <i class="bi" [class.bi-ticket-perforated-fill]="event.tier === 'purchased'" [class.bi-ticket-perforated]="event.tier !== 'purchased'"></i>
+                                                </label>
+
                                                 <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'must-' + event.eventId" 
                                                        autocomplete="off" [checked]="event.tier === 'must_have'" (change)="updateTier(event.eventId, 'must_have')">
                                                 <label class="btn btn-outline-danger tier-btn" [for]="'must-' + event.eventId" (click)="handleTierClick(event, 'must_have')" title="Must Have">
@@ -246,9 +258,11 @@
                                                 </div>
                                                 <div class="tier-icon" [title]="item.event.tier">
                                                     <i class="bi" 
+                                                       [class.bi-ticket-perforated-fill]="item.event.tier === 'purchased'"
                                                        [class.bi-heart-fill]="item.event.tier === 'must_have'" 
                                                        [class.bi-star-fill]="item.event.tier === 'very_interested'"
                                                        [class.bi-hand-thumbs-up-fill]="item.event.tier === 'somewhat_interested'"
+                                                       [class.text-warning]="item.event.tier === 'purchased'"
                                                        [class.text-danger]="item.event.tier === 'must_have'"
                                                        [class.text-primary]="item.event.tier === 'very_interested'"
                                                        [class.text-secondary]="item.event.tier === 'somewhat_interested'"></i>
@@ -300,9 +314,11 @@
                                                 </div>
                                                 <div class="tier-icon" [title]="item.event.tier">
                                                     <i class="bi" 
+                                                       [class.bi-ticket-perforated-fill]="item.event.tier === 'purchased'"
                                                        [class.bi-heart-fill]="item.event.tier === 'must_have'" 
                                                        [class.bi-star-fill]="item.event.tier === 'very_interested'"
                                                        [class.bi-hand-thumbs-up-fill]="item.event.tier === 'somewhat_interested'"
+                                                       [class.text-warning]="item.event.tier === 'purchased'"
                                                        [class.text-danger]="item.event.tier === 'must_have'"
                                                        [class.text-primary]="item.event.tier === 'very_interested'"
                                                        [class.text-secondary]="item.event.tier === 'somewhat_interested'"></i>
@@ -459,12 +475,31 @@
                                     style="resize: none; font-family: monospace; font-size: 0.85rem;"></textarea>
                             </div>
                             
-                            <div class="form-check form-switch mb-4">
-                                <input class="form-check-input" type="checkbox" id="importAsGroups" 
-                                       [ngModel]="importAsGroups()" (ngModelChange)="importAsGroups.set($event)">
-                                <label class="form-check-label small fw-bold text-muted text-uppercase" for="importAsGroups">
-                                    Import as Groups <i class="bi bi-question-circle ms-1" title="This will star all sessions of the game, not just the specific sessions provided."></i>
-                                </label>
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-2">Import Mode</label>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="importMode" id="modeGroups" 
+                                               [checked]="importMode() === 'groups'" (change)="importMode.set('groups')">
+                                        <label class="form-check-label small fw-bold text-dark" for="modeGroups">
+                                            Import as Groups <i class="bi bi-question-circle text-muted ms-1" title="This will star all sessions of the game, not just the specific sessions provided."></i>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="importMode" id="modeEvents" 
+                                               [checked]="importMode() === 'events'" (change)="importMode.set('events')">
+                                        <label class="form-check-label small fw-bold text-dark" for="modeEvents">
+                                            Import as Specific Sessions <i class="bi bi-question-circle text-muted ms-1" title="Stars only the specific event IDs provided."></i>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="importMode" id="modePurchased" 
+                                               [checked]="importMode() === 'purchased'" (change)="importMode.set('purchased')">
+                                        <label class="form-check-label small fw-bold text-success" for="modePurchased">
+                                            <i class="bi bi-ticket-perforated-fill me-1"></i> Import as Purchased <i class="bi bi-question-circle text-muted ms-1" title="Marks the specific event IDs provided as Purchased tickets."></i>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="d-flex flex-column gap-2">
