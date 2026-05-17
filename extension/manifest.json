@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Gen Con Planner Extension",
+  "version": "1.0.0",
+  "description": "Enhances gencon.com event pages and integrates with genconplanner.com.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.gencon.com/*",
+    "*://*.genconplanner.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.gencon.com/events/*"
+      ],
+      "js": [
+        "content_gencon.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

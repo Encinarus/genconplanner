@@ -23,11 +23,17 @@ export class UserComponent implements OnInit {
 
   user = this.auth.user;
   displayName = this.auth.displayName;
+  genconName = this.auth.genconName;
+  genconId = this.auth.genconId;
+  genconEmail = this.auth.genconEmail;
   parties = this.partyService.parties;
   loading = this.partyService.loading;
   creatingParty = signal<boolean>(false);
   editingName = signal<boolean>(false);
   tempDisplayName = signal<string>('');
+  tempGenconName = signal<string>('');
+  tempGenconId = signal<string>('');
+  tempGenconEmail = signal<string>('');
   selectedYear = signal<number>(2026);
 
   // Form fields
@@ -74,6 +80,9 @@ export class UserComponent implements OnInit {
 
   onEditName(): void {
     this.tempDisplayName.set(this.displayName() || '');
+    this.tempGenconName.set(this.genconName() || '');
+    this.tempGenconId.set(this.genconId() || '');
+    this.tempGenconEmail.set(this.genconEmail() || '');
     this.editingName.set(true);
   }
 
@@ -83,19 +92,28 @@ export class UserComponent implements OnInit {
 
   onSaveName(): void {
     const newName = this.tempDisplayName().trim();
-    if (!newName || newName === this.displayName()) {
+    const newGenconName = this.tempGenconName().trim();
+    const newGenconId = this.tempGenconId().trim();
+    const newGenconEmail = this.tempGenconEmail().trim();
+
+    if (!newName) {
+      alert('Display name cannot be empty');
+      return;
+    }
+
+    if (newName === this.displayName() && newGenconName === (this.genconName() || '') && newGenconId === (this.genconId() || '') && newGenconEmail === (this.genconEmail() || '')) {
       this.editingName.set(false);
       return;
     }
 
-    this.api.renameUser(newName).subscribe({
+    this.api.renameUser(newName, newGenconName, newGenconId, newGenconEmail).subscribe({
       next: () => {
-        this.auth.updateUserDisplayName(newName);
+        this.auth.updateUserProfile(newName, newGenconName, newGenconId, newGenconEmail);
         this.editingName.set(false);
       },
       error: (err) => {
-        console.error('Error renaming user:', err);
-        alert('Failed to rename user: ' + (err.error?.error || err.message));
+        console.error('Error updating user profile:', err);
+        alert('Failed to update user profile: ' + (err.error?.error || err.message));
       }
     });
   }

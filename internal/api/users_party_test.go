@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -292,6 +293,172 @@ func TestJoinPartySinglePartyPerYear(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest("POST", "/api/v1/party/"+tt.param+"/join", nil)
+			if tt.cookieValue != "" {
+				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+			}
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedCode {
+				t.Errorf("%s: Expected status code %d, got %d", tt.name, tt.expectedCode, w.Code)
+			}
+		})
+	}
+}
+
+func TestUpdatePartyMemberInfo(t *testing.T) {
+	server, stub, auth, _, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	tests := []struct {
+		name         string
+		partyId      string
+		body         string
+		cookieValue  string
+		setupStub    func()
+		expectedCode int
+	}{
+		{
+			name:        "Success - Leader updating member",
+			partyId:     "100",
+			body:        `{"email":"member@example.com","displayName":"New Member Name","genconName":"GCName","genconId":"123","genconEmail":"gencon@example.com"}`,
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "leader@example.com", nil
+				}
+				stub.LoadPartyFn = func(id int64) (*postgres.Party, error) {
+					return &postgres.Party{
+						Id:          100,
+						Name:        "Test Party",
+						Year:        2026,
+						LeaderEmail: "leader@example.com",
+						Members: []*postgres.User{
+							{Email: "leader@example.com", DisplayName: "Leader"},
+							{Email: "member@example.com", DisplayName: "Old Member"},
+						},
+					}, nil
+				}
+				stub.UpdatePartyMemberInfoFn = func(partyId int64, email, displayName, genconName, genconId, genconEmail string) error {
+					if partyId != 100 || email != "member@example.com" || displayName != "New Member Name" || genconName != "GCName" || genconId != "123" || genconEmail != "gencon@example.com" {
+						return fmt.Errorf("unexpected arguments")
+					}
+					return nil
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:        "Success - Member updating self",
+			partyId:     "100",
+			body:        `{"email":"member@example.com","displayName":"Self Name","genconName":"GCSelf","genconId":"456","genconEmail":"self@example.com"}`,
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "member@example.com", nil
+				}
+				stub.LoadPartyFn = func(id int64) (*postgres.Party, error) {
+					return &postgres.Party{
+						Id:          100,
+						Name:        "Test Party",
+						Year:        2026,
+						LeaderEmail: "leader@example.com",
+						Members: []*postgres.User{
+							{Email: "leader@example.com", DisplayName: "Leader"},
+							{Email: "member@example.com", DisplayName: "Old Member"},
+						},
+					}, nil
+				}
+				stub.UpdatePartyMemberInfoFn = func(partyId int64, email, displayName, genconName, genconId, genconEmail string) error {
+					return nil
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:        "Forbidden - Member updating another member",
+			partyId:     "100",
+			body:        `{"email":"other@example.com","displayName":"Hacked Name","genconId":"789","genconEmail":"hacked@example.com"}`,
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "member@example.com", nil
+				}
+				stub.LoadPartyFn = func(id int64) (*postgres.Party, error) {
+					return &postgres.Party{
+						Id:          100,
+						Name:        "Test Party",
+						Year:        2026,
+						LeaderEmail: "leader@example.com",
+						Members: []*postgres.User{
+							{Email: "leader@example.com", DisplayName: "Leader"},
+							{Email: "member@example.com", DisplayName: "Member"},
+							{Email: "other@example.com", DisplayName: "Other"},
+						},
+					}, nil
+				}
+			},
+			expectedCode: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("POST", "/api/v1/party/"+tt.partyId+"/member/update", strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			if tt.cookieValue != "" {
+				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+			}
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.expectedCode {
+				t.Errorf("%s: Expected status code %d, got %d", tt.name, tt.expectedCode, w.Code)
+			}
+		})
+	}
+}
+
+func TestRenameUserGenconInfo(t *testing.T) {
+	server, stub, auth, _, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	tests := []struct {
+		name         string
+		body         string
+		cookieValue  string
+		setupStub    func()
+		expectedCode int
+	}{
+		{
+			name:        "Success - Update User Profile",
+			body:        `{"displayName":"Updated User","genconName":"GCUser","genconId":"999","genconEmail":"user@gencon.com"}`,
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "test@example.com", nil
+				}
+				stub.UpdateUserGenconInfoFn = func(email, displayName, genconName, genconId, genconEmail string) error {
+					if email != "test@example.com" || displayName != "Updated User" || genconName != "GCUser" || genconId != "999" || genconEmail != "user@gencon.com" {
+						return fmt.Errorf("unexpected arguments")
+					}
+					return nil
+				}
+			},
+			expectedCode: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupStub != nil {
+				tt.setupStub()
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("POST", "/api/v1/user/rename", strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
 			}

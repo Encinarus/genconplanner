@@ -14,6 +14,9 @@ import (
 type User struct {
 	Email       string
 	DisplayName string
+	GenconName  string
+	GenconId    string
+	GenconEmail string
 }
 
 type StarredEvent struct {
@@ -50,6 +53,12 @@ func (u *UserStarredEvents) GetTier(eventId string) string {
 func UpdateDisplayName(db *sql.DB, email string, displayName string) error {
 	email = strings.ToLower(email)
 	_, err := db.Exec("UPDATE users SET display_name = $1 WHERE email = $2", displayName, email)
+	return err
+}
+
+func UpdateUserGenconInfo(db *sql.DB, email string, displayName string, genconName string, genconId string, genconEmail string) error {
+	email = strings.ToLower(email)
+	_, err := db.Exec("UPDATE users SET display_name = $1, gencon_name = $2, gencon_id = $3, gencon_email = $4 WHERE email = $5", displayName, genconName, genconId, genconEmail, email)
 	return err
 }
 
@@ -718,7 +727,10 @@ SELECT
 		CASE WHEN length(display_name) > 0
             THEN display_name
             ELSE split_part(email, '@', 1)
-            END
+            END,
+		COALESCE(gencon_name, ''),
+		COALESCE(gencon_id, ''),
+		COALESCE(gencon_email, '')
 FROM users
 WHERE email=$1
 `, email)
@@ -733,6 +745,9 @@ WHERE email=$1
 		if err := rows.Scan(
 			&loadedUser.Email,
 			&loadedUser.DisplayName,
+			&loadedUser.GenconName,
+			&loadedUser.GenconId,
+			&loadedUser.GenconEmail,
 		); err != nil {
 			log.Fatalf("Error loading user %v", err)
 		} else {

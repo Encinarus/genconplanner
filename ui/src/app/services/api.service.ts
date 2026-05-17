@@ -97,6 +97,9 @@ export interface StarredPageData {
 export interface PartyMember {
   displayName: string;
   email: string;
+  genconName?: string;
+  genconId?: string;
+  genconEmail?: string;
 }
 
 export interface Party {
@@ -298,8 +301,16 @@ export class ApiService {
     return this.http.delete<any>(`/api/v1/party/${id}`);
   }
 
-  renameUser(displayName: string): Observable<any> {
-    return this.http.post<any>(`/api/v1/user/rename`, { displayName });
+  renameUser(displayName: string, genconName: string = '', genconId: string = '', genconEmail: string = ''): Observable<any> {
+    return this.http.post<any>(`/api/v1/user/rename`, { displayName, genconName, genconId, genconEmail });
+  }
+
+  updatePartyMember(partyId: number | string, email: string, displayName: string, genconName: string = '', genconId: string = '', genconEmail: string = ''): Observable<any> {
+    return this.http.post<any>(`/api/v1/party/${partyId}/member/update`, { email, displayName, genconName, genconId, genconEmail });
+  }
+
+  getUser(): Observable<any> {
+    return this.http.get<any>(`/api/v1/user`);
   }
 
   getLastUpdate(): Observable<{lastUpdate: string}> {

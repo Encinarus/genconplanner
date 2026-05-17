@@ -192,7 +192,7 @@ func TestServeV2(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		body := w.Body.String()
-		if !strings.Contains(body, `window.serverSideUser = {"displayName":"Test User","email":"test@example.com"};`) {
+		if !strings.Contains(body, `window.serverSideUser = {"displayName":"Test User","email":"test@example.com","genconEmail":"","genconId":"","genconName":""};`) {
 			t.Errorf("missing serverSideUser injection. Body: %s", body)
 		}
 	})

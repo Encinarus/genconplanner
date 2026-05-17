@@ -19,6 +19,9 @@ export class AuthService {
   private auth;
   user = signal<User | null>(null);
   displayName = signal<string | null>(null);
+  genconName = signal<string | null>(null);
+  genconId = signal<string | null>(null);
+  genconEmail = signal<string | null>(null);
   authLoaded = signal<boolean>(false);
 
   constructor() {
@@ -29,7 +32,10 @@ export class AuthService {
     const serverUser = (window as any).serverSideUser;
     if (serverUser) {
       this.user.set(serverUser);
-      this.displayName.set(serverUser.displayName);
+      this.displayName.set(serverUser.displayName || null);
+      this.genconName.set(serverUser.genconName || null);
+      this.genconId.set(serverUser.genconId || null);
+      this.genconEmail.set(serverUser.genconEmail || null);
     }
 
     onAuthStateChanged(this.auth, (user) => {
@@ -43,9 +49,24 @@ export class AuthService {
         user.getIdToken(true).then(token => {
           Cookies.set('signinToken', token, { path: '/' });
           this.authLoaded.set(true);
+
+          // Fetch latest user profile from backend
+          fetch('/api/v1/user', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }).then(res => res.json()).then(data => {
+            if (data && data.email) {
+              if (data.displayName) this.displayName.set(data.displayName);
+              this.genconName.set(data.genconName || null);
+              this.genconId.set(data.genconId || null);
+              this.genconEmail.set(data.genconEmail || null);
+            }
+          }).catch(err => console.error('Error fetching user profile', err));
         });
       } else {
         this.displayName.set(null);
+        this.genconName.set(null);
+        this.genconId.set(null);
+        this.genconEmail.set(null);
         Cookies.remove('signinToken', { path: '/' });
         this.authLoaded.set(true);
       }
@@ -72,6 +93,9 @@ export class AuthService {
       Cookies.remove('signinToken', { path: '/' });
       this.user.set(null);
       this.displayName.set(null);
+      this.genconName.set(null);
+      this.genconId.set(null);
+      this.genconEmail.set(null);
     } catch (error) {
       console.error('Sign out error', error);
     }
@@ -79,5 +103,12 @@ export class AuthService {
 
   updateUserDisplayName(name: string) {
     this.displayName.set(name);
+  }
+
+  updateUserProfile(name: string, genconName: string, genconId: string, genconEmail: string) {
+    this.displayName.set(name);
+    this.genconName.set(genconName || null);
+    this.genconId.set(genconId || null);
+    this.genconEmail.set(genconEmail || null);
   }
 }

@@ -164,6 +164,9 @@ func injectUser(html string, user *postgres.User) string {
 	userJson, err := json.Marshal(map[string]string{
 		"email":       user.Email,
 		"displayName": user.DisplayName,
+		"genconName":  user.GenconName,
+		"genconId":    user.GenconId,
+		"genconEmail": user.GenconEmail,
 	})
 	if err != nil {
 		return html

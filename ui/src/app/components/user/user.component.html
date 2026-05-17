@@ -7,23 +7,59 @@
         <div class="flex-grow-1">
             <div *ngIf="!editingName()" class="d-flex align-items-center">
                 <h1 class="h2 mb-0 fw-bold me-3">{{ displayName() }}</h1>
-                <button (click)="onEditName()" class="btn btn-sm btn-outline-secondary border-0 rounded-circle p-1">
+                <button (click)="onEditName()" class="btn btn-sm btn-outline-secondary border-0 rounded-circle p-1" title="Edit Profile">
                     <i class="bi bi-pencil-fill small"></i>
                 </button>
             </div>
             
-            <div *ngIf="editingName()" class="d-flex align-items-center gap-2">
-                <input type="text" 
-                       class="form-control form-control-lg fw-bold border-primary" 
-                       [(ngModel)]="tempDisplayName" 
-                       (keyup.enter)="onSaveName()" 
-                       (keyup.esc)="onCancelEdit()"
-                       style="max-width: 300px;">
-                <button (click)="onSaveName()" class="btn btn-primary">Save</button>
-                <button (click)="onCancelEdit()" class="btn btn-light">Cancel</button>
+            <div *ngIf="editingName()" class="d-flex flex-column gap-3 my-2" style="max-width: 400px;">
+                <div>
+                    <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Display Name</label>
+                    <input type="text" 
+                           class="form-control fw-bold border-primary" 
+                           [(ngModel)]="tempDisplayName" 
+                           (keyup.enter)="onSaveName()" 
+                           (keyup.esc)="onCancelEdit()">
+                </div>
+                <div>
+                    <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Gen Con Name</label>
+                    <input type="text" 
+                           class="form-control border-primary" 
+                           [(ngModel)]="tempGenconName" 
+                           (keyup.enter)="onSaveName()" 
+                           (keyup.esc)="onCancelEdit()"
+                           placeholder="Name on gencon.com">
+                </div>
+                <div>
+                    <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Gen Con ID</label>
+                    <input type="text" 
+                           class="form-control border-primary" 
+                           [(ngModel)]="tempGenconId" 
+                           (keyup.enter)="onSaveName()" 
+                           (keyup.esc)="onCancelEdit()"
+                           placeholder="e.g. 123456">
+                </div>
+                <div>
+                    <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Gen Con Email</label>
+                    <input type="email" 
+                           class="form-control border-primary" 
+                           [(ngModel)]="tempGenconEmail" 
+                           (keyup.enter)="onSaveName()" 
+                           (keyup.esc)="onCancelEdit()"
+                           placeholder="e.g. user@example.com">
+                </div>
+                <div class="d-flex gap-2 mt-1">
+                    <button (click)="onSaveName()" class="btn btn-primary px-4">Save</button>
+                    <button (click)="onCancelEdit()" class="btn btn-light px-4">Cancel</button>
+                </div>
             </div>
             
-    <p class="text-muted mb-0 mt-1"><i class="bi bi-envelope me-2"></i>{{ user()?.email }}</p>
+            <div *ngIf="!editingName()" class="mt-2">
+                <p class="text-muted mb-1"><i class="bi bi-envelope me-2"></i>{{ user()?.email }}</p>
+                <p class="text-muted mb-1 small"><i class="bi bi-person me-2"></i>Gen Con Name: <span class="fw-medium text-dark">{{ genconName() || 'Not set' }}</span></p>
+                <p class="text-muted mb-1 small"><i class="bi bi-person-badge me-2"></i>Gen Con ID: <span class="fw-medium text-dark">{{ genconId() || 'Not set' }}</span></p>
+                <p class="text-muted mb-0 small"><i class="bi bi-envelope-paper me-2"></i>Gen Con Email: <span class="fw-medium text-dark">{{ genconEmail() || 'Not set' }}</span></p>
+            </div>
         </div>
     </div>
 

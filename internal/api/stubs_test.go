@@ -39,7 +39,9 @@ type StubRepository struct {
 	RemoveMemberFn         func(int64, string) error
 	JoinPartyFn            func(int64, string) error
 	LoadPartySharedInterestsFn func(int64, int) ([]*postgres.SharedInterestGroup, error)
+	UpdatePartyMemberInfoFn    func(int64, string, string, string, string, string) error
 	UpdateDisplayNameFn    func(string, string) error
+	UpdateUserGenconInfoFn func(string, string, string, string, string) error
 	GetLastUpdateFn        func() (time.Time, error)
 	GetWishlistCacheFn     func(string, int) ([]postgres.WishlistCacheItem, bool, error)
 	SaveWishlistCacheFn    func(string, int, []postgres.WishlistCacheItem) error
@@ -163,8 +165,20 @@ func (s *StubRepository) LoadPartySharedInterests(partyId int64, year int) ([]*p
 	}
 	return s.LoadPartySharedInterestsFn(partyId, year)
 }
+func (s *StubRepository) UpdatePartyMemberInfo(partyId int64, email string, displayName string, genconName string, genconId string, genconEmail string) error {
+	if s.UpdatePartyMemberInfoFn == nil {
+		return nil
+	}
+	return s.UpdatePartyMemberInfoFn(partyId, email, displayName, genconName, genconId, genconEmail)
+}
 func (s *StubRepository) UpdateDisplayName(email string, name string) error {
 	return s.UpdateDisplayNameFn(email, name)
+}
+func (s *StubRepository) UpdateUserGenconInfo(email string, displayName string, genconName string, genconId string, genconEmail string) error {
+	if s.UpdateUserGenconInfoFn == nil {
+		return nil
+	}
+	return s.UpdateUserGenconInfoFn(email, displayName, genconName, genconId, genconEmail)
 }
 func (s *StubRepository) GetLastUpdate() (time.Time, error) {
 	if s.GetLastUpdateFn != nil {

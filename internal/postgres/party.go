@@ -53,14 +53,17 @@ WHERE pm.email = $1
 	}
 	rows, err = db.Query(
 		`
-select u.email, CASE
-                    WHEN length(u.display_name) > 0
-                        THEN u.display_name
-                    ELSE split_part(u.email, '@', 1)
-    END, ARRAY_AGG(pm.party_id)
-FROM party_members pm join users u on u.email = pm.email
+SELECT pm.party_id,
+       pm.email, 
+       CASE WHEN length(COALESCE(pm.display_name, '')) > 0 THEN pm.display_name
+            WHEN length(COALESCE(u.display_name, '')) > 0 THEN u.display_name
+            ELSE split_part(pm.email, '@', 1)
+       END,
+       COALESCE(pm.gencon_name, u.gencon_name, ''),
+       COALESCE(pm.gencon_id, u.gencon_id, ''),
+       COALESCE(pm.gencon_email, u.gencon_email, '')
+FROM party_members pm JOIN users u ON u.email = pm.email
 WHERE pm.party_id = ANY($1)
-GROUP BY u.email, u.display_name
 `, pq.Array(partyIds))
 	if err != nil {
 		return nil, err
@@ -69,14 +72,14 @@ GROUP BY u.email, u.display_name
 	defer rows.Close()
 
 	for rows.Next() {
+		var partyId int64
 		var u User
-		userParties := make([]int64, 0)
-		err = rows.Scan(&u.Email, &u.DisplayName, pq.Array(&userParties))
+		err = rows.Scan(&partyId, &u.Email, &u.DisplayName, &u.GenconName, &u.GenconId, &u.GenconEmail)
 		if err != nil {
 			return nil, err
 		}
-		for _, partyId := range userParties {
-			partiesById[partyId].Members = append(partiesById[partyId].Members, &u)
+		if p, exists := partiesById[partyId]; exists {
+			p.Members = append(p.Members, &u)
 		}
 	}
 
@@ -113,7 +116,7 @@ INSERT INTO parties(name, year, leader_email, short_code) VALUES ($1, $2, $3, $4
 	}
 
 	_, err = tx.Exec(`
-INSERT INTO party_members (party_id, email) VALUES ($1, $2)`, partyId, founder.Email)
+INSERT INTO party_members (party_id, email, display_name, gencon_name, gencon_id, gencon_email) VALUES ($1, $2, $3, $4, $5, $6)`, partyId, founder.Email, founder.DisplayName, founder.GenconName, founder.GenconId, founder.GenconEmail)
 	if err != nil {
 		return nil, err
 	}
@@ -142,11 +145,14 @@ WHERE party_id = $1
 	p.LeaderEmail = leaderEmail.String
 
 	rows, err := db.Query(`
-SELECT u.email, 
-       CASE WHEN length(u.display_name) > 0
-            THEN u.display_name
-            ELSE split_part(u.email, '@', 1)
-            END
+SELECT pm.email, 
+       CASE WHEN length(COALESCE(pm.display_name, '')) > 0 THEN pm.display_name
+            WHEN length(COALESCE(u.display_name, '')) > 0 THEN u.display_name
+            ELSE split_part(pm.email, '@', 1)
+       END,
+       COALESCE(pm.gencon_name, u.gencon_name, ''),
+       COALESCE(pm.gencon_id, u.gencon_id, ''),
+       COALESCE(pm.gencon_email, u.gencon_email, '')
 FROM party_members pm 
 JOIN users u ON u.email = pm.email
 WHERE pm.party_id = $1
@@ -158,7 +164,7 @@ WHERE pm.party_id = $1
 
 	for rows.Next() {
 		var u User
-		err = rows.Scan(&u.Email, &u.DisplayName)
+		err = rows.Scan(&u.Email, &u.DisplayName, &u.GenconName, &u.GenconId, &u.GenconEmail)
 		if err != nil {
 			return nil, err
 		}
@@ -182,11 +188,14 @@ WHERE short_code = $1
 	p.LeaderEmail = leaderEmail.String
 
 	rows, err := db.Query(`
-SELECT u.email, 
-       CASE WHEN length(u.display_name) > 0
-            THEN u.display_name
-            ELSE split_part(u.email, '@', 1)
-            END
+SELECT pm.email, 
+       CASE WHEN length(COALESCE(pm.display_name, '')) > 0 THEN pm.display_name
+            WHEN length(COALESCE(u.display_name, '')) > 0 THEN u.display_name
+            ELSE split_part(pm.email, '@', 1)
+       END,
+       COALESCE(pm.gencon_name, u.gencon_name, ''),
+       COALESCE(pm.gencon_id, u.gencon_id, ''),
+       COALESCE(pm.gencon_email, u.gencon_email, '')
 FROM party_members pm 
 JOIN users u ON u.email = pm.email
 WHERE pm.party_id = $1
@@ -198,7 +207,7 @@ WHERE pm.party_id = $1
 
 	for rows.Next() {
 		var u User
-		err = rows.Scan(&u.Email, &u.DisplayName)
+		err = rows.Scan(&u.Email, &u.DisplayName, &u.GenconName, &u.GenconId, &u.GenconEmail)
 		if err != nil {
 			return nil, err
 		}
@@ -241,16 +250,16 @@ func RemoveMember(db *sql.DB, partyId int64, email string) error {
 
 func JoinParty(db *sql.DB, partyId int64, email string) error {
 	// Ensure user exists
-	_, err := LoadOrCreateUser(db, email)
+	user, err := LoadOrCreateUser(db, email)
 	if err != nil {
 		return err
 	}
 
 	_, err = db.Exec(`
-INSERT INTO party_members (party_id, email)
-VALUES ($1, $2)
+INSERT INTO party_members (party_id, email, display_name, gencon_name, gencon_id, gencon_email)
+VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT DO NOTHING
-`, partyId, email)
+`, partyId, email, user.DisplayName, user.GenconName, user.GenconId, user.GenconEmail)
 	return err
 }
 
@@ -295,7 +304,10 @@ member_max_tier AS (
     SELECT 
         e.cluster_id,
         pm.email,
-        u.display_name,
+        CASE WHEN length(COALESCE(pm.display_name, '')) > 0 THEN pm.display_name
+             WHEN length(COALESCE(u.display_name, '')) > 0 THEN u.display_name
+             ELSE split_part(pm.email, '@', 1)
+        END as display_name,
         CASE 
             WHEN bool_or(se.tier = 'purchased') THEN 'purchased'
             WHEN bool_or(se.tier = 'must_have') THEN 'must_have'
@@ -309,7 +321,7 @@ member_max_tier AS (
     JOIN events e ON se.event_id = e.event_id
     JOIN users u ON pm.email = u.email
     WHERE pm.party_id = $1 AND e.year = $2 AND e.active = true
-    GROUP BY e.cluster_id, pm.email, u.display_name
+    GROUP BY e.cluster_id, pm.email, pm.display_name, u.display_name
 )
 SELECT 
     cs.cluster_id,
@@ -381,5 +393,14 @@ GROUP BY cs.cluster_id, cs.rep_event_id, cs.all_event_ids, cs.title, cs.short_ca
 	})
 
 	return groups, nil
+}
+
+func UpdatePartyMemberInfo(db *sql.DB, partyId int64, email string, displayName string, genconName string, genconId string, genconEmail string) error {
+	_, err := db.Exec(`
+UPDATE party_members 
+SET display_name = $1, gencon_name = $2, gencon_id = $3, gencon_email = $4 
+WHERE party_id = $5 AND email = $6
+`, displayName, genconName, genconId, genconEmail, partyId, strings.ToLower(email))
+	return err
 }
 

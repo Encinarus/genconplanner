@@ -111,3 +111,13 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE TRIGGER trig_party_interest_update
 AFTER INSERT OR UPDATE OR DELETE ON public.starred_events
 FOR EACH ROW EXECUTE FUNCTION public.notify_party_interest_update();
+
+-- Phase 5: Member Gen Con Info
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS gencon_name TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS gencon_id TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS gencon_email TEXT;
+ALTER TABLE public.party_members ADD COLUMN IF NOT EXISTS display_name TEXT;
+ALTER TABLE public.party_members ADD COLUMN IF NOT EXISTS gencon_name TEXT;
+ALTER TABLE public.party_members ADD COLUMN IF NOT EXISTS gencon_id TEXT;
+ALTER TABLE public.party_members ADD COLUMN IF NOT EXISTS gencon_email TEXT;
+

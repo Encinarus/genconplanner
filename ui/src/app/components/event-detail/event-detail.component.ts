@@ -5,13 +5,12 @@ import { ApiService, Event } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { StarredService } from '../../services/starred.service';
 import { LinkService } from '../../services/link.service';
-import { StarButtonComponent } from '../star-button/star-button.component';
 import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, StarButtonComponent],
+  imports: [CommonModule, RouterModule],
   templateUrl: './event-detail.component.html',
   styleUrl: './event-detail.component.css'
 })

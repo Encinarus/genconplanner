@@ -24,6 +24,10 @@ CREATE TABLE public.party_members
 (
     party_id integer NOT NULL,
     email text COLLATE pg_catalog."default" NOT NULL,
+    display_name text COLLATE pg_catalog."default",
+    gencon_name text COLLATE pg_catalog."default",
+    gencon_id text COLLATE pg_catalog."default",
+    gencon_email text COLLATE pg_catalog."default",
     CONSTRAINT party_members_pkey PRIMARY KEY (party_id, email)
 )
     WITH (
@@ -122,6 +126,9 @@ CREATE TABLE public.users
 (
   email text COLLATE pg_catalog."default" NOT NULL,
   display_name text COLLATE pg_catalog."default",
+  gencon_name text COLLATE pg_catalog."default",
+  gencon_id text COLLATE pg_catalog."default",
+  gencon_email text COLLATE pg_catalog."default",
   CONSTRAINT users_pkey PRIMARY KEY (email)
 )
   WITH (

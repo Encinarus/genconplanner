@@ -38,6 +38,13 @@ export class PartyComponent implements OnInit {
   
   activeTab = signal<'events' | 'members' | 'calendar' | 'settings'>('events');
 
+  // Member editing state
+  editingMemberEmail = signal<string | null>(null);
+  tempMemberDisplayName = signal<string>('');
+  tempMemberGenconName = signal<string>('');
+  tempMemberGenconId = signal<string>('');
+  tempMemberGenconEmail = signal<string>('');
+
   ngOnInit() {
     this.route.params.subscribe(params => {
       const id = params['id'];
@@ -167,6 +174,47 @@ export class PartyComponent implements OnInit {
       alert('Link copied to clipboard!');
     }).catch(err => {
       console.error('Failed to copy:', err);
+    });
+  }
+
+  canEditMember(member: PartyMember): boolean {
+    if (this.isLeader()) return true;
+    const user = this.auth.user();
+    return !!user && !!user.email && member.email.toLowerCase() === user.email.toLowerCase();
+  }
+
+  onEditMember(member: PartyMember) {
+    if (!this.canEditMember(member)) return;
+    this.editingMemberEmail.set(member.email);
+    this.tempMemberDisplayName.set(member.displayName || '');
+    this.tempMemberGenconName.set(member.genconName || '');
+    this.tempMemberGenconId.set(member.genconId || '');
+    this.tempMemberGenconEmail.set(member.genconEmail || '');
+  }
+
+  onCancelEditMember() {
+    this.editingMemberEmail.set(null);
+  }
+
+  onSaveMember(member: PartyMember) {
+    const p = this.party();
+    if (!p) return;
+    const newDisplayName = this.tempMemberDisplayName().trim();
+    const newGenconName = this.tempMemberGenconName().trim();
+    const newGenconId = this.tempMemberGenconId().trim();
+    const newGenconEmail = this.tempMemberGenconEmail().trim();
+
+    if (!newDisplayName) {
+      alert('Display name cannot be empty');
+      return;
+    }
+
+    this.api.updatePartyMember(p.id, member.email, newDisplayName, newGenconName, newGenconId, newGenconEmail).subscribe({
+      next: () => {
+        this.loadParty(p.id);
+        this.editingMemberEmail.set(null);
+      },
+      error: (err) => alert('Failed to update member info: ' + (err.error?.error || err.message))
     });
   }
 }

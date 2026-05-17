@@ -21,6 +21,9 @@ import (
 type User struct {
 	Email       string `json:"email"`
 	DisplayName string `json:"displayName"`
+	GenconName  string `json:"genconName"`
+	GenconId    string `json:"genconId"`
+	GenconEmail string `json:"genconEmail"`
 }
 
 type UserEvents struct {
@@ -85,6 +88,9 @@ func getInviteLink(shortCode string) string {
 type PartyMember struct {
 	DisplayName string `json:"displayName"`
 	Email       string `json:"email"`
+	GenconName  string `json:"genconName"`
+	GenconId    string `json:"genconId"`
+	GenconEmail string `json:"genconEmail"`
 }
 
 type WishlistConstraint struct {
@@ -113,6 +119,9 @@ func (s *Server) GetUser(c *gin.Context) {
 	var user User
 	user.DisplayName = dbUser.DisplayName
 	user.Email = dbUser.Email
+	user.GenconName = dbUser.GenconName
+	user.GenconId = dbUser.GenconId
+	user.GenconEmail = dbUser.GenconEmail
 	c.JSON(http.StatusOK, user)
 }
 
@@ -629,6 +638,9 @@ func (s *Server) GetParties(c *gin.Context) {
 			members = append(members, PartyMember{
 				DisplayName: m.DisplayName,
 				Email:       m.Email,
+				GenconName:  m.GenconName,
+				GenconId:    m.GenconId,
+				GenconEmail: m.GenconEmail,
 			})
 		}
 		apiParties = append(apiParties, Party{
@@ -697,6 +709,9 @@ func (s *Server) CreateParty(c *gin.Context) {
 		members = append(members, PartyMember{
 			DisplayName: m.DisplayName,
 			Email:       m.Email,
+			GenconName:  m.GenconName,
+			GenconId:    m.GenconId,
+			GenconEmail: m.GenconEmail,
 		})
 	}
 
@@ -774,6 +789,9 @@ func (s *Server) GetParty(c *gin.Context) {
 		members = append(members, PartyMember{
 			DisplayName: m.DisplayName,
 			Email:       m.Email,
+			GenconName:  m.GenconName,
+			GenconId:    m.GenconId,
+			GenconEmail: m.GenconEmail,
 		})
 	}
 
@@ -997,6 +1015,9 @@ func (s *Server) DeleteParty(c *gin.Context) {
 
 type RenameUserRequest struct {
 	DisplayName string `json:"displayName"`
+	GenconName  string `json:"genconName"`
+	GenconId    string `json:"genconId"`
+	GenconEmail string `json:"genconEmail"`
 }
 
 func (s *Server) RenameUser(c *gin.Context) {
@@ -1017,9 +1038,72 @@ func (s *Server) RenameUser(c *gin.Context) {
 		return
 	}
 
-	err := s.Repo.UpdateDisplayName(email, req.DisplayName)
+	err := s.Repo.UpdateUserGenconInfo(email, req.DisplayName, req.GenconName, req.GenconId, req.GenconEmail)
 	if err != nil {
 		log.Printf("error renaming user: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+type UpdatePartyMemberRequest struct {
+	Email       string `json:"email"`
+	DisplayName string `json:"displayName"`
+	GenconName  string `json:"genconName"`
+	GenconId    string `json:"genconId"`
+	GenconEmail string `json:"genconEmail"`
+}
+
+func (s *Server) UpdatePartyMemberInfo(c *gin.Context) {
+	email := GetUserEmail(c)
+	if email == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	var req UpdatePartyMemberRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
+		return
+	}
+
+	if req.DisplayName == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Display name cannot be empty"})
+		return
+	}
+
+	idParam := c.Param("party_id")
+	dbParty, err := s.getPartyFromParam(c, idParam, email)
+	if err != nil {
+		log.Printf("error loading party: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+		return
+	}
+
+	// Verify target user is a member of the party
+	isTargetMember := false
+	for _, m := range dbParty.Members {
+		if strings.EqualFold(m.Email, req.Email) {
+			isTargetMember = true
+			break
+		}
+	}
+	if !isTargetMember {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Target user is not a member of this party"})
+		return
+	}
+
+	// Enforce authorization: only party leader or the member themselves
+	if !strings.EqualFold(dbParty.LeaderEmail, email) && !strings.EqualFold(email, req.Email) {
+		c.AbortWithStatusJSON(http.StatusForbidden, ErrorResponse{Error: "Only the party leader or the member themselves can update member info"})
+		return
+	}
+
+	err = s.Repo.UpdatePartyMemberInfo(dbParty.Id, req.Email, req.DisplayName, req.GenconName, req.GenconId, req.GenconEmail)
+	if err != nil {
+		log.Printf("error updating party member info: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
@@ -1365,6 +1449,7 @@ func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.POST("/party/:party_id/join", s.JoinParty)
 	group.POST("/party/:party_id/leave", s.LeaveParty)
 	group.DELETE("/party/:party_id", s.DeleteParty)
+	group.POST("/party/:party_id/member/update", s.UpdatePartyMemberInfo)
 	group.POST("/user/rename", s.RenameUser)
 	group.GET("/user/starred/:year", s.GetStarredEvents)
 	group.GET("/user/starred/list/:year", s.GetStarredIndividualEvents)
