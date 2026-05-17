@@ -212,30 +212,27 @@
                                 YOUR PERFECT CALENDAR
                             </h3>
                             <div *ngFor="let item of wishlistItems(); let i = index">
-                                <div *ngIf="item.status === 'Primary'" class="wishlist-item card border-0 shadow-sm mb-2" 
-                                     [attr.data-bs-toggle]="item.event.shortDescription ? 'popover' : null"
-                                     [attr.data-bs-content]="item.event.shortDescription"
-                                     [attr.title]="item.event.title">
+                                <div *ngIf="item.status === 'Primary'" class="wishlist-item card border-0 shadow-sm mb-2">
                                     <div class="card-body p-2 px-3">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                            <div class="d-flex align-items-center gap-3 overflow-hidden flex-grow-1">
                                                 <div class="wishlist-rank">#{{ i + 1 }}</div>
-                                                <div class="text-truncate">
-                                                    <h4 class="mb-0 fw-bold">
-                                                        <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="text-dark text-decoration-none text-truncate">
+                                                <div class="overflow-hidden flex-grow-1">
+                                                    <h4 class="mb-0 fw-bold text-truncate">
+                                                        <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="text-dark text-decoration-none">
                                                             {{ item.event.title }}
                                                         </a>
                                                     </h4>
-                                                    <div class="d-flex align-items-center gap-2">
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
                                                         <span class="timing-label">{{ formatTiming(item.event.startTime, item.event.endTime) }}</span>
                                                         <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="event-id-link small opacity-75">{{ item.event.eventId }}</a>
                                                         <a [href]="item.event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.65rem; height: 1.2rem; line-height: 1;">
                                                             GenCon <i class="bi bi-box-arrow-up-right" style="font-size: 0.6rem;"></i>
                                                         </a>
                                                     </div>
-                                                    <div *ngIf="item.partyMembers?.length" class="d-flex align-items-center gap-1 mt-1 small text-muted">
-                                                        <i class="bi bi-people-fill me-1 small"></i>
-                                                        <span style="font-size: 0.75rem;">Interested: {{ item.partyMembers!.join(', ') }}</span>
+                                                    <div *ngIf="item.partyMembers?.length" class="d-flex align-items-start gap-1 mt-1 small text-muted">
+                                                        <i class="bi bi-people-fill me-1 small mt-1"></i>
+                                                        <span style="font-size: 0.75rem; white-space: normal;">Interested: {{ item.partyMembers!.join(', ') }}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -269,30 +266,27 @@
                                 SECONDARY OPTIONS
                             </h3>
                             <div *ngFor="let item of wishlistItems(); let i = index">
-                                <div *ngIf="item.status === 'Backup'" class="wishlist-item card border-0 shadow-sm mb-2"
-                                     [attr.data-bs-toggle]="item.event.shortDescription ? 'popover' : null"
-                                     [attr.data-bs-content]="item.event.shortDescription"
-                                     [attr.title]="item.event.title">
+                                <div *ngIf="item.status === 'Backup'" class="wishlist-item card border-0 shadow-sm mb-2">
                                     <div class="card-body p-2 px-3">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                            <div class="d-flex align-items-center gap-3 overflow-hidden flex-grow-1">
                                                 <div class="wishlist-rank">#{{ i + 1 }}</div>
-                                                <div class="text-truncate">
-                                                    <h4 class="mb-0 fw-bold">
-                                                        <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="text-dark text-decoration-none text-truncate">
+                                                <div class="overflow-hidden flex-grow-1">
+                                                    <h4 class="mb-0 fw-bold text-truncate">
+                                                        <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="text-dark text-decoration-none">
                                                             {{ item.event.title }}
                                                         </a>
                                                     </h4>
-                                                    <div class="d-flex align-items-center gap-2">
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
                                                         <span class="timing-label">{{ formatTiming(item.event.startTime, item.event.endTime) }}</span>
                                                         <a [routerLink]="linkService.getEventRouterLink(item.event.eventId)" class="event-id-link small opacity-75">{{ item.event.eventId }}</a>
                                                         <a [href]="item.event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.65rem; height: 1.2rem; line-height: 1;">
                                                             GenCon <i class="bi bi-box-arrow-up-right" style="font-size: 0.6rem;"></i>
                                                         </a>
                                                     </div>
-                                                    <div *ngIf="item.partyMembers?.length" class="d-flex align-items-center gap-1 mt-1 small text-muted">
-                                                        <i class="bi bi-people-fill me-1 small"></i>
-                                                        <span style="font-size: 0.75rem;">Interested: {{ item.partyMembers!.join(', ') }}</span>
+                                                    <div *ngIf="item.partyMembers?.length" class="d-flex align-items-start gap-1 mt-1 small text-muted">
+                                                        <i class="bi bi-people-fill me-1 small mt-1"></i>
+                                                        <span style="font-size: 0.75rem; white-space: normal;">Interested: {{ item.partyMembers!.join(', ') }}</span>
                                                     </div>
                                                 </div>
                                             </div>

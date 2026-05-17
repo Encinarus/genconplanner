@@ -542,7 +542,6 @@ export class StarredComponent implements OnInit {
       next: (items) => {
         this.wishlistItems.set(items);
         this.wishlistLoading.set(false);
-        setTimeout(() => this.initWishlistPopovers(), 100);
       },
       error: (err) => {
         console.error('Error fetching wishlist:', err);
@@ -595,24 +594,6 @@ export class StarredComponent implements OnInit {
   removeConstraint(index: number): void {
     this.constraints.update(c => c.filter((_, i) => i !== index));
     this.onConstraintsChange();
-  }
-
-  initWishlistPopovers(): void {
-    if (typeof bootstrap !== 'undefined' && bootstrap.Popover) {
-      // First dispose any existing ones
-      const popoverTriggerList = [].slice.call(document.querySelectorAll('.wishlist-item[data-bs-toggle="popover"]'));
-      popoverTriggerList.map((popoverTriggerEl) => {
-        const existing = bootstrap.Popover.getInstance(popoverTriggerEl);
-        if (existing) existing.dispose();
-        
-        return new bootstrap.Popover(popoverTriggerEl, {
-          html: true,
-          container: 'body',
-          trigger: 'hover focus',
-          placement: 'auto'
-        });
-      });
-    }
   }
 
   isTierReason(reason: string): boolean {
