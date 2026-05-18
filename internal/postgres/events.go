@@ -620,7 +620,9 @@ func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) (UpdateSta
 		INSERT INTO orgs (alias)
 		SELECT DISTINCT org_group FROM events 
 		WHERE org_group IS NOT NULL AND org_group != ''
-		ON CONFLICT DO NOTHING
+		  AND NOT EXISTS (
+			  SELECT 1 FROM orgs WHERE orgs.alias = events.org_group
+		  )
 	`)
 	if err != nil {
 		return stats, err

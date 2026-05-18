@@ -100,5 +100,4 @@ func ParseGenconCsv(rawBytes []byte) []*GenconEvent {
 
 		events = append(events, linetoEvent(line))
 	}
-	return events
 }

@@ -50,6 +50,12 @@ CREATE TABLE public.boardgame
     last_update date,
     num_ratings integer,
     avg_ratings double precision,
+    num_weights integer,
+    avg_weight double precision,
+    min_players integer,
+    max_players integer,
+    best_players text COLLATE pg_catalog."default",
+    description text COLLATE pg_catalog."default",
     year_published integer,
     type text COLLATE pg_catalog."default",
     CONSTRAINT boardgame_pkey PRIMARY KEY (bgg_id)

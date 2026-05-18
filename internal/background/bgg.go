@@ -60,6 +60,21 @@ func RefreshGame(ctx context.Context, apiGame *bgg.GameItem,
 		}
 	}
 
+	bestPlayers := ""
+	var maxBestVotes int64 = -1
+	for _, poll := range apiGame.Polls {
+		if poll.Name == "suggested_numplayers" {
+			for _, r := range poll.Results {
+				for _, res := range r.Result {
+					if res.Value == "Best" && res.NumVotes > maxBestVotes {
+						maxBestVotes = res.NumVotes
+						bestPlayers = r.NumPlayers
+					}
+				}
+			}
+		}
+	}
+
 	g := &postgres.Game{
 		Name:          name,
 		BggId:         apiGame.ID,
@@ -67,6 +82,12 @@ func RefreshGame(ctx context.Context, apiGame *bgg.GameItem,
 		LastUpdate:    clock.Now(),
 		NumRatings:    apiGame.Statistics.Ratings.NumRatings.Value,
 		AvgRatings:    apiGame.Statistics.Ratings.Average.Value,
+		NumWeights:    apiGame.Statistics.Ratings.NumWeights.Value,
+		AvgWeight:     apiGame.Statistics.Ratings.AverageWeight.Value,
+		MinPlayers:    apiGame.MinPlayers.Value,
+		MaxPlayers:    apiGame.MaxPlayers.Value,
+		BestPlayers:   bestPlayers,
+		Description:   apiGame.Description,
 		YearPublished: apiGame.YearPublished.Value,
 		Type:          apiGame.Type,
 	}
@@ -118,9 +139,9 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 
 	// If we haven't updated in 4 days, update now. This should get us faster discovery of new games.
 	familyUpdateLimit := clock.Now().Add(-time.Hour * 24 * 4)
-	// If we haven't updated in 4 weeks, update now. Once we know about a game, it's probably fairly stable.
+	// If we haven't updated in 3 days, update now to refresh ratings and weights.
 	// With a rate limit of one call per 5 seconds, we can process ~438k games.
-	gameUpdateLimit := clock.Now().Add(-time.Hour * 24 * 28)
+	gameUpdateLimit := clock.Now().Add(-time.Hour * 24 * 3)
 
 	for len(familyBacklog) > 0 || len(gameBacklog) > 0 {
 		log.Printf("Processing backlog")
@@ -172,7 +193,7 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 			dbGame, found := games[id]
 			if !found {
 				continue
-			} else if dbGame.LastUpdate.After(gameUpdateLimit) {
+			} else if dbGame.LastUpdate.After(gameUpdateLimit) && dbGame.Description != "" {
 				// We still want this for identifying families to load
 				addIdsToBacklog(familyBacklog, dbGame.FamilyIds)
 				continue

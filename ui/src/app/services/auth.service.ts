@@ -63,12 +63,21 @@ export class AuthService {
           }).catch(err => console.error('Error fetching user profile', err));
         });
       } else {
-        this.user.set(null);
-        this.displayName.set(null);
-        this.genconName.set(null);
-        this.genconId.set(null);
-        this.genconEmail.set(null);
-        Cookies.remove('signinToken', { path: '/' });
+        const serverUser = (window as any).serverSideUser;
+        if (serverUser) {
+          this.user.set(serverUser);
+          this.displayName.set(serverUser.displayName || null);
+          this.genconName.set(serverUser.genconName || null);
+          this.genconId.set(serverUser.genconId || null);
+          this.genconEmail.set(serverUser.genconEmail || null);
+        } else {
+          this.user.set(null);
+          this.displayName.set(null);
+          this.genconName.set(null);
+          this.genconId.set(null);
+          this.genconEmail.set(null);
+          Cookies.remove('signinToken', { path: '/' });
+        }
         this.authLoaded.set(true);
       }
     });
@@ -91,6 +100,7 @@ export class AuthService {
   async signOut() {
     try {
       await signOut(this.auth);
+      delete (window as any).serverSideUser;
       Cookies.remove('signinToken', { path: '/' });
       this.user.set(null);
       this.displayName.set(null);

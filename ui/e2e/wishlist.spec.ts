@@ -10,6 +10,21 @@ test.describe('Wishlist Prioritization Engine E2E', () => {
       await route.fulfill({ json: { email: 'leader@example.com', displayName: 'Party Leader' } });
     });
 
+    await page.route('/api/v1/user/starred/page/2026', async route => {
+      await route.fulfill({
+        status: 200,
+        json: {
+          email: 'leader@example.com',
+          year: 2026,
+          calendarEvents: [],
+          individualEvents: [],
+          metadata: { startDate: '2026-07-30', endDate: '2026-08-02' },
+          starredClusters: [],
+          starredEvents: []
+        }
+      });
+    });
+
     // Mock wishlist items
     await page.route('/api/v1/user/wishlist/2026', async route => {
       await route.fulfill({
@@ -32,7 +47,7 @@ test.describe('Wishlist Prioritization Engine E2E', () => {
               roomName: 'Hall A',
               tableNumber: '1'
             },
-            status: 'Scheduled',
+            status: 'Primary',
             reasoning: ['Must Have interest (+50 pts)', 'Few tickets left (+20 pts)'],
             score: 70
           }
@@ -67,32 +82,38 @@ test.describe('Wishlist Prioritization Engine E2E', () => {
   });
 
   test('should view prioritized wishlist and update flexible break constraints', async ({ page }) => {
-    await page.goto('/wishlist/2026');
+    await page.goto('/starred/2026/wishlist');
 
-    // Verify wishlist item appears with score and reasoning
+    // Verify wishlist item appears with rank and reasoning
     const itemCard = page.locator('.wishlist-item', { hasText: 'Catan Championship' });
     await expect(itemCard).toBeVisible();
-    await expect(itemCard.locator('.score-badge')).toHaveText('Score: 70');
-    await expect(itemCard.locator('li', { hasText: 'Must Have interest (+50 pts)' })).toBeVisible();
+    await expect(itemCard.locator('.wishlist-rank')).toHaveText('#1');
+    await expect(itemCard.locator('.reasoning-badge', { hasText: 'Few tickets left (+20 pts)' })).toBeVisible();
 
     // Verify existing constraint is displayed
-    const constraintRow = page.locator('.constraint-item', { hasText: 'Every Day' });
+    const constraintRow = page.locator('.constraint-row').first();
     await expect(constraintRow).toBeVisible();
-    await expect(constraintRow).toContainText('12:00 PM - 01:00 PM (Min: 30 mins)');
+    await expect(constraintRow.locator('select').nth(0).locator('option:checked')).toHaveText('Every Day');
+    await expect(constraintRow.locator('select').nth(1).locator('option:checked')).toHaveText('Noon');
+    await expect(constraintRow.locator('input[type="number"]')).toHaveValue('30');
 
     // Add a new flexible break constraint
-    await page.locator('select.day-select').selectOption({ label: 'Friday' });
-    await page.locator('input.start-time').fill('17:00');
-    await page.locator('input.end-time').fill('18:30');
-    await page.locator('input.min-duration').fill('45');
-    await page.locator('button', { hasText: 'Add Break' }).click();
+    await page.locator('button', { hasText: 'Add Time Block' }).click();
+    const newConstraint = page.locator('.constraint-row').nth(1);
+    await expect(newConstraint).toBeVisible();
 
-    // Verify the new constraint appears
-    await expect(page.locator('.constraint-item', { hasText: 'Friday' })).toBeVisible();
-    await expect(page.locator('.constraint-item', { hasText: 'Friday' })).toContainText('05:00 PM - 06:30 PM (Min: 45 mins)');
+    await newConstraint.locator('select').nth(0).selectOption({ label: 'Friday' });
+    await newConstraint.locator('select').nth(1).selectOption({ label: '5 PM' });
+    await newConstraint.locator('select').nth(2).selectOption({ label: ':00' });
+    await newConstraint.locator('select').nth(3).selectOption({ label: '6 PM' });
+    await newConstraint.locator('select').nth(4).selectOption({ label: ':30' });
+    await newConstraint.locator('input[type="number"]').fill('45');
 
-    // Save constraints
-    await page.locator('button', { hasText: 'Save Constraints' }).click();
-    await expect(page.locator('.alert-success', { hasText: 'Constraints saved successfully!' })).toBeVisible();
+    // Verify the new constraint values
+    await expect(newConstraint.locator('select').nth(0).locator('option:checked')).toHaveText('Friday');
+    await expect(newConstraint.locator('input[type="number"]')).toHaveValue('45');
+
+    // Wait for auto-save debounce (1500ms)
+    await page.waitForTimeout(2000);
   });
 });

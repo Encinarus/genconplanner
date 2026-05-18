@@ -13,6 +13,9 @@ Stop opening new tabs to research game titles. Gen Con Planner automatically mat
 - **Complexity Weight**: Instantly gauge whether a game is a lightweight party game (1.0 - 2.0) or a heavy, brain-burning euro strategy game (3.5 - 5.0).
 - **Direct Links**: Jump straight to the official BGG page for deep-dive reviews and rulebooks.
 
+> [!IMPORTANT]
+> **Data Usage & AI Scraping Policy**: To comply with BoardGameGeek API Terms of Service, Gen Con Planner strictly prohibits the use of BGG community data for training Artificial Intelligence or Large Language Models (LLMs). We actively enforce this policy at the server level by blocking automated AI crawlers and scrapers via comprehensive `robots.txt` directives.
+
 ### ⭐ Tiered Wishlist Curation
 Not all events are created equal. Instead of a binary "add to wishlist" button, Gen Con Planner allows you to rank your excitement using three distinct tiers:
 - **Must Have**: Your absolute top priorities.

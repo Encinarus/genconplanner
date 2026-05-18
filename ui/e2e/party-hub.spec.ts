@@ -35,22 +35,16 @@ test.describe('Party Hub E2E', () => {
       } else {
         await route.fulfill({
           status: 200,
-          json: [
-            {
-              id: 101,
-              name: 'Playwright Party',
-              year: 2026,
-              leaderEmail: 'leader@example.com',
-              shortCode: 'PLWRT',
-              inviteLink: 'http://localhost:4200/party/PLWRT',
-              members: [{ email: 'leader@example.com', displayName: 'Party Leader' }]
-            }
-          ]
+          json: []
         });
       }
     });
 
-    await page.route('/api/v1/party/101', async route => {
+    await page.route('/api/v1/party/*', async route => {
+      if (route.request().url().includes('/interests')) {
+        await route.fallback();
+        return;
+      }
       await route.fulfill({
         status: 200,
         json: {
@@ -74,10 +68,10 @@ test.describe('Party Hub E2E', () => {
     await page.goto('/user');
 
     // Check that user profile is visible
-    await expect(page.locator('h2', { hasText: 'Party Leader' })).toBeVisible();
+    await expect(page.locator('h1', { hasText: 'Party Leader' })).toBeVisible();
 
     // Create a new party
-    const partyInput = page.locator('input[placeholder="Enter party name..."]');
+    const partyInput = page.locator('input#partyName');
     await partyInput.fill('Playwright Party');
     await page.locator('button', { hasText: 'Create Party' }).click();
 
@@ -86,13 +80,13 @@ test.describe('Party Hub E2E', () => {
     await expect(partyCard).toBeVisible();
 
     // Click to view party details
-    await partyCard.locator('a', { hasText: 'View Party' }).click();
+    await partyCard.locator('a', { hasText: 'View Details' }).click();
     await expect(page).toHaveURL(/.*\/party\/2026\/events/);
     await expect(page.locator('h1', { hasText: 'Playwright Party' })).toBeVisible();
 
     // Switch to Members tab
-    await page.locator('a.tab-btn', { hasText: 'Members' }).click();
+    await page.locator('button[title="Party Members"]').click();
     await expect(page).toHaveURL(/.*\/party\/2026\/members/);
-    await expect(page.locator('.member-card', { hasText: 'Party Leader' })).toBeVisible();
+    await expect(page.locator('.contact-card', { hasText: 'Party Leader' })).toBeVisible();
   });
 });

@@ -16,6 +16,7 @@ RUN go mod download && go mod verify
 
 COPY ./internal ./internal
 COPY ./cmd ./cmd
+COPY ./static ./static
 
 RUN go test ./...
 

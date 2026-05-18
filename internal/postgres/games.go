@@ -89,6 +89,12 @@ type Game struct {
 	LastUpdate    time.Time
 	NumRatings    int64
 	AvgRatings    float64
+	NumWeights    int64
+	AvgWeight     float64
+	MinPlayers    int64
+	MaxPlayers    int64
+	BestPlayers   string
+	Description   string
 	YearPublished int64
 }
 
@@ -113,12 +119,12 @@ func (g *Game) Upsert(db *sql.DB) error {
 
 	_, err = tx.Exec(`
 INSERT INTO boardgame
-    (name, bgg_id, family_ids, num_ratings, avg_ratings, year_published, type, last_update)
+    (name, bgg_id, family_ids, num_ratings, avg_ratings, num_weights, avg_weight, min_players, max_players, best_players, description, year_published, type, last_update)
 VALUES 
-    ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE)
+    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_DATE)
 ON CONFLICT (bgg_id) 
-    DO UPDATE SET name = $1, family_ids = $3, num_ratings = $4, avg_ratings = $5, year_published = $6, type = $7, last_update = CURRENT_DATE
-`, g.Name, g.BggId, pq.Array(g.FamilyIds), g.NumRatings, g.AvgRatings, g.YearPublished, g.Type)
+    DO UPDATE SET name = $1, family_ids = $3, num_ratings = $4, avg_ratings = $5, num_weights = $6, avg_weight = $7, min_players = $8, max_players = $9, best_players = $10, description = $11, year_published = $12, type = $13, last_update = CURRENT_DATE
+`, g.Name, g.BggId, pq.Array(g.FamilyIds), g.NumRatings, g.AvgRatings, g.NumWeights, g.AvgWeight, g.MinPlayers, g.MaxPlayers, g.BestPlayers, g.Description, g.YearPublished, g.Type)
 
 	if err != nil {
 		return err
@@ -135,6 +141,12 @@ SELECT
     family_ids,
     num_ratings,
     avg_ratings,
+    num_weights,
+    avg_weight,
+    min_players,
+    max_players,
+    best_players,
+    description,
     year_published,
     type,
     last_update
@@ -153,18 +165,31 @@ FROM boardgame bg
 		var lastUpdateHolder pq.NullTime
 		var numRatingHolder sql.NullInt64
 		var avgRatingHolder sql.NullFloat64
+		var numWeightsHolder sql.NullInt64
+		var avgWeightHolder sql.NullFloat64
+		var minPlayersHolder sql.NullInt64
+		var maxPlayersHolder sql.NullInt64
+		var bestPlayersHolder sql.NullString
+		var descriptionHolder sql.NullString
 		var yearPublishedHolder sql.NullInt64
 		var typeHolder sql.NullString
 		err = rows.Scan(
 			&g.Name, &g.BggId, pq.Array(&g.FamilyIds),
-			&numRatingHolder, &avgRatingHolder, &yearPublishedHolder,
-			&typeHolder, &lastUpdateHolder)
+			&numRatingHolder, &avgRatingHolder, &numWeightsHolder, &avgWeightHolder,
+			&minPlayersHolder, &maxPlayersHolder, &bestPlayersHolder, &descriptionHolder,
+			&yearPublishedHolder, &typeHolder, &lastUpdateHolder)
 		if err != nil {
 			return nil, err
 		}
 		// We don't check for valid since they'll default to 0 anyway.
 		g.NumRatings = numRatingHolder.Int64
 		g.AvgRatings = avgRatingHolder.Float64
+		g.NumWeights = numWeightsHolder.Int64
+		g.AvgWeight = avgWeightHolder.Float64
+		g.MinPlayers = minPlayersHolder.Int64
+		g.MaxPlayers = maxPlayersHolder.Int64
+		g.BestPlayers = bestPlayersHolder.String
+		g.Description = descriptionHolder.String
 		g.YearPublished = yearPublishedHolder.Int64
 		g.LastUpdate = lastUpdateHolder.Time
 

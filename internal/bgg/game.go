@@ -45,6 +45,24 @@ type GameItem struct {
 		ID    int64  `xml:"id,attr"`
 		Value string `xml:"value,attr"`
 	} `xml:"link"`
+	MinPlayers struct {
+		Value int64 `xml:"value,attr"`
+	} `xml:"minplayers"`
+	MaxPlayers struct {
+		Value int64 `xml:"value,attr"`
+	} `xml:"maxplayers"`
+	Polls []struct {
+		Name       string `xml:"name,attr"`
+		Title      string `xml:"title,attr"`
+		TotalVotes int64  `xml:"totalvotes,attr"`
+		Results    []struct {
+			NumPlayers string `xml:"numplayers,attr"`
+			Result     []struct {
+				Value    string `xml:"value,attr"`
+				NumVotes int64  `xml:"numvotes,attr"`
+			} `xml:"result"`
+		} `xml:"results"`
+	} `xml:"poll"`
 	Statistics struct {
 		Ratings struct {
 			Text       string `xml:",chardata"`
@@ -56,6 +74,14 @@ type GameItem struct {
 				Text  string  `xml:",chardata"`
 				Value float64 `xml:"value,attr"`
 			} `xml:"average"`
+			NumWeights struct {
+				Text  string `xml:",chardata"`
+				Value int64  `xml:"value,attr"`
+			} `xml:"numweights"`
+			AverageWeight struct {
+				Text  string  `xml:",chardata"`
+				Value float64 `xml:"value,attr"`
+			} `xml:"averageweight"`
 		} `xml:"ratings"`
 	} `xml:"statistics"`
 }
