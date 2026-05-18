@@ -205,6 +205,7 @@ func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
 			dbFamily, found := families[id]
 			if found && dbFamily.LastUpdate.After(familyUpdateLimit) {
 				addIdsToBacklog(gameBacklog, dbFamily.GameIds)
+				delete(familyBacklog, id)
 				continue
 			}
 			familiesToProcess = append(familiesToProcess, id)
@@ -254,8 +255,8 @@ func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
 
 		// We're done! We don't know about anything else to dig into
 		if processedFamilies == 0 && processedGames == 0 {
-			log.Printf("No updates needed, sleeping for four hours")
-			time.Sleep(4 * time.Hour)
+			log.Printf("No updates needed, finishing BGG update pass")
+			return
 		}
 	}
 }

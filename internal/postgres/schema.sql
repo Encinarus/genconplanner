@@ -371,48 +371,7 @@ CREATE INDEX alias_idx
         (alias COLLATE pg_catalog."default" text_pattern_ops)
     TABLESPACE pg_default;
 
--- FUNCTION: public.update_org()
 
--- DROP FUNCTION public.update_org();
-
-CREATE OR REPLACE FUNCTION public.update_org()
-    RETURNS trigger
-    LANGUAGE 'plpgsql'
-    COST 100
-    VOLATILE NOT LEAKPROOF
-AS $BODY$
-BEGIN
-    IF new.org_group = '' OR new.org_group is null THEN
-        RETURN NULL;
-    END IF;
-
-    INSERT INTO orgs(alias)
-    SELECT new.org_group
-    WHERE NOT EXISTS (
-        SELECT alias FROM orgs WHERE new.org_group = alias
-    );
-
-    UPDATE orgs o
-    SET id = (SELECT MIN(o2.id) FROM orgs o2
-              WHERE TRANSLATE(LOWER(o2.alias), '''.",!:; ', '')
-                        = TRANSLATE(LOWER(o.alias), '''.",!:; ', ''))
-    WHERE o.alias = new.org_group;
-    RETURN NEW;
-END
-$BODY$;
-
-ALTER FUNCTION public.update_org()
-    OWNER TO postgres;
-
--- Trigger: update_org
-
--- DROP TRIGGER update_org ON public.events;
-
-CREATE TRIGGER update_org
-    BEFORE INSERT OR UPDATE OF org_group
-    ON public.events
-    FOR EACH ROW
-EXECUTE PROCEDURE public.update_org();
 
 -- insert into orgs(alias)
 -- (

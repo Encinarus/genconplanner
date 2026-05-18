@@ -39,7 +39,7 @@ func PrintEnv() {
 				}
 			}
 			log.Printf("%s=%s\n", key, redacted)
-		} else if strings.Contains(strings.ToLower(key), "password") || strings.Contains(strings.ToLower(key), "secret") || strings.Contains(strings.ToLower(key), "key") {
+		} else if strings.Contains(strings.ToLower(key), "password") || strings.Contains(strings.ToLower(key), "secret") || strings.Contains(strings.ToLower(key), "key") || strings.Contains(strings.ToLower(key), "api") || strings.Contains(strings.ToLower(key), "token") || strings.Contains(strings.ToLower(key), "credentials") || strings.Contains(strings.ToLower(key), "url") || strings.Contains(strings.ToLower(key), "jwt") {
 			// Catch-all for other potentially sensitive variables
 			log.Printf("%s=[REDACTED]\n", key)
 		} else {

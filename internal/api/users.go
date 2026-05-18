@@ -134,7 +134,7 @@ func (s *Server) LoadUserEvents(c *gin.Context) {
 	paramEmail := c.Param("email")
 	yearParam := c.Param("year")
 
-	if authedEmail == "" || authedEmail != paramEmail {
+	if authedEmail == "" || !strings.EqualFold(authedEmail, paramEmail) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
@@ -808,7 +808,7 @@ func (s *Server) CreateParty(c *gin.Context) {
 	c.JSON(http.StatusOK, apiParty)
 }
 
-func (s *Server) getPartyFromParam(c *gin.Context, idParam string, email string) (*postgres.Party, error) {
+func (s *Server) getPartyFromParam(c *gin.Context, idParam string, email string, allowShortCode bool) (*postgres.Party, error) {
 	id, parseErr := strconv.ParseInt(idParam, 10, 64)
 	if parseErr == nil {
 		if id >= 2000 && id <= 2100 {
@@ -831,6 +831,9 @@ func (s *Server) getPartyFromParam(c *gin.Context, idParam string, email string)
 		// Fallback: it's a numeric party ID
 		return s.Repo.LoadParty(id)
 	}
+	if !allowShortCode {
+		return nil, fmt.Errorf("short code lookup not permitted for this operation")
+	}
 	// It's a short code
 	return s.Repo.LoadPartyByCode(idParam)
 }
@@ -838,7 +841,7 @@ func (s *Server) getPartyFromParam(c *gin.Context, idParam string, email string)
 func (s *Server) GetParty(c *gin.Context) {
 	idParam := c.Param("party_id")
 	email := GetUserEmail(c)
-	dbParty, err := s.getPartyFromParam(c, idParam, email)
+	dbParty, err := s.getPartyFromParam(c, idParam, email, true)
 
 	if err != nil {
 		log.Printf("error loading party: %v\n", err)
@@ -916,7 +919,7 @@ func (s *Server) RenameParty(c *gin.Context) {
 		return
 	}
 
-	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email)
+	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email, false)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
@@ -954,7 +957,7 @@ func (s *Server) TransferLeadership(c *gin.Context) {
 		return
 	}
 
-	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email)
+	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email, false)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
@@ -1048,7 +1051,7 @@ func (s *Server) LeaveParty(c *gin.Context) {
 		return
 	}
 
-	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email)
+	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email, false)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
@@ -1084,7 +1087,7 @@ func (s *Server) DeleteParty(c *gin.Context) {
 		return
 	}
 
-	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email)
+	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email, false)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
@@ -1172,7 +1175,7 @@ func (s *Server) UpdatePartyMemberInfo(c *gin.Context) {
 	}
 
 	idParam := c.Param("party_id")
-	dbParty, err := s.getPartyFromParam(c, idParam, email)
+	dbParty, err := s.getPartyFromParam(c, idParam, email, false)
 	if err != nil {
 		log.Printf("error loading party: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
@@ -1232,7 +1235,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 
 	var results []WishlistItem
 
-	cache, dirty, err := s.Repo.GetWishlistCache(email, year)
+	cache, dirty, updatedAt, err := s.Repo.GetWishlistCache(email, year)
 	if err == nil && !dirty {
 		// Convert cache to results
 		results = make([]WishlistItem, 0, len(cache))
@@ -1324,7 +1327,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 				Score:     item.Score,
 			})
 		}
-		s.Repo.SaveWishlistCache(email, year, cacheItems)
+		s.Repo.SaveWishlistCache(email, year, cacheItems, updatedAt)
 
 		partyMembersMap := s.getEventPartyMembers(email, year)
 		results = make([]WishlistItem, 0, len(optimized))
@@ -1490,7 +1493,7 @@ func (s *Server) GetPartyInterests(c *gin.Context) {
 	}
 
 	idParam := c.Param("party_id")
-	dbParty, err := s.getPartyFromParam(c, idParam, email)
+	dbParty, err := s.getPartyFromParam(c, idParam, email, true)
 
 	if err != nil || dbParty == nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
@@ -1534,7 +1537,7 @@ func (s *Server) PartyStream(c *gin.Context) {
 	}
 
 	idParam := c.Param("party_id")
-	dbParty, err := s.getPartyFromParam(c, idParam, email)
+	dbParty, err := s.getPartyFromParam(c, idParam, email, true)
 
 	if err != nil || dbParty == nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})

@@ -611,6 +611,32 @@ func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) (UpdateSta
 		return stats, err
 	}
 	err = bulkDelete(tx, deletedEvents)
+	if err != nil {
+		return stats, err
+	}
+
+	// Set-based organizer alias merging
+	_, err = tx.Exec(`
+		INSERT INTO orgs (alias)
+		SELECT DISTINCT org_group FROM events 
+		WHERE org_group IS NOT NULL AND org_group != ''
+		ON CONFLICT DO NOTHING
+	`)
+	if err != nil {
+		return stats, err
+	}
+
+	_, err = tx.Exec(`
+		UPDATE orgs o
+		SET id = sub.min_id
+		FROM (
+			SELECT o1.alias, MIN(o2.id) as min_id
+			FROM orgs o1
+			JOIN orgs o2 ON TRANSLATE(LOWER(o1.alias), '''.",!:; ', '') = TRANSLATE(LOWER(o2.alias), '''.",!:; ', '')
+			GROUP BY o1.alias
+		) sub
+		WHERE o.alias = sub.alias AND o.id != sub.min_id
+	`)
 	return stats, err
 }
 

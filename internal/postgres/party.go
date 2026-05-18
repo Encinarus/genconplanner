@@ -1,8 +1,10 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -102,12 +104,27 @@ func NewParty(db *sql.DB, name string, year int64, founderEmail string) (*Party,
 		return nil, err
 	}
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() { CleanupTransaction(err, tx) }()
+
+	// Check if user already belongs to a party for this year
+	var existingPartyId int64
+	err = tx.QueryRow(`
+		SELECT p.party_id 
+		FROM parties p 
+		JOIN party_members pm ON p.party_id = pm.party_id 
+		WHERE pm.email = $1 AND p.year = $2`, founder.Email, year).Scan(&existingPartyId)
+	if err == nil {
+		err = fmt.Errorf("user already belongs to a party for year %d", year)
+		return nil, err
+	}
+	if err != sql.ErrNoRows {
+		return nil, err
+	}
 
 	shortCode := strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
 
@@ -259,12 +276,47 @@ func JoinParty(db *sql.DB, partyId int64, email string) error {
 		return err
 	}
 
-	_, err = db.Exec(`
+	tx, err := db.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		return err
+	}
+	defer func() { CleanupTransaction(err, tx) }()
+
+	// Find the year of the party we want to join
+	var year int64
+	err = tx.QueryRow("SELECT year FROM parties WHERE party_id = $1", partyId).Scan(&year)
+	if err != nil {
+		return err
+	}
+
+	// Check if user already belongs to a party for this year
+	var existingPartyId int64
+	err = tx.QueryRow(`
+		SELECT p.party_id 
+		FROM parties p 
+		JOIN party_members pm ON p.party_id = pm.party_id 
+		WHERE pm.email = $1 AND p.year = $2`, email, year).Scan(&existingPartyId)
+	if err == nil {
+		if existingPartyId == partyId {
+			// Already a member of this party, do nothing
+			return tx.Commit()
+		}
+		return fmt.Errorf("user already belongs to another party for year %d", year)
+	}
+	if err != sql.ErrNoRows {
+		return err
+	}
+
+	_, err = tx.Exec(`
 INSERT INTO party_members (party_id, email, display_name, gencon_name, gencon_id, gencon_email)
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT DO NOTHING
 `, partyId, email, user.DisplayName, user.GenconName, user.GenconId, user.GenconEmail)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 type MemberInterest struct {

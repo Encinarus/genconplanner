@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"slices"
 	"sort"
@@ -379,11 +380,34 @@ func LegacyCSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		baseURL := os.Getenv("BASE_URL")
+		if baseURL == "" {
+			baseURL = "http://localhost:8080"
+		}
+		var baseHost string
+		if u, err := url.Parse(baseURL); err == nil {
+			baseHost = u.Host
+		} else {
+			baseHost = "localhost:8080"
+		}
+
+		isValidHost := func(u *url.URL) bool {
+			if u == nil {
+				return false
+			}
+			h := u.Hostname()
+			if h == "genconplanner.com" || h == "www.genconplanner.com" {
+				return true
+			}
+			return u.Host == baseHost || h == baseHost
+		}
+
 		origin := c.GetHeader("Origin")
 		if origin == "" {
 			referer := c.GetHeader("Referer")
 			if referer != "" {
-				if !strings.HasPrefix(referer, "http://localhost:") && !strings.HasPrefix(referer, "https://www.genconplanner.com") && !strings.HasPrefix(referer, "https://genconplanner.com") {
+				u, err := url.Parse(referer)
+				if err != nil || !isValidHost(u) {
 					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "CSRF verification failed: invalid referer"})
 					return
 				}
@@ -392,7 +416,8 @@ func LegacyCSRFMiddleware() gin.HandlerFunc {
 				return
 			}
 		} else {
-			if !strings.HasPrefix(origin, "http://localhost:") && origin != "https://www.genconplanner.com" && origin != "https://genconplanner.com" {
+			u, err := url.Parse(origin)
+			if err != nil || !isValidHost(u) {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "CSRF verification failed: invalid origin"})
 				return
 			}
@@ -401,3 +426,4 @@ func LegacyCSRFMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+

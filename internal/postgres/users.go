@@ -6,6 +6,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/lib/pq"
@@ -381,7 +382,7 @@ func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 	}
 
 	// Mark wishlist as dirty
-	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
+	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE, wishlist_updated_at = NOW() WHERE email = $1", email)
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +431,7 @@ WHERE se.event_id = e.event_id
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
+	_, err = db.Exec("UPDATE users SET wishlist_dirty = TRUE, wishlist_updated_at = NOW() WHERE email = $1", email)
 	return err
 }
 
@@ -484,7 +485,7 @@ ON CONFLICT (event_id, email, level) DO UPDATE SET tier = EXCLUDED.tier
 	}
 
 	// Mark wishlist as dirty
-	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
+	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE, wishlist_updated_at = NOW() WHERE email = $1", email)
 	if err != nil {
 		return err
 	}
@@ -851,7 +852,7 @@ func UpdateWishlistConstraints(db *sql.DB, email string, constraints []WishlistC
 	}
 	
 	// Mark wishlist as dirty
-	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE WHERE email = $1", email)
+	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE, wishlist_updated_at = NOW() WHERE email = $1", email)
 	if err != nil {
 		return err
 	}
@@ -867,18 +868,19 @@ type WishlistCacheItem struct {
 	Score     float64
 }
 
-func GetWishlistCache(db *sql.DB, email string, year int) ([]WishlistCacheItem, bool, error) {
+func GetWishlistCache(db *sql.DB, email string, year int) ([]WishlistCacheItem, bool, time.Time, error) {
 	email = strings.ToLower(email)
 	var dirty bool
-	err := db.QueryRow("SELECT wishlist_dirty FROM users WHERE email = $1", email).Scan(&dirty)
+	var updatedAt time.Time
+	err := db.QueryRow("SELECT wishlist_dirty, wishlist_updated_at FROM users WHERE email = $1", email).Scan(&dirty, &updatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, true, nil
+			return nil, true, time.Time{}, nil
 		}
-		return nil, false, err
+		return nil, false, time.Time{}, err
 	}
 	if dirty {
-		return nil, true, nil
+		return nil, true, updatedAt, nil
 	}
 
 	rows, err := db.Query(`
@@ -887,7 +889,7 @@ func GetWishlistCache(db *sql.DB, email string, year int) ([]WishlistCacheItem, 
 		WHERE email = $1 AND year = $2 
 		ORDER BY rank ASC`, email, year)
 	if err != nil {
-		return nil, false, err
+		return nil, false, time.Time{}, err
 	}
 	defer rows.Close()
 
@@ -895,14 +897,14 @@ func GetWishlistCache(db *sql.DB, email string, year int) ([]WishlistCacheItem, 
 	for rows.Next() {
 		var item WishlistCacheItem
 		if err := rows.Scan(&item.EventId, &item.Rank, &item.Status, pq.Array(&item.Reasoning), &item.Score); err != nil {
-			return nil, false, err
+			return nil, false, time.Time{}, err
 		}
 		cache = append(cache, item)
 	}
-	return cache, false, nil
+	return cache, false, updatedAt, nil
 }
 
-func SaveWishlistCache(db *sql.DB, email string, year int, items []WishlistCacheItem) error {
+func SaveWishlistCache(db *sql.DB, email string, year int, items []WishlistCacheItem, updatedAt time.Time) error {
 	email = strings.ToLower(email)
 	tx, err := db.Begin()
 	if err != nil {
@@ -925,10 +927,11 @@ func SaveWishlistCache(db *sql.DB, email string, year int, items []WishlistCache
 		}
 	}
 
-	_, err = tx.Exec("UPDATE users SET wishlist_dirty = FALSE WHERE email = $1", email)
+	_, err = tx.Exec("UPDATE users SET wishlist_dirty = FALSE WHERE email = $1 AND wishlist_updated_at = $2", email, updatedAt)
 	if err != nil {
 		return err
 	}
 
 	return tx.Commit()
 }
+

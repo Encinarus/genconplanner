@@ -105,6 +105,6 @@ func UpdateEventsFromGencon(db *sql.DB, sourceFile string) {
 
 	stats, err = writeEvents(db, events)
 	if err != nil {
-		log.Fatal(err)
+		logging.LogWithError(err, "Error bulk updating events from Gen Con")
 	}
 }

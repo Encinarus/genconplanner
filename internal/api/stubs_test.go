@@ -44,8 +44,8 @@ type StubRepository struct {
 	UpdateDisplayNameFn    func(string, string) error
 	UpdateUserGenconInfoFn func(string, string, string, string, string) error
 	GetLastUpdateFn        func() (time.Time, error)
-	GetWishlistCacheFn     func(string, int) ([]postgres.WishlistCacheItem, bool, error)
-	SaveWishlistCacheFn    func(string, int, []postgres.WishlistCacheItem) error
+	GetWishlistCacheFn     func(string, int) ([]postgres.WishlistCacheItem, bool, time.Time, error)
+	SaveWishlistCacheFn    func(string, int, []postgres.WishlistCacheItem, time.Time) error
 }
 
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
@@ -193,18 +193,18 @@ func (s *StubRepository) GetLastUpdate() (time.Time, error) {
 	}
 	return time.Time{}, nil
 }
-func (s *StubRepository) GetWishlistCache(email string, year int) ([]postgres.WishlistCacheItem, bool, error) {
+func (s *StubRepository) GetWishlistCache(email string, year int) ([]postgres.WishlistCacheItem, bool, time.Time, error) {
 	if s.GetWishlistCacheFn == nil {
-		return nil, true, nil
+		return nil, true, time.Time{}, nil
 	}
 	return s.GetWishlistCacheFn(email, year)
 }
 
-func (s *StubRepository) SaveWishlistCache(email string, year int, items []postgres.WishlistCacheItem) error {
+func (s *StubRepository) SaveWishlistCache(email string, year int, items []postgres.WishlistCacheItem, updatedAt time.Time) error {
 	if s.SaveWishlistCacheFn == nil {
 		return nil
 	}
-	return s.SaveWishlistCacheFn(email, year, items)
+	return s.SaveWishlistCacheFn(email, year, items, updatedAt)
 }
 
 // StubAuthService implements AuthService for testing.

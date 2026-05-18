@@ -1,7 +1,7 @@
 -- Phase 1: Basic Party Management & Visibility
 
 -- Add leader_email to parties table
-ALTER TABLE public.parties ADD COLUMN leader_email TEXT REFERENCES public.users(email);
+ALTER TABLE public.parties ADD COLUMN IF NOT EXISTS leader_email TEXT REFERENCES public.users(email);
 
 -- For any existing parties, we'll need to assign a leader.
 -- This query assigns the first member (alphabetically by email) as the leader.
@@ -17,13 +17,18 @@ WHERE leader_email IS NULL;
 
 -- Phase 2: Personal Interest Tiers & Solo Optimization
 
--- Define the interest tier enum
-CREATE TYPE public.interest_tier AS ENUM ('must_have', 'very_interested', 'somewhat_interested', 'not_interested', 'purchased');
+-- Define the interest tier enum safely
+DO $$ BEGIN
+    CREATE TYPE public.interest_tier AS ENUM ('must_have', 'very_interested', 'somewhat_interested', 'not_interested', 'purchased');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 ALTER TYPE public.interest_tier ADD VALUE IF NOT EXISTS 'not_interested';
 ALTER TYPE public.interest_tier ADD VALUE IF NOT EXISTS 'purchased';
 
 -- Add the tier column to starred_events
-ALTER TABLE public.starred_events ADD COLUMN tier public.interest_tier NOT NULL DEFAULT 'very_interested';
+ALTER TABLE public.starred_events ADD COLUMN IF NOT EXISTS tier public.interest_tier NOT NULL DEFAULT 'very_interested';
 
 -- Update primary key of starred_events to include level
 UPDATE public.starred_events SET level = 'event' WHERE level IS NULL;
@@ -34,6 +39,7 @@ ALTER TABLE public.starred_events ADD CONSTRAINT starred_events_pkey PRIMARY KEY
 -- Phase 2.6: Wishlist Constraints
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS wishlist_constraints_initialized BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS wishlist_dirty BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS wishlist_updated_at TIMESTAMP NOT NULL DEFAULT NOW();
 
 CREATE TABLE IF NOT EXISTS public.user_wishlist_constraints (
     id SERIAL PRIMARY KEY,
@@ -120,4 +126,3 @@ ALTER TABLE public.party_members ADD COLUMN IF NOT EXISTS display_name TEXT;
 ALTER TABLE public.party_members ADD COLUMN IF NOT EXISTS gencon_name TEXT;
 ALTER TABLE public.party_members ADD COLUMN IF NOT EXISTS gencon_id TEXT;
 ALTER TABLE public.party_members ADD COLUMN IF NOT EXISTS gencon_email TEXT;
-
