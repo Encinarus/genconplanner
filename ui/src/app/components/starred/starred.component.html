@@ -1,7 +1,7 @@
 <div class="container">
     <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom d-flex justify-content-between align-items-center">
         <div>
-            My Starred Events
+            My Saved Events
             <small class="text-muted" style="font-size: 1.4rem; font-weight: normal">
                 {{ year() }} - {{ starredList().length }} events <span *ngIf="email()">({{ email() }})</span>
             </small>
@@ -127,7 +127,7 @@
                                     <span class="ms-2 badge rounded-pill bg-light text-muted border" style="font-size: 0.7rem;">{{ evGroup.events.length }}</span>
                                 </div>
                                 
-                                <button class="btn btn-sm btn-outline-secondary border-0 p-1 lh-1 ms-auto" (click)="unstarEventGroup(evGroup)" title="Unstar entire group">
+                                <button class="btn btn-sm btn-outline-secondary border-0 p-1 lh-1 ms-auto" (click)="unstarEventGroup(evGroup)" title="Unsave entire group">
                                     <i class="bi bi-trash3 text-danger"></i>
                                 </button>
                             </div>
@@ -191,7 +191,7 @@
             
             <ng-template #noStarred>
                 <div class="alert alert-info border-0 shadow-sm">
-                    You haven't starred any events for {{ year() }} yet.
+                    You haven't saved any events for {{ year() }} yet.
                 </div>
             </ng-template>
         </div>
@@ -433,9 +433,9 @@
                                 <div class="icon-circle bg-danger bg-opacity-10 text-danger me-3">
                                     <i class="bi bi-trash3-fill"></i>
                                 </div>
-                                <h2 class="h5 mb-0 fw-bold">Clear All Starred</h2>
+                                <h2 class="h5 mb-0 fw-bold">Clear All Saved</h2>
                             </div>
-                            <p class="text-muted small">Remove all starred events for the current year. This action cannot be undone.</p>
+                            <p class="text-muted small">Remove all saved events for the current year. This action cannot be undone.</p>
                         </div>
                         <div class="card-body px-4 pb-4">
                             <div class="alert alert-danger border-0 bg-danger bg-opacity-10 d-flex align-items-center" role="alert">
@@ -445,7 +445,7 @@
                                 </div>
                             </div>
                             <button class="btn btn-outline-danger w-100 py-2 mt-3 fw-semibold" (click)="onClearAll()">
-                                <i class="bi bi-x-circle me-2"></i> Clear {{ year() }} Starred Events
+                                <i class="bi bi-x-circle me-2"></i> Clear {{ year() }} Saved Events
                             </button>
                         </div>
                     </div>
@@ -460,7 +460,7 @@
                                 </div>
                                 <h2 class="h5 mb-0 fw-bold">Bulk Update</h2>
                             </div>
-                            <p class="text-muted small">Paste event IDs or URLs to update your {{ year() }} starred events.</p>
+                            <p class="text-muted small">Paste event IDs or URLs to update your {{ year() }} saved events.</p>
                         </div>
                         <div class="card-body px-4 pb-4">
                             <div class="form-group mb-3">
@@ -482,14 +482,14 @@
                                         <input class="form-check-input" type="radio" name="importMode" id="modeGroups" 
                                                [checked]="importMode() === 'groups'" (change)="importMode.set('groups')">
                                         <label class="form-check-label small fw-bold text-dark" for="modeGroups">
-                                            Import as Groups <i class="bi bi-question-circle text-muted ms-1" title="This will star all sessions of the game, not just the specific sessions provided."></i>
+                                            Import as Groups <i class="bi bi-question-circle text-muted ms-1" title="This will save all sessions of the game, not just the specific sessions provided."></i>
                                         </label>
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="importMode" id="modeEvents" 
                                                [checked]="importMode() === 'events'" (change)="importMode.set('events')">
                                         <label class="form-check-label small fw-bold text-dark" for="modeEvents">
-                                            Import as Specific Sessions <i class="bi bi-question-circle text-muted ms-1" title="Stars only the specific event IDs provided."></i>
+                                            Import as Specific Sessions <i class="bi bi-question-circle text-muted ms-1" title="Saves only the specific event IDs provided."></i>
                                         </label>
                                     </div>
                                     <div class="form-check">

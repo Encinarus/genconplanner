@@ -65,6 +65,9 @@ type CalendarEventCluster struct {
 	ShortCategory    string    `json:"shortCategory"`
 	ShortDescription string    `json:"shortDescription"`
 	SimilarCount     int       `json:"similarCount"`
+	Location         string    `json:"location"`
+	RoomName         string    `json:"roomName"`
+	TableNumber      string    `json:"tableNumber"`
 }
 
 type CalendarMetadata struct {

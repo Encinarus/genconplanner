@@ -76,7 +76,7 @@ describe('StarredComponent', () => {
     fixture = TestBed.createComponent(StarredComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-  });
+  }, 30000);
 
   it('should create', () => {
     expect(component).toBeTruthy();

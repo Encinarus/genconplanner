@@ -14,8 +14,8 @@
                     {{if $active}}
                     <button type="button"
                         class="event-btn btn btn-light btn-sm sm-star event-btn border {{ if $session.IsStarred }}active{{ end }}"
-                        id="star-{{ $session.EventId }}"
-                        onclick="javascript:starEvent('{{$session.EventId}}')">
+                        id="save-{{ $session.EventId }}"
+                        onclick="javascript:saveEvent('{{$session.EventId}}')">
                         <span class="material-icons" style="font-size: 1.1rem">{{ if $session.IsStarred }}star{{ else }}star_outline{{ end }}</span>
                     </button>
                     {{end}}
@@ -61,8 +61,8 @@
         <div style="display:inline-block;">
             <button type="button"
                     class="btn btn-light btn-md sm-star border {{ if .allStarred }}active{{ end }}"
-                    id="star-all"
-                    onclick="javascript:starEvent('{{ $e.EventId }}', true)"
+                    id="save-all"
+                    onclick="javascript:saveEvent('{{ $e.EventId }}', true)"
             ><span class="material-icons" style="font-size: 1.2rem">{{ if .allStarred }}star{{else}}star_outline{{ end }}</span>
             </button>
         </div>
@@ -215,11 +215,11 @@
         $('li.noTickets').toggle();
     }
 
-    function starEvent(eventId, all) {
+    function saveEvent(eventId, all) {
         ensureLogin(function() {
-            var buttonId = '#star-' + eventId;
+            var buttonId = '#save-' + eventId;
             if (all) {
-                buttonId = '#star-all';
+                buttonId = '#save-all';
             }
             var isStarred = $(buttonId).hasClass('active');
             $(buttonId).blur();
@@ -234,36 +234,36 @@
                     related: all,
                 },
             }).done(function(data){
-                updateStarred(data);
+                updateSaved(data);
             });
         });
     }
 
-    function updateStarred(data) {
-        let starButtons = $(".event-btn").toArray().map(b => b.id);
-        let toStar = []
+    function updateSaved(data) {
+        let saveButtons = $(".event-btn").toArray().map(b => b.id);
+        let toSave = []
         if (data != null && data['StarredEvents'] != null) {
-            toStar = data['StarredEvents'].map(e => "star-" + e.EventId);
+            toSave = data['StarredEvents'].map(e => "save-" + e.EventId);
         }
 
-        let starredCount = 0;
-        for (let i in starButtons) {
-            let buttonId = starButtons[i];
-            let needStar = toStar.includes(buttonId);
-            if (needStar) {
-                starredCount++;
+        let savedCount = 0;
+        for (let i in saveButtons) {
+            let buttonId = saveButtons[i];
+            let needSave = toSave.includes(buttonId);
+            if (needSave) {
+                savedCount++;
             }
-            fixButtonStar(buttonId, needStar);
+            fixButtonSave(buttonId, needSave);
         }
 
-        fixButtonStar("star-all", starredCount === starButtons.length);
+        fixButtonSave("save-all", savedCount === saveButtons.length);
     }
 
-    function fixButtonStar(buttonId, isStarred) {
+    function fixButtonSave(buttonId, isSaved) {
         buttonId = "#" + buttonId
         let starId = buttonId + " span";
 
-        if (isStarred) {
+        if (isSaved) {
             $(buttonId).addClass('active');
             $(starId)[0].innerText = 'star';
         } else {
@@ -278,7 +278,7 @@
             type: 'GET',
             dataType: 'json',
         }).done(function(data){
-            updateStarred(data);
+            updateSaved(data);
         });
         updateSigninWidget();
     });

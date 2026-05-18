@@ -47,6 +47,9 @@ type StarredEventDetail struct {
 	Tier             string `json:"tier"`
 	GroupTier        string `json:"groupTier"`
 	IsOverride       bool   `json:"isOverride"`
+	Location         string `json:"location"`
+	RoomName         string `json:"roomName"`
+	TableNumber      string `json:"tableNumber"`
 }
 
 type StarredPageData struct {
@@ -289,6 +292,9 @@ func (s *Server) GetStarredCalendarEvents(c *gin.Context) {
 			ShortCategory:    cluster.ShortCategory,
 			ShortDescription: cluster.ShortDescription,
 			SimilarCount:     cluster.SimilarCount,
+			Location:         cluster.Location,
+			RoomName:         cluster.RoomName,
+			TableNumber:      cluster.TableNumber,
 		})
 	}
 
@@ -354,6 +360,9 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 			Tier:             se.Tier,
 			GroupTier:        se.GroupTier,
 			IsOverride:       se.IsOverride,
+			Location:         e.Location,
+			RoomName:         e.RoomName,
+			TableNumber:      e.TableNumber,
 		})
 	}
 
@@ -436,6 +445,9 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 			Tier:             tier,
 			GroupTier:        groupTier,
 			IsOverride:       isOverride,
+			Location:         e.Location,
+			RoomName:         e.RoomName,
+			TableNumber:      e.TableNumber,
 		})
 	}
 
@@ -450,6 +462,9 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 			ShortCategory:    cluster.ShortCategory,
 			ShortDescription: cluster.ShortDescription,
 			SimilarCount:     cluster.SimilarCount,
+			Location:         cluster.Location,
+			RoomName:         cluster.RoomName,
+			TableNumber:      cluster.TableNumber,
 		})
 	}
 
@@ -604,6 +619,9 @@ func (s *Server) GetAgenda(c *gin.Context) {
 			Tier:             entry.Tier,
 			GroupTier:        entry.Tier,
 			IsOverride:       true,
+			Location:         entry.Event.Location,
+			RoomName:         entry.Event.RoomName,
+			TableNumber:      entry.Event.TableNumber,
 		})
 	}
 
@@ -1163,6 +1181,9 @@ func (s *Server) GetWishlist(c *gin.Context) {
 					GenconUrl:        entry.GenconLink(),
 					PlannerUrl:       entry.PlannerLink(),
 					Tier:             starred.GetTier(entry.EventId),
+					Location:         entry.Location,
+					RoomName:         entry.RoomName,
+					TableNumber:      entry.TableNumber,
 				},
 				Status:    item.Status,
 				Reasoning: item.Reasoning,
@@ -1213,6 +1234,9 @@ func (s *Server) GetWishlist(c *gin.Context) {
 					GenconUrl:        item.Event.GenconLink(),
 					PlannerUrl:       item.Event.PlannerLink(),
 					Tier:             starred.GetTier(item.Event.EventId),
+					Location:         item.Event.Location,
+					RoomName:         item.Event.RoomName,
+					TableNumber:      item.Event.TableNumber,
 				},
 				Status:    item.Status,
 				Reasoning: item.Reasoning,

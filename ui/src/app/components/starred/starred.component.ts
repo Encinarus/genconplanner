@@ -116,6 +116,7 @@ export class StarredComponent implements OnInit {
   // Store metadata to help with view jumps
   private metadata: { startDate: string, endDate: string } | null = null;
   private hasWednesday: boolean = false;
+  private initialFilterSet: boolean = false;
 
   calendarOptions = signal<CalendarOptions>({
     plugins: [dayGridPlugin, timeGridPlugin, bootstrap5Plugin, interactionPlugin],
@@ -158,9 +159,11 @@ export class StarredComponent implements OnInit {
     eventDidMount: (info) => {
       const props = info.event.extendedProps;
       const description = props['description'];
+      const location = props['location'];
+      const cleanTitle = props['cleanTitle'] || info.event.title;
       
       let content = description || '';
-      let title = info.event.title;
+      let title = cleanTitle;
 
       if (props['isWishlist']) {
         info.el.style.setProperty('--event-bg-color', info.event.backgroundColor);
@@ -169,14 +172,23 @@ export class StarredComponent implements OnInit {
         const eventId = props['eventId'];
         const reasoning = (props['reasoning'] || []).join(', ');
 
-        title = `#${rank}: ${title}`;
+        title = `#${rank}: ${cleanTitle}`;
         content = `
           <div class="small">
             <div class="mb-1"><strong>ID:</strong> ${eventId}</div>
             <div class="mb-1"><strong>Status:</strong> <span class="badge ${status === 'Primary' ? 'bg-success' : 'bg-secondary'}">${status}</span></div>
             <div class="mb-1"><strong>Reasoning:</strong> ${reasoning}</div>
+            ${location ? `<div class="mb-1"><strong>Location:</strong> ${location}</div>` : ''}
             <hr class="my-1">
             <div>${description}</div>
+          </div>
+        `;
+      } else if (location) {
+        content = `
+          <div class="small">
+            <div class="mb-1"><strong>Location:</strong> ${location}</div>
+            <hr class="my-1">
+            <div>${description || ''}</div>
           </div>
         `;
       }
@@ -244,7 +256,7 @@ export class StarredComponent implements OnInit {
   };
 
   constructor() {
-    this.titleService.setTitle('Starred Events');
+    this.titleService.setTitle('Saved Events');
     
     // React to data changes from the service (cache or API)
     effect(() => {
@@ -252,6 +264,15 @@ export class StarredComponent implements OnInit {
       const currentYear = this.year();
       
       if (data && data.year === currentYear) {
+        if (!this.initialFilterSet) {
+          const hasPurchased = (data.individualEvents || []).some(e => e.tier === 'purchased');
+          if (hasPurchased) {
+            this.tierFilter.set('purchased');
+          } else {
+            this.tierFilter.set('all');
+          }
+          this.initialFilterSet = true;
+        }
         this.processData(data);
         this.loading.set(false);
       } else {
@@ -326,8 +347,17 @@ export class StarredComponent implements OnInit {
             if (hideBackups && item.status === 'Backup') return;
             
             const event = item.event;
+            let displayTitle = event.title;
+            let locationStr = '';
+            if (event.tier === 'purchased') {
+              const locationParts = [event.location, event.roomName, event.tableNumber].filter(Boolean);
+              if (locationParts.length > 0) {
+                locationStr = locationParts.join(' / ');
+                displayTitle = `${event.title}\n📍 ${locationStr}`;
+              }
+            }
             allClusters.push({
-                title: event.title,
+                title: displayTitle,
                 start: event.startTime,
                 end: event.endTime,
                 url: this.linkService.getEventUrl(event.eventId),
@@ -342,7 +372,9 @@ export class StarredComponent implements OnInit {
                     status: item.status,
                     reasoning: item.reasoning,
                     eventId: event.eventId,
-                    category: event.categoryCode
+                    category: event.categoryCode,
+                    location: locationStr,
+                    cleanTitle: event.title
                 }
             });
         });
@@ -507,6 +539,7 @@ export class StarredComponent implements OnInit {
       const newYear = +params['year'] || new Date().getFullYear();
       if (this.year() !== newYear) {
         this.year.set(newYear);
+        this.initialFilterSet = false;
       }
 
       const tab = params['tab'];
@@ -643,7 +676,7 @@ export class StarredComponent implements OnInit {
 
   onClearAll(): void {
     const year = this.year();
-    if (confirm(`Are you sure you want to clear all starred events for ${year}?`)) {
+    if (confirm(`Are you sure you want to clear all saved events for ${year}?`)) {
       this.starredService.bulkClear(year).subscribe({
         next: () => {
           this.viewMode.set('list');
@@ -682,9 +715,9 @@ export class StarredComponent implements OnInit {
     const uniqueIds = [...new Set(matches)];
     let confirmMsg = `Identify ${uniqueIds.length} unique events for ${year}. `;
     if (overwrite) {
-      confirmMsg += "This will FULLY REPLACE your current starred events. Are you sure?";
+      confirmMsg += "This will FULLY REPLACE your current saved events. Are you sure?";
     } else {
-      confirmMsg += "This will add these events to your current starred events. Proceed?";
+      confirmMsg += "This will add these events to your current saved events. Proceed?";
     }
 
     if (confirm(confirmMsg)) {
@@ -729,13 +762,13 @@ export class StarredComponent implements OnInit {
   }
 
   unstarEvent(eventId: string): void {
-    if (confirm('Are you sure you want to unstar this event session?')) {
+    if (confirm('Are you sure you want to unsave this event session?')) {
         this.starredService.toggleStar(eventId, this.year(), false);
     }
   }
 
   unstarEventGroup(evGroup: any): void {
-    if (confirm(`Are you sure you want to unstar all sessions of "${evGroup.title}"?`)) {
+    if (confirm(`Are you sure you want to unsave all sessions of "${evGroup.title}"?`)) {
         this.starredService.unstarGroup(evGroup.repEventId, this.year());
     }
   }
@@ -777,8 +810,17 @@ export class StarredComponent implements OnInit {
           }
           clusters.push(currentCluster);
         }
+        let displayTitle = event.title;
+        let locationStr = '';
+        if (event.tier === 'purchased') {
+          const locationParts = [event.location, event.roomName, event.tableNumber].filter(Boolean);
+          if (locationParts.length > 0) {
+            locationStr = locationParts.join(' / ');
+            displayTitle = `${event.title}\n📍 ${locationStr}`;
+          }
+        }
         currentCluster = {
-          title: event.title,
+          title: displayTitle,
           start: event.startTime,
           end: event.endTime,
           url: this.linkService.getEventUrl(event.eventId),
@@ -787,7 +829,9 @@ export class StarredComponent implements OnInit {
           extendedProps: {
             description: event.shortDescription,
             similarCount: 1,
-            tier: event.tier || 'very_interested'
+            tier: event.tier || 'very_interested',
+            location: locationStr,
+            cleanTitle: event.title
           }
         };
       } else {

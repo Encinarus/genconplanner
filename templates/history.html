@@ -47,7 +47,7 @@
 
 <html>
 <head>
-    {{ template "header" "Starred Events"}}
+    {{ template "header" "Saved Events"}}
     <script>
         const colors = new Map([
             ['ANI', '#A9177E'],
@@ -79,7 +79,7 @@
 {{ template "navbar" .context }}
 
 <div class="container">
-    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">Past starred events</h1>
+    <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom">Past saved events</h1>
     <ul class="nav nav-tabs nav-fill" id="starredgroup">
         <li class="nav-item">
             <a href="#by-year-tab" class="nav-link active" role="tab" data-toggle="tab" aria-current="page" aria-controls="calendar-tab" aria-selected="true">By year</a>
@@ -97,15 +97,15 @@
             <!-- Tab panes -->
             <div class="tab-content" id="starredgroupContent">
                 <div class="tab-pane active mt-4" id="by-year-tab">
-                    <h3>Starred Events By Year</h3>
+                    <h3>Saved Events By Year</h3>
                     <p>TODO</p>
                 </div>
                 <div class="tab-pane active mt-4" id="by-organizer-tab">
-                    <h3>Starred Events By Organizer</h3>
+                    <h3>Saved Events By Organizer</h3>
                     <p>TODO</p>
                 </div>
                 <div class="tab-pane active mt-4" id="by-type-tab">
-                    <h3>Starred Events By Type</h3>
+                    <h3>Saved Events By Type</h3>
                     <p>TODO</p>
                 </div>
             </div>

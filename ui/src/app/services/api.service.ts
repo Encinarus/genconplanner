@@ -46,6 +46,9 @@ export interface CalendarEvent {
   shortCategory: string;
   shortDescription: string;
   similarCount: number;
+  location?: string;
+  roomName?: string;
+  tableNumber?: string;
 }
 
 export interface StarredEventDetail {
@@ -60,6 +63,9 @@ export interface StarredEventDetail {
   tier: string;
   groupTier: string;
   isOverride: boolean;
+  location?: string;
+  roomName?: string;
+  tableNumber?: string;
 }
 
 export interface CalendarMetadata {

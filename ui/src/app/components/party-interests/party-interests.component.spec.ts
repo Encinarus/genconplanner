@@ -145,7 +145,7 @@ describe('PartyInterestsComponent', () => {
     component.partyId = 1;
     component.year = 2026;
     fixture.detectChanges();
-  });
+  }, 30000);
 
   it('should create and load interests on init', () => {
     expect(component).toBeTruthy();

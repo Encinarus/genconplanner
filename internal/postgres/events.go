@@ -23,6 +23,9 @@ type CalendarEventCluster struct {
 	ShortCategory    string
 	ShortDescription string
 	SimilarCount     int
+	Location         string
+	RoomName         string
+	TableNumber      string
 }
 
 func newClusterForEvent(event *events.GenconEvent) *CalendarEventCluster {
@@ -36,6 +39,9 @@ func newClusterForEvent(event *events.GenconEvent) *CalendarEventCluster {
 		ShortCategory:    event.ShortCategory,
 		ShortDescription: event.ShortDescription,
 		SimilarCount:     1,
+		Location:         event.Location,
+		RoomName:         event.RoomName,
+		TableNumber:      event.TableNumber,
 	}
 }
 

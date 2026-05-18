@@ -54,7 +54,7 @@
             <div *ngIf="catGroups.length === 0" class="text-center py-5 bg-white rounded-4 shadow-sm border p-4 flex-shrink-0">
                 <i class="bi bi-calendar-x text-muted fs-1 mb-3 d-block"></i>
                 <h3 class="h5 fw-bold text-dark">No shared events found</h3>
-                <p class="text-muted small mb-0">Try adjusting your category filters, or star some events in the convention catalog!</p>
+                <p class="text-muted small mb-0">Try adjusting your category filters, or save some events in the convention catalog!</p>
             </div>
 
             <div class="event-cards-list d-flex flex-column pe-1 position-relative" style="height: calc(100vh - 309px); overflow-y: auto;" (scroll)="onListScroll($event)">

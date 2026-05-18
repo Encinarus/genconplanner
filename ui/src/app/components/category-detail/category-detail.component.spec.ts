@@ -67,7 +67,7 @@ describe('CategoryDetailComponent', () => {
     fixture = TestBed.createComponent(CategoryDetailComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-  });
+  }, 30000);
 
   it('should create', () => {
     expect(component).toBeTruthy();

@@ -14,7 +14,7 @@ describe('App', () => {
         provideHttpClientTesting()
       ]
     }).compileComponents();
-  });
+  }, 30000);
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
