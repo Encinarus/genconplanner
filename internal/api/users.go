@@ -36,20 +36,21 @@ type UserEvents struct {
 }
 
 type StarredEventDetail struct {
-	EventId          string `json:"eventId"`
-	Title            string `json:"title"`
-	ShortDescription string `json:"shortDescription"`
-	CategoryCode     string `json:"categoryCode"`
-	StartTime        string `json:"startTime"`
-	EndTime          string `json:"endTime"`
-	GenconUrl        string `json:"genconUrl"`
-	PlannerUrl       string `json:"plannerUrl"`
-	Tier             string `json:"tier"`
-	GroupTier        string `json:"groupTier"`
-	IsOverride       bool   `json:"isOverride"`
-	Location         string `json:"location"`
-	RoomName         string `json:"roomName"`
-	TableNumber      string `json:"tableNumber"`
+	EventId          string                    `json:"eventId"`
+	Title            string                    `json:"title"`
+	ShortDescription string                    `json:"shortDescription"`
+	CategoryCode     string                    `json:"categoryCode"`
+	StartTime        string                    `json:"startTime"`
+	EndTime          string                    `json:"endTime"`
+	GenconUrl        string                    `json:"genconUrl"`
+	PlannerUrl       string                    `json:"plannerUrl"`
+	Tier             string                    `json:"tier"`
+	GroupTier        string                    `json:"groupTier"`
+	IsOverride       bool                      `json:"isOverride"`
+	Location         string                    `json:"location"`
+	RoomName         string                    `json:"roomName"`
+	TableNumber      string                    `json:"tableNumber"`
+	PartyMembers     []postgres.MemberInterest `json:"partyMembers"`
 }
 
 type StarredPageData struct {
@@ -315,6 +316,48 @@ func (s *Server) GetCalendarMetadata(c *gin.Context) {
 	})
 }
 
+func (s *Server) getEventPartyMembers(email string, year int) map[string][]postgres.MemberInterest {
+	eventToPartyMembers := make(map[string][]postgres.MemberInterest)
+	user, err := s.Repo.LoadOrCreateUser(email)
+	if err != nil {
+		return eventToPartyMembers
+	}
+	dbParties, err := s.Repo.LoadParties(user)
+	if err != nil {
+		return eventToPartyMembers
+	}
+	var partyId int64
+	for _, p := range dbParties {
+		if p.Year == int64(year) {
+			partyId = p.Id
+			break
+		}
+	}
+	if partyId == 0 {
+		return eventToPartyMembers
+	}
+	partyInterests, err := s.Repo.LoadPartySharedInterests(partyId, year)
+	if err != nil {
+		return eventToPartyMembers
+	}
+
+	for _, group := range partyInterests {
+		var members []postgres.MemberInterest
+		for _, m := range group.MemberInterests {
+			if strings.ToLower(m.Email) != strings.ToLower(email) && m.Tier != "not_interested" {
+				members = append(members, m)
+			}
+		}
+		if len(members) == 0 {
+			members = make([]postgres.MemberInterest, 0)
+		}
+		for _, eventId := range group.AllEventIds {
+			eventToPartyMembers[eventId] = members
+		}
+	}
+	return eventToPartyMembers
+}
+
 func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 	email := GetUserEmail(c)
 	yearParam := c.Param("year")
@@ -337,6 +380,7 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 		return
 	}
 
+	partyMembersMap := s.getEventPartyMembers(email, year)
 	results := make([]StarredEventDetail, 0)
 	starredIds, _ := s.Repo.GetStarredIds(email, year)
 	starredMap := make(map[string]postgres.StarredEvent)
@@ -348,6 +392,10 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 
 	for _, e := range dbEvents {
 		se := starredMap[e.EventId]
+		pm, found := partyMembersMap[e.EventId]
+		if !found {
+			pm = make([]postgres.MemberInterest, 0)
+		}
 		results = append(results, StarredEventDetail{
 			EventId:          e.EventId,
 			Title:            e.Title,
@@ -363,6 +411,7 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 			Location:         e.Location,
 			RoomName:         e.RoomName,
 			TableNumber:      e.TableNumber,
+			PartyMembers:     pm,
 		})
 	}
 
@@ -418,6 +467,7 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 	data.StarredClusters = make([]string, 0)
 	data.StarredEvents = make([]string, 0)
 
+	partyMembersMap := s.getEventPartyMembers(email, year)
 	for _, e := range dbEvents {
 		tier := ""
 		groupTier := ""
@@ -431,6 +481,11 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 					break
 				}
 			}
+		}
+
+		pm, found := partyMembersMap[e.EventId]
+		if !found {
+			pm = make([]postgres.MemberInterest, 0)
 		}
 
 		data.IndividualEvents = append(data.IndividualEvents, StarredEventDetail{
@@ -448,6 +503,7 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 			Location:         e.Location,
 			RoomName:         e.RoomName,
 			TableNumber:      e.TableNumber,
+			PartyMembers:     pm,
 		})
 	}
 
@@ -605,8 +661,13 @@ func (s *Server) GetAgenda(c *gin.Context) {
 		return
 	}
 
+	partyMembersMap := s.getEventPartyMembers(email, year)
 	results := make([]StarredEventDetail, 0)
 	for _, entry := range dbAgenda {
+		pm, found := partyMembersMap[entry.Event.EventId]
+		if !found {
+			pm = make([]postgres.MemberInterest, 0)
+		}
 		results = append(results, StarredEventDetail{
 			EventId:          entry.Event.EventId,
 			Title:            entry.Event.Title,
@@ -622,6 +683,7 @@ func (s *Server) GetAgenda(c *gin.Context) {
 			Location:         entry.Event.Location,
 			RoomName:         entry.Event.RoomName,
 			TableNumber:      entry.Event.TableNumber,
+			PartyMembers:     pm,
 		})
 	}
 
@@ -1157,6 +1219,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 	if err == nil && !dirty {
 		// Convert cache to results
 		results = make([]WishlistItem, 0, len(cache))
+		partyMembersMap := s.getEventPartyMembers(email, year)
 		for _, item := range cache {
 			dbEvents, _ := s.Repo.LoadSimilarEvents(item.EventId, "")
 			var entry *events.GenconEvent
@@ -1168,6 +1231,11 @@ func (s *Server) GetWishlist(c *gin.Context) {
 			}
 			if entry == nil {
 				continue
+			}
+
+			pm, found := partyMembersMap[entry.EventId]
+			if !found {
+				pm = make([]postgres.MemberInterest, 0)
 			}
 
 			results = append(results, WishlistItem{
@@ -1184,6 +1252,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 					Location:         entry.Location,
 					RoomName:         entry.RoomName,
 					TableNumber:      entry.TableNumber,
+					PartyMembers:     pm,
 				},
 				Status:    item.Status,
 				Reasoning: item.Reasoning,
@@ -1221,8 +1290,13 @@ func (s *Server) GetWishlist(c *gin.Context) {
 		}
 		s.Repo.SaveWishlistCache(email, year, cacheItems)
 
+		partyMembersMap := s.getEventPartyMembers(email, year)
 		results = make([]WishlistItem, 0, len(optimized))
 		for _, item := range optimized {
+			pm, found := partyMembersMap[item.Event.EventId]
+			if !found {
+				pm = make([]postgres.MemberInterest, 0)
+			}
 			results = append(results, WishlistItem{
 				Event: StarredEventDetail{
 					EventId:          item.Event.EventId,
@@ -1237,6 +1311,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 					Location:         item.Event.Location,
 					RoomName:         item.Event.RoomName,
 					TableNumber:      item.Event.TableNumber,
+					PartyMembers:     pm,
 				},
 				Status:    item.Status,
 				Reasoning: item.Reasoning,

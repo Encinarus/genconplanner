@@ -66,6 +66,7 @@ export interface StarredEventDetail {
   location?: string;
   roomName?: string;
   tableNumber?: string;
+  partyMembers?: { email: string; displayName: string; tier: string }[];
 }
 
 export interface CalendarMetadata {

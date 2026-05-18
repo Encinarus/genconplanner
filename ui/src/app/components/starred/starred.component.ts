@@ -13,6 +13,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 import interactionPlugin from '@fullcalendar/interaction';
+import listPlugin from '@fullcalendar/list';
 import { forkJoin, Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
@@ -119,12 +120,12 @@ export class StarredComponent implements OnInit {
   private initialFilterSet: boolean = false;
 
   calendarOptions = signal<CalendarOptions>({
-    plugins: [dayGridPlugin, timeGridPlugin, bootstrap5Plugin, interactionPlugin],
+    plugins: [dayGridPlugin, timeGridPlugin, bootstrap5Plugin, interactionPlugin, listPlugin],
     initialView: 'genconWeek',
     headerToolbar: {
       left: 'prev,next',
       center: 'title',
-      right: 'timeGridDay,genconWeek'
+      right: 'timeGridDay,genconWeek,genconAgenda'
     },
     customButtons: {
       hideBackups: {
@@ -139,6 +140,42 @@ export class StarredComponent implements OnInit {
         type: 'timeGrid',
         duration: { days: 5 },
         buttonText: 'week',
+      },
+      genconAgenda: {
+        type: 'list',
+        duration: { days: 5 },
+        buttonText: 'agenda',
+        eventContent: (arg) => {
+          const props = arg.event.extendedProps;
+          const cleanTitle = props['cleanTitle'] || arg.event.title;
+          const location = props['location'];
+          const tier = props['tier'] || 'very_interested';
+          const partyMembers: { email: string; displayName: string; tier: string }[] = props['partyMembers'] || [];
+
+          let myInterestLabel = 'Very Interested';
+          let badgeClass = 'bg-primary';
+          if (tier === 'purchased') { myInterestLabel = 'Purchased'; badgeClass = 'bg-warning text-dark'; }
+          else if (tier === 'must_have') { myInterestLabel = 'Must Have'; badgeClass = 'bg-danger'; }
+          else if (tier === 'somewhat_interested') { myInterestLabel = 'Somewhat Interested'; badgeClass = 'bg-secondary'; }
+          else if (tier === 'wishlist') { myInterestLabel = 'Wishlist'; badgeClass = 'bg-info text-dark'; }
+
+          let interestedMembers = partyMembers.filter(m => m.tier !== 'not_interested');
+          if (tier === 'purchased') {
+            interestedMembers = interestedMembers.filter(m => m.tier === 'purchased');
+          }
+          const membersNames = interestedMembers.map(m => m.displayName).join(', ');
+
+          let html = `
+            <div class="d-flex flex-column gap-1 py-1 fc-agenda-item">
+              <div class="fw-bold fs-6"><a href="${arg.event.url || 'javascript:void(0)'}" target="_blank" class="text-dark text-decoration-none">${cleanTitle}</a></div>
+              ${location ? `<div class="small text-muted"><i class="bi bi-geo-alt-fill me-1"></i>${location}</div>` : ''}
+              <div class="small"><strong>My Interest:</strong> <span class="badge ${badgeClass}">${myInterestLabel}</span></div>
+              ${interestedMembers.length > 0 ? `<div class="small text-muted"><i class="bi bi-people-fill me-1"></i><strong>Interested Party Members:</strong> ${membersNames}</div>` : ''}
+            </div>
+          `;
+
+          return { html };
+        }
       }
     },
     scrollTime: '06:00:00',
@@ -157,6 +194,7 @@ export class StarredComponent implements OnInit {
       }
     },
     eventDidMount: (info) => {
+      if (info.view.type === 'genconAgenda') return;
       const props = info.event.extendedProps;
       const description = props['description'];
       const location = props['location'];
@@ -374,7 +412,9 @@ export class StarredComponent implements OnInit {
                     eventId: event.eventId,
                     category: event.categoryCode,
                     location: locationStr,
-                    cleanTitle: event.title
+                    cleanTitle: event.title,
+                    tier: event.tier || 'wishlist',
+                    partyMembers: event.partyMembers || []
                 }
             });
         });
@@ -430,7 +470,7 @@ export class StarredComponent implements OnInit {
           headerToolbar: {
             ...currentToolbar,
             left: expectedLeft,
-            right: 'timeGridDay,genconWeek'
+            right: 'timeGridDay,genconWeek,genconAgenda'
           },
           validRange: {
             start: data.metadata.startDate,
@@ -441,6 +481,10 @@ export class StarredComponent implements OnInit {
             ...options.views,
             genconWeek: {
               ...options.views?.['genconWeek'],
+              duration: { days: duration }
+            },
+            genconAgenda: {
+              ...options.views?.['genconAgenda'],
               duration: { days: duration }
             }
           },
@@ -831,7 +875,8 @@ export class StarredComponent implements OnInit {
             similarCount: 1,
             tier: event.tier || 'very_interested',
             location: locationStr,
-            cleanTitle: event.title
+            cleanTitle: event.title,
+            partyMembers: event.partyMembers || []
           }
         };
       } else {
