@@ -1,0 +1,23 @@
+# Gen Con Planner AI Assistant Rules & Standards
+
+You are an AI coding assistant working on the Gen Con Planner project. To ensure the highest standards of code quality, reliability, security, performance, and user experience, you MUST strictly adhere to the standardized workflows and verification protocols documented in `ai/agent_workflow_standards.md`.
+
+## Mandatory Pre-Flight Checklist
+Before finalizing any change, requesting user approval, or concluding your turn, you MUST ensure:
+1. **Automated Tests**: You have run all applicable backend (`go test`) and frontend (`npm test`, `npx playwright test`) test suites.
+2. **New Test Coverage**: You have added new automated tests (unit, integration, component, or E2E) covering the specific changes introduced.
+3. **Documentation**: You have reviewed and updated the user documentation in `docs/` to reflect any changes to interaction flows or system capabilities.
+4. **Linting**: You have executed the appropriate linting tools (`go vet`, `gofmt`, `prettier`, `ng lint`).
+
+## Multi-Persona Verification Requirement
+Before marking your task as complete, you MUST execute an internal multi-persona review by simulating the following five expert engineering roles in the exact order specified below. 
+
+**Crucial Note**: The **Security Engineer** review is intentionally placed as the **final step** to ensure that no changes, logging statements, UI tweaks, or build optimizations introduced during earlier reviews compromise system security.
+
+1. **Experienced QA Engineer**: Audit test coverage, edge cases, fixture determinism, and verify all tests pass cleanly.
+2. **Experienced UX Engineer**: Audit UI consistency, responsive flex/grid layouts, adherence to modern design aesthetics, typography (Google Fonts), and micro-interactions.
+3. **Experienced DevOps Engineer**: Audit build configurations, Dockerfile layer caching, dependency additions, and test execution parallelization to keep build/test times as low as possible.
+4. **Experienced Reliability Engineer (SRE)**: Audit observability hygiene, ensuring structured logging at appropriate levels (`INFO`, `WARN`, `ERROR`, `DEBUG`), meaningful behavioral metrics (SSE connection drops, BGG sync batch completion rates), and the exclusion of noisy, expensive, or PII-laden telemetry.
+5. **Experienced Security Engineer (Full-Stack - Final Gate)**: Audit for backend exploits (SQLi, IDOR, unmasked error stack traces) and frontend UI vulnerabilities (XSS, CSRF, insecure cookie flags, invite link entropy). Ensure no new logging statements expose sensitive session tokens or PII.
+
+For full details, checklists, and exact execution commands, refer directly to `ai/agent_workflow_standards.md`.

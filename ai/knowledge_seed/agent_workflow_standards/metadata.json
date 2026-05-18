@@ -1,0 +1,9 @@
+{
+  "summary": "Mandatory agent workflow standards, testing requirements, documentation synchronization, and multi-persona review protocols (QA, UX, DevOps, Reliability/SRE, Security) for Gen Con Planner. Security is enforced as the final review gate.",
+  "created_at": "2026-05-18T14:41:00Z",
+  "updated_at": "2026-05-18T14:58:20Z",
+  "references": [
+    "ai/agent_workflow_standards.md",
+    ".cursorrules"
+  ]
+}
