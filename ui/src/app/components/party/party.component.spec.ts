@@ -8,6 +8,7 @@ import { ApiService, Party } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { PartyService } from '../../services/party.service';
 import { Title } from '@angular/platform-browser';
+import { PartyStreamService } from '../../services/party-stream.service';
 
 describe('PartyComponent', () => {
   let component: PartyComponent;
@@ -35,7 +36,8 @@ describe('PartyComponent', () => {
       leaveParty: () => of({ success: true }),
       deleteParty: () => of({ success: true }),
       renameParty: () => of({ success: true }),
-      transferLeadership: () => of({ success: true })
+      transferLeadership: () => of({ success: true }),
+      getPartyInterests: () => of([])
     };
 
     mockAuthService = {
@@ -56,6 +58,13 @@ describe('PartyComponent', () => {
       snapshot: { params: { id: '1' } }
     };
 
+    let mockPartyStreamService = {
+      connect: () => {},
+      disconnect: () => {},
+      latestInterestUpdate: signal(null),
+      streamResumed: signal(0)
+    };
+
     await TestBed.configureTestingModule({
       imports: [PartyComponent],
       providers: [
@@ -64,6 +73,7 @@ describe('PartyComponent', () => {
         { provide: PartyService, useValue: mockPartyService },
         { provide: Router, useValue: mockRouter },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
+        { provide: PartyStreamService, useValue: mockPartyStreamService },
         Title
       ]
     }).compileComponents();
@@ -83,7 +93,7 @@ describe('PartyComponent', () => {
   it('should switch tabs correctly', () => {
     vi.spyOn(mockRouter, 'navigate');
     component.setTab('settings');
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/party', 2026, 'settings']);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/party', 2026, 'settings'], { fragment: undefined });
   });
 
   it('should rename party correctly', () => {

@@ -149,6 +149,7 @@ flowchart TD
   - [ ] **Cross-Site Scripting (XSS)**: Verify that Angular's built-in DOM sanitization is preserved. Audit any use of `bypassSecurityTrustHtml` or direct DOM manipulation introduced during UX polishing.
   - [ ] **Cross-Site Request Forgery (CSRF) & Session Security**: Ensure authentication tokens (`signinToken`) use secure cookie attributes (`HttpOnly`, `Secure`, `SameSite`).
   - [ ] **Access Control & Entropy**: Ensure invitation links and short codes utilize secure, unpredictable random generation to prevent brute-force enumeration.
+  - [ ] **Final Deployment/Restart**: Execute `source .envrc && docker compose up --build -d` to verify the deployment completes successfully.
 
 ---
 

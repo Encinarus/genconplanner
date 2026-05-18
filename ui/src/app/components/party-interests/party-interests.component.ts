@@ -83,8 +83,8 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
     this.partyStream.disconnect();
   }
 
-  loadInterests() {
-    this.loading.set(true);
+  loadInterests(background = false) {
+    if (!background) this.loading.set(true);
     this.api.getPartyInterests(this.partyId, this.year).subscribe({
       next: (groups) => {
         this.groups.set(groups || []);
@@ -94,7 +94,7 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
             const matched = groups.find(g => g.repEventId === fragment || (g.allEventIds && g.allEventIds.includes(fragment)));
             if (matched) {
               this.selectGroup(matched, false);
-              this.loading.set(false);
+              if (!background) this.loading.set(false);
               return;
             }
           }
@@ -105,12 +105,12 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
             this.selectGroup(groups[0], true);
           }
         }
-        this.loading.set(false);
+        if (!background) this.loading.set(false);
       },
       error: (err) => {
         console.error('Error loading party interests:', err);
         this.error.set('Failed to load shared interests.');
-        this.loading.set(false);
+        if (!background) this.loading.set(false);
       }
     });
   }

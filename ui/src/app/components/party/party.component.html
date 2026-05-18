@@ -65,8 +65,8 @@
                            (keyup.enter)="onSaveName()" 
                            (keyup.esc)="editingName.set(false)"
                            style="max-width: 250px;">
-                    <button (click)="onSaveName()" class="btn btn-primary btn-sm rounded-pill px-3">Save</button>
-                    <button (click)="editingName.set(false)" class="btn btn-light btn-sm rounded-pill px-3">Cancel</button>
+                    <button (click)="onSaveName()" class="btn btn-primary btn-sm px-3">Save</button>
+                    <button (click)="editingName.set(false)" class="btn btn-light btn-sm px-3">Cancel</button>
                 </div>
 
                 <div class="d-flex align-items-center gap-2 ms-2">
@@ -80,7 +80,7 @@
             </div>
             
             <div *ngIf="!isMember()" class="d-flex align-items-center">
-                <button (click)="onJoin()" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm hover-scale">
+                <button (click)="onJoin()" class="btn btn-primary btn-sm px-4 shadow-sm hover-scale">
                     <i class="bi bi-person-plus-fill me-2"></i>Join Party
                 </button>
             </div>
@@ -94,18 +94,18 @@
                     <p class="mb-0 small text-muted">Join this party to collaborate on events, coordinate wishlists, and plan your Gen Con schedule together.</p>
                 </div>
             </div>
-            <button (click)="onJoin()" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm hover-scale ms-3">
+            <button (click)="onJoin()" class="btn btn-primary btn-lg px-4 shadow-sm hover-scale ms-3">
                 <i class="bi bi-person-plus-fill me-2"></i>Join Party Now
             </button>
         </div>
 
         <!-- Tab 1: Shared Interests (Events) -->
-        <div *ngIf="activeTab() === 'events'">
+        <div [hidden]="activeTab() !== 'events'">
             <app-party-interests [partyId]="p.id" [year]="p.year"></app-party-interests>
         </div>
 
         <!-- Tab 2: Members List -->
-        <div *ngIf="activeTab() === 'members'" class="section-card p-4 rounded-4 shadow-sm bg-white border animate-fade-in">
+        <div [hidden]="activeTab() !== 'members'" class="card p-4 shadow-sm bg-white border animate-fade-in">
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
                         <h2 class="h4 mb-0 fw-bold d-flex align-items-center">
                             <i class="bi bi-people text-primary me-2"></i>
@@ -121,14 +121,14 @@
                                 </button>
                             </div>
                             
-                            <button *ngIf="!isLeader()" (click)="onLeave()" class="btn btn-outline-danger btn-sm rounded-pill px-3 hover-scale">
+                            <button *ngIf="!isLeader()" (click)="onLeave()" class="btn btn-outline-danger btn-sm px-3 hover-scale">
                                 <i class="bi bi-box-arrow-right me-1"></i>Leave Party
                             </button>
                         </div>
                     </div>
                     
                     <div class="row g-4 mt-2">
-                        <div *ngFor="let member of p.members" class="col-md-6 col-xl-4 animate-slide-up">
+                        <div *ngFor="let member of p.members; trackBy: trackByMemberEmail" class="col-md-6 col-xl-4 animate-slide-up">
                             <div class="contact-card card h-100 border-0 shadow-sm position-relative">
                                 <div class="contact-card-header d-flex align-items-center justify-content-between">
                                     <div class="d-flex align-items-center gap-3 overflow-hidden">
@@ -196,8 +196,8 @@
                                             <input type="email" class="form-control form-control-sm border-primary shadow-sm" [(ngModel)]="tempMemberGenconEmail" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="e.g. user@example.com">
                                         </div>
                                         <div class="d-flex gap-2 mt-2 pt-2 border-top">
-                                            <button (click)="onSaveMember(member)" class="btn btn-primary btn-sm px-3 rounded-pill shadow-sm flex-grow-1 fw-medium">Save</button>
-                                            <button (click)="onCancelEditMember()" class="btn btn-light btn-sm px-3 rounded-pill shadow-sm flex-grow-1 fw-medium">Cancel</button>
+                                            <button (click)="onSaveMember(member)" class="btn btn-primary btn-sm px-3 shadow-sm flex-grow-1 fw-medium">Save</button>
+                                            <button (click)="onCancelEditMember()" class="btn btn-light btn-sm px-3 shadow-sm flex-grow-1 fw-medium">Cancel</button>
                                         </div>
                                     </div>
                                 </div>
@@ -207,14 +207,14 @@
                 </div>
 
                 <!-- Tab 3: Calendar / War Room -->
-                <div *ngIf="activeTab() === 'calendar'" class="section-card p-5 rounded-4 shadow-sm bg-white border text-center animate-fade-in">
+                <div [hidden]="activeTab() !== 'calendar'" class="card p-5 shadow-sm bg-white border text-center animate-fade-in">
                     <i class="bi bi-calendar2-week text-muted fs-1 mb-3 d-block"></i>
                     <h2 class="h4 fw-bold text-dark mb-2">War Room Calendar</h2>
                     <p class="text-muted small mb-0">The full real-time coordination calendar and event booking dashboard will be available in Phase 7!</p>
                 </div>
 
                 <!-- Tab 4: Settings -->
-                <div *ngIf="activeTab() === 'settings' && isLeader()" class="section-card p-4 rounded-4 shadow-sm bg-white border animate-fade-in">
+                <div [hidden]="activeTab() !== 'settings' || !isLeader()" class="card p-4 shadow-sm bg-white border animate-fade-in">
                     <h2 class="h4 mb-4 fw-bold d-flex align-items-center text-dark">
                         <i class="bi bi-gear text-primary me-2"></i>
                         Party Administration
@@ -222,7 +222,7 @@
 
                     <div class="row g-4">
                         <div class="col-md-6">
-                            <div class="p-4 bg-light rounded-4 border h-100">
+                            <div class="p-4 bg-light card border h-100">
                                 <h3 class="h6 fw-bold mb-3 d-flex align-items-center text-dark">
                                     <i class="bi bi-person-badge text-primary me-2"></i>Transfer Leadership
                                 </h3>
@@ -233,12 +233,12 @@
                                         {{ m.displayName }} ({{ m.email }})
                                     </option>
                                 </select>
-                                <button (click)="onTransferLeadership()" class="btn btn-primary rounded-pill px-4 shadow-sm" [disabled]="!newLeaderEmail()">Confirm Transfer</button>
+                                <button (click)="onTransferLeadership()" class="btn btn-primary px-4 shadow-sm" [disabled]="!newLeaderEmail()">Confirm Transfer</button>
                             </div>
                         </div>
 
                         <div class="col-md-6">
-                            <div class="p-4 bg-danger-subtle rounded-4 border border-danger-subtle h-100 d-flex flex-column justify-content-between">
+                            <div class="p-4 bg-danger-subtle card border border-danger-subtle h-100 d-flex flex-column justify-content-between">
                                 <div>
                                     <h3 class="h6 fw-bold mb-3 d-flex align-items-center text-danger">
                                         <i class="bi bi-trash3-fill me-2"></i>Delete Party
@@ -246,7 +246,7 @@
                                     <p class="smaller text-danger-emphasis mb-3">Permanently delete this party. All shared lists and member associations will be removed.</p>
                                 </div>
                                 <div>
-                                    <button (click)="onDelete()" class="btn btn-danger rounded-pill px-4 shadow-sm" [disabled]="p.members.length > 1">Delete Party</button>
+                                    <button (click)="onDelete()" class="btn btn-danger px-4 shadow-sm" [disabled]="p.members.length > 1">Delete Party</button>
                                     <p *ngIf="p.members.length > 1" class="smaller text-danger mt-2 mb-0">Must be the last member to delete</p>
                                 </div>
                             </div>

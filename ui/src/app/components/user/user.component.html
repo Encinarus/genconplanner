@@ -1,6 +1,6 @@
 <div class="container py-5">
     <!-- Header Section -->
-    <div class="profile-header mb-5 p-4 rounded-4 shadow-sm bg-white border d-flex align-items-center">
+    <div class="profile-header mb-5 p-4 shadow-sm bg-white border d-flex align-items-center card">
         <div class="profile-avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-4 shadow-sm">
             <span class="fs-1 fw-bold">{{ displayName()?.charAt(0) || 'U' }}</span>
         </div>
@@ -64,7 +64,7 @@
     </div>
 
     <!-- My Agenda Section -->
-    <div class="section-card p-4 rounded-4 shadow-sm bg-white border mb-4">
+    <div class="card p-4 shadow-sm bg-white border mb-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="h4 mb-0 fw-bold d-flex align-items-center">
                 <i class="bi bi-calendar3 text-primary me-2"></i>
@@ -86,7 +86,7 @@
     <div class="row g-4">
         <!-- Parties List Section -->
         <div class="col-lg-8">
-            <div class="section-card p-4 rounded-4 shadow-sm bg-white border h-100">
+            <div class="card p-4 shadow-sm bg-white border h-100">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="h4 mb-0 fw-bold d-flex align-items-center">
                         <i class="bi bi-people-fill text-primary me-2"></i>
@@ -141,7 +141,7 @@
 
         <!-- Create Party Sidebar -->
         <div class="col-lg-4">
-            <div class="section-card p-4 rounded-4 shadow-sm bg-white border sticky-top" style="top: 100px; z-index: 10;">
+            <div class="card p-4 shadow-sm bg-white border sticky-top" style="top: 100px; z-index: 10;">
                 <h2 class="h5 mb-4 fw-bold d-flex align-items-center">
                     <i class="bi bi-plus-circle-fill text-success me-2"></i>
                     Start a Party

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -45,15 +45,26 @@ export class PartyComponent implements OnInit {
   tempMemberGenconId = signal<string>('');
   tempMemberGenconEmail = signal<string>('');
 
+  @ViewChild(PartyInterestsComponent) partyInterests?: PartyInterestsComponent;
+
   ngOnInit() {
     this.route.params.subscribe(params => {
       const id = params['id'];
-      if (id) {
+      if (id && (!this.party() || (this.party()!.id.toString() !== id.toString() && this.party()!.year.toString() !== id.toString() && this.party()!.shortCode !== id.toString()))) {
         this.loadParty(id);
       }
       const tab = params['tab'];
       if (tab && ['events', 'members', 'calendar', 'settings'].includes(tab)) {
+        const oldTab = this.activeTab();
         this.activeTab.set(tab as any);
+
+        if (oldTab !== tab && this.party()) {
+          if (tab === 'events' && this.partyInterests) {
+            this.partyInterests.loadInterests(true);
+          } else if (tab === 'members' || tab === 'settings') {
+            this.loadParty(this.party()!.id, true);
+          }
+        }
       }
     });
   }
@@ -61,7 +72,9 @@ export class PartyComponent implements OnInit {
   setTab(tab: 'events' | 'members' | 'calendar' | 'settings') {
     const p = this.party();
     if (p) {
-      this.router.navigate(['/party', p.year, tab]);
+      // Explicitly clear fragment when switching away from events
+      const fragment = tab === 'events' ? this.route.snapshot.fragment : undefined;
+      this.router.navigate(['/party', p.year, tab], { fragment: fragment || undefined });
     } else {
       const id = this.route.snapshot.params['id'];
       if (id) {
@@ -70,14 +83,14 @@ export class PartyComponent implements OnInit {
     }
   }
 
-  loadParty(id: string | number) {
-    this.loading.set(true);
+  loadParty(id: string | number, background = false) {
+    if (!background) this.loading.set(true);
     this.api.getParty(id).subscribe({
       next: (party) => {
         this.party.set(party);
         this.titleService.setTitle(`Party: ${party.name}`);
         this.updateRoles();
-        this.loading.set(false);
+        if (!background) this.loading.set(false);
 
         const currentParam = this.route.snapshot.params['id'];
         if (this.isMember() && currentParam !== party.year.toString()) {
@@ -87,7 +100,7 @@ export class PartyComponent implements OnInit {
       error: (err) => {
         console.error('Error loading party:', err);
         this.error.set('Failed to load party details.');
-        this.loading.set(false);
+        if (!background) this.loading.set(false);
       }
     });
   }
@@ -232,5 +245,9 @@ export class PartyComponent implements OnInit {
       },
       error: (err) => alert('Failed to update member info: ' + (err.error?.error || err.message))
     });
+  }
+
+  trackByMemberEmail(index: number, member: PartyMember): string {
+    return member.email;
   }
 }

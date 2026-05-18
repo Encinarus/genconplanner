@@ -4,21 +4,21 @@
         <div class="col-md-7">
             <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="text-muted small fw-medium text-nowrap">My Interest:</span>
-                <div class="btn-group shadow-sm rounded-pill p-1 bg-white border" role="group">
-                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'all'" [class.btn-light]="myInterestFilter() !== 'all'" (click)="myInterestFilter.set('all')">All</button>
-                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'unrated'" [class.btn-light]="myInterestFilter() !== 'unrated'" (click)="myInterestFilter.set('unrated')">Unrated</button>
-                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'purchased'" [class.btn-light]="myInterestFilter() !== 'purchased'" (click)="myInterestFilter.set('purchased')">🎟️</button>
-                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'must_have'" [class.btn-light]="myInterestFilter() !== 'must_have'" (click)="myInterestFilter.set('must_have')">❤️</button>
-                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'very_interested'" [class.btn-light]="myInterestFilter() !== 'very_interested'" (click)="myInterestFilter.set('very_interested')">⭐</button>
-                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'somewhat_interested'" [class.btn-light]="myInterestFilter() !== 'somewhat_interested'" (click)="myInterestFilter.set('somewhat_interested')">👍</button>
-                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="myInterestFilter() === 'not_interested'" [class.btn-light]="myInterestFilter() !== 'not_interested'" (click)="myInterestFilter.set('not_interested')">🚫</button>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn" [class.btn-secondary]="myInterestFilter() === 'all'" [class.btn-outline-secondary]="myInterestFilter() !== 'all'" (click)="myInterestFilter.set('all')">All</button>
+                    <button type="button" class="btn" [class.btn-secondary]="myInterestFilter() === 'unrated'" [class.btn-outline-secondary]="myInterestFilter() !== 'unrated'" (click)="myInterestFilter.set('unrated')">Unrated</button>
+                    <button type="button" class="btn" [class.btn-warning]="myInterestFilter() === 'purchased'" [class.btn-outline-warning]="myInterestFilter() !== 'purchased'" title="Purchased" (click)="myInterestFilter.set('purchased')"><i class="bi bi-ticket-perforated-fill"></i></button>
+                    <button type="button" class="btn" [class.btn-danger]="myInterestFilter() === 'must_have'" [class.btn-outline-danger]="myInterestFilter() !== 'must_have'" title="Must Have" (click)="myInterestFilter.set('must_have')"><i class="bi bi-heart-fill"></i></button>
+                    <button type="button" class="btn" [class.btn-primary]="myInterestFilter() === 'very_interested'" [class.btn-outline-primary]="myInterestFilter() !== 'very_interested'" title="Very Interested" (click)="myInterestFilter.set('very_interested')"><i class="bi bi-star-fill"></i></button>
+                    <button type="button" class="btn" [class.btn-secondary]="myInterestFilter() === 'somewhat_interested'" [class.btn-outline-secondary]="myInterestFilter() !== 'somewhat_interested'" title="Somewhat Interested" (click)="myInterestFilter.set('somewhat_interested')"><i class="bi bi-hand-thumbs-up-fill"></i></button>
+                    <button type="button" class="btn" [class.btn-dark]="myInterestFilter() === 'not_interested'" [class.btn-outline-dark]="myInterestFilter() !== 'not_interested'" title="Not Interested" (click)="myInterestFilter.set('not_interested')"><i class="bi bi-slash-circle"></i></button>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="d-flex align-items-center gap-2">
                 <span class="text-muted small fw-medium text-nowrap">Category:</span>
-                <select class="form-select form-select-sm border shadow-sm rounded-pill px-3 py-2 bg-white" [(ngModel)]="selectedCategory">
+                <select class="form-select form-select-sm border shadow-sm px-3 py-2 bg-white" [(ngModel)]="selectedCategory">
                     <option value="ALL">All Categories</option>
                     <option *ngFor="let cat of availableCategories()" [value]="cat.code">
                         {{ cat.name }} ({{ cat.code }})
@@ -29,9 +29,9 @@
         <div class="col-md-2">
             <div class="d-flex align-items-center justify-content-md-end gap-2">
                 <span class="text-muted small fw-medium text-nowrap">Sort by:</span>
-                <div class="btn-group shadow-sm rounded-pill p-1 bg-white border" role="group">
-                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="sortBy() === 'score'" [class.btn-light]="sortBy() !== 'score'" (click)="sortBy.set('score')">Score</button>
-                    <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="sortBy() === 'title'" [class.btn-light]="sortBy() !== 'title'" (click)="sortBy.set('title')">Name</button>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn" [class.btn-secondary]="sortBy() === 'score'" [class.btn-outline-secondary]="sortBy() !== 'score'" (click)="sortBy.set('score')">Score</button>
+                    <button type="button" class="btn" [class.btn-secondary]="sortBy() === 'title'" [class.btn-outline-secondary]="sortBy() !== 'title'" (click)="sortBy.set('title')">Name</button>
                 </div>
             </div>
         </div>
@@ -51,7 +51,7 @@
     <div *ngIf="!loading() && filteredGroupsByCategory() as catGroups" class="row g-4">
         <!-- Master List (Left Column - Narrower 5 cols) -->
         <div class="col-lg-5 position-relative">
-            <div *ngIf="catGroups.length === 0" class="text-center py-5 bg-white rounded-4 shadow-sm border p-4 flex-shrink-0">
+            <div *ngIf="catGroups.length === 0" class="text-center py-5 bg-white shadow-sm border p-4 flex-shrink-0 card">
                 <i class="bi bi-calendar-x text-muted fs-1 mb-3 d-block"></i>
                 <h3 class="h5 fw-bold text-dark">No shared events found</h3>
                 <p class="text-muted small mb-0">Try adjusting your category filters, or save some events in the convention catalog!</p>
@@ -100,11 +100,11 @@
                                     <div class="d-flex align-items-end gap-3 flex-shrink-0 pt-1">
                                         <div class="my-rating d-flex flex-column align-items-center justify-content-end" [title]="'My Rating: ' + getUserTier(g)" style="min-height: 42px;">
                                             <div class="fs-5 lh-1 mb-1">
-                                                <span *ngIf="getUserTier(g) === 'purchased'">🎟️</span>
-                                                <span *ngIf="getUserTier(g) === 'must_have'">❤️</span>
-                                                <span *ngIf="getUserTier(g) === 'very_interested'">⭐</span>
-                                                <span *ngIf="getUserTier(g) === 'somewhat_interested'">👍</span>
-                                                <span *ngIf="getUserTier(g) === 'not_interested'">🚫</span>
+                                                <i class="bi bi-ticket-perforated-fill text-warning" *ngIf="getUserTier(g) === 'purchased'"></i>
+                                                <i class="bi bi-heart-fill text-danger" *ngIf="getUserTier(g) === 'must_have'"></i>
+                                                <i class="bi bi-star-fill text-primary" *ngIf="getUserTier(g) === 'very_interested'"></i>
+                                                <i class="bi bi-hand-thumbs-up-fill text-secondary" *ngIf="getUserTier(g) === 'somewhat_interested'"></i>
+                                                <i class="bi bi-slash-circle text-dark" *ngIf="getUserTier(g) === 'not_interested'"></i>
                                                 <span *ngIf="!getUserTier(g) || getUserTier(g) === ''" class="text-muted opacity-50">-</span>
                                             </div>
                                             <div class="text-muted fw-semibold" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1;">Me</div>
@@ -113,31 +113,31 @@
                                         <div class="party-consensus-group d-flex flex-column align-items-center justify-content-end border-start ps-3" style="min-height: 42px;">
                                             <div class="party-consensus d-flex align-items-center justify-content-center gap-3 mb-1 pe-2">
                                                 <div *ngIf="getOtherMemberCountByTier(g, 'purchased') as count" class="position-relative" title="Purchased">
-                                                    <div style="font-size: 1.1rem; line-height: 1;">🎟️</div>
+                                                    <div style="font-size: 1.1rem; line-height: 1;"><i class="bi bi-ticket-perforated-fill text-warning"></i></div>
                                                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
                                                         {{ count }}
                                                     </span>
                                                 </div>
                                                 <div *ngIf="getOtherMemberCountByTier(g, 'must_have') as count" class="position-relative" title="Must Have">
-                                                    <div style="font-size: 1.1rem; line-height: 1;">❤️</div>
+                                                    <div style="font-size: 1.1rem; line-height: 1;"><i class="bi bi-heart-fill text-danger"></i></div>
                                                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
                                                         {{ count }}
                                                     </span>
                                                 </div>
                                                 <div *ngIf="getOtherMemberCountByTier(g, 'very_interested') as count" class="position-relative" title="Very Interested">
-                                                    <div style="font-size: 1.1rem; line-height: 1;">⭐</div>
+                                                    <div style="font-size: 1.1rem; line-height: 1;"><i class="bi bi-star-fill text-primary"></i></div>
                                                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
                                                         {{ count }}
                                                     </span>
                                                 </div>
                                                 <div *ngIf="getOtherMemberCountByTier(g, 'somewhat_interested') as count" class="position-relative" title="Somewhat Interested">
-                                                    <div style="font-size: 1.1rem; line-height: 1;">👍</div>
+                                                    <div style="font-size: 1.1rem; line-height: 1;"><i class="bi bi-hand-thumbs-up-fill text-secondary"></i></div>
                                                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
                                                         {{ count }}
                                                     </span>
                                                 </div>
                                                 <div *ngIf="getOtherMemberCountByTier(g, 'not_interested') as count" class="position-relative" title="Not Interested">
-                                                    <div style="font-size: 1.1rem; line-height: 1;">🚫</div>
+                                                    <div style="font-size: 1.1rem; line-height: 1;"><i class="bi bi-slash-circle text-dark"></i></div>
                                                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary text-white border border-white shadow-sm" style="font-size: 0.55rem; padding: 0.25em 0.45em;">
                                                         {{ count }}
                                                     </span>
@@ -166,7 +166,7 @@
 
         <!-- Drilldown Panel (Right Column - Wider 7 cols) -->
         <div class="col-lg-7">
-            <div class="section-card p-4 rounded-4 shadow-sm bg-white border" style="height: calc(100vh - 309px); overflow-y: auto;">
+            <div class="card p-4 shadow-sm bg-white border" style="height: calc(100vh - 309px); overflow-y: auto;">
                 <div *ngIf="!selectedGroup()" class="text-center py-5 text-muted flex-shrink-0">
                     <i class="bi bi-hand-index fs-1 mb-3 d-block"></i>
                     <p class="mb-0 small">Select an event card from the left to view group details and party consensus.</p>
@@ -225,7 +225,7 @@
                         <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                     </div>
 
-                    <div *ngIf="!loadingDetails() && selectedEventDetails() as details" class="event-details-metadata mb-4 p-3 bg-light rounded-4 border">
+                    <div *ngIf="!loadingDetails() && selectedEventDetails() as details" class="event-details-metadata mb-4 p-3 bg-light card border">
                         <h4 class="smaller fw-bold text-uppercase text-muted mb-2">Description</h4>
                         <p class="small text-dark mb-3 lh-base">{{ details.longDescription || details.shortDescription }}</p>
 
@@ -282,70 +282,70 @@
 
                         <div *ngIf="g.memberInterests && g.memberInterests.length > 0" class="d-flex flex-column gap-3">
                             <!-- Purchased -->
-                            <div *ngIf="getMembersByTier(g, 'purchased').length > 0" class="tier-group bg-light p-3 rounded-4 border animate-slide-up">
+                            <div *ngIf="getMembersByTier(g, 'purchased').length > 0" class="tier-group bg-light p-3 border animate-slide-up card">
                                 <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="fs-6">🎟️</span>
+                                    <i class="bi bi-ticket-perforated-fill text-warning fs-6"></i>
                                     <span class="fw-bold small text-dark">Purchased</span>
-                                    <span class="badge bg-secondary rounded-pill ms-auto">{{ getMembersByTier(g, 'purchased').length }}</span>
+                                    <span class="badge bg-secondary ms-auto">{{ getMembersByTier(g, 'purchased').length }}</span>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <span *ngFor="let m of getMembersByTier(g, 'purchased')" class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm small fw-medium">
+                                    <span *ngFor="let m of getMembersByTier(g, 'purchased')" class="badge bg-white text-dark border px-3 py-2 shadow-sm small fw-medium">
                                         {{ m.displayName }}
                                     </span>
                                 </div>
                             </div>
 
                             <!-- Must Have -->
-                            <div *ngIf="getMembersByTier(g, 'must_have').length > 0" class="tier-group bg-light p-3 rounded-4 border animate-slide-up">
+                            <div *ngIf="getMembersByTier(g, 'must_have').length > 0" class="tier-group bg-light p-3 border animate-slide-up card">
                                 <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="fs-6">❤️</span>
+                                    <i class="bi bi-heart-fill text-danger fs-6"></i>
                                     <span class="fw-bold small text-dark">Must Have</span>
-                                    <span class="badge bg-secondary rounded-pill ms-auto">{{ getMembersByTier(g, 'must_have').length }}</span>
+                                    <span class="badge bg-secondary ms-auto">{{ getMembersByTier(g, 'must_have').length }}</span>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <span *ngFor="let m of getMembersByTier(g, 'must_have')" class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm small fw-medium">
+                                    <span *ngFor="let m of getMembersByTier(g, 'must_have')" class="badge bg-white text-dark border px-3 py-2 shadow-sm small fw-medium">
                                         {{ m.displayName }}
                                     </span>
                                 </div>
                             </div>
 
                             <!-- Very Interested -->
-                            <div *ngIf="getMembersByTier(g, 'very_interested').length > 0" class="tier-group bg-light p-3 rounded-4 border animate-slide-up">
+                            <div *ngIf="getMembersByTier(g, 'very_interested').length > 0" class="tier-group bg-light p-3 border animate-slide-up card">
                                 <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="fs-6">⭐</span>
+                                    <i class="bi bi-star-fill text-primary fs-6"></i>
                                     <span class="fw-bold small text-dark">Very Interested</span>
-                                    <span class="badge bg-secondary rounded-pill ms-auto">{{ getMembersByTier(g, 'very_interested').length }}</span>
+                                    <span class="badge bg-secondary ms-auto">{{ getMembersByTier(g, 'very_interested').length }}</span>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <span *ngFor="let m of getMembersByTier(g, 'very_interested')" class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm small fw-medium">
+                                    <span *ngFor="let m of getMembersByTier(g, 'very_interested')" class="badge bg-white text-dark border px-3 py-2 shadow-sm small fw-medium">
                                         {{ m.displayName }}
                                     </span>
                                 </div>
                             </div>
 
                             <!-- Somewhat Interested -->
-                            <div *ngIf="getMembersByTier(g, 'somewhat_interested').length > 0" class="tier-group bg-light p-3 rounded-4 border animate-slide-up">
+                            <div *ngIf="getMembersByTier(g, 'somewhat_interested').length > 0" class="tier-group bg-light p-3 border animate-slide-up card">
                                 <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="fs-6">👍</span>
+                                    <i class="bi bi-hand-thumbs-up-fill text-secondary fs-6"></i>
                                     <span class="fw-bold small text-dark">Somewhat Interested</span>
-                                    <span class="badge bg-secondary rounded-pill ms-auto">{{ getMembersByTier(g, 'somewhat_interested').length }}</span>
+                                    <span class="badge bg-secondary ms-auto">{{ getMembersByTier(g, 'somewhat_interested').length }}</span>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <span *ngFor="let m of getMembersByTier(g, 'somewhat_interested')" class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm small fw-medium">
+                                    <span *ngFor="let m of getMembersByTier(g, 'somewhat_interested')" class="badge bg-white text-dark border px-3 py-2 shadow-sm small fw-medium">
                                         {{ m.displayName }}
                                     </span>
                                 </div>
                             </div>
 
                             <!-- Not Interested -->
-                            <div *ngIf="getMembersByTier(g, 'not_interested').length > 0" class="tier-group bg-light p-3 rounded-4 border animate-slide-up">
+                            <div *ngIf="getMembersByTier(g, 'not_interested').length > 0" class="tier-group bg-light p-3 border animate-slide-up card">
                                 <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="fs-6">🚫</span>
+                                    <i class="bi bi-slash-circle text-dark fs-6"></i>
                                     <span class="fw-bold small text-dark">Not Interested</span>
-                                    <span class="badge bg-secondary rounded-pill ms-auto">{{ getMembersByTier(g, 'not_interested').length }}</span>
+                                    <span class="badge bg-secondary ms-auto">{{ getMembersByTier(g, 'not_interested').length }}</span>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <span *ngFor="let m of getMembersByTier(g, 'not_interested')" class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm small fw-medium text-muted">
+                                    <span *ngFor="let m of getMembersByTier(g, 'not_interested')" class="badge bg-white text-dark border px-3 py-2 shadow-sm small fw-medium text-muted">
                                         {{ m.displayName }}
                                     </span>
                                 </div>
