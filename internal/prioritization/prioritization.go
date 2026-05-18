@@ -95,11 +95,35 @@ func OverlapsBlockedTime(e *events.GenconEvent, constraints []postgres.WishlistC
 	return false
 }
 
+func overlapsAnyPurchased(e *events.GenconEvent, purchased []*events.GenconEvent) bool {
+	for _, p := range purchased {
+		if e.EventId == p.EventId {
+			continue
+		}
+		if e.StartTime.Before(p.EndTime) && p.StartTime.Before(e.EndTime) {
+			return true
+		}
+	}
+	return false
+}
+
 func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*events.GenconEvent, constraints []postgres.WishlistConstraint) []WishlistItem {
 	// 1. Map events by ID for quick lookup
 	eventMap := make(map[string]*events.GenconEvent)
 	for _, e := range allEvents {
 		eventMap[e.EventId] = e
+	}
+
+	// 1.5 Identify purchased events and their cluster keys
+	var purchasedEvents []*events.GenconEvent
+	purchasedGroups := make(map[string]bool)
+	for _, se := range starred {
+		if se.Tier == "purchased" {
+			if event, found := eventMap[se.EventId]; found {
+				purchasedEvents = append(purchasedEvents, event)
+				purchasedGroups[getClusterKey(event)] = true
+			}
+		}
 	}
 
 	// 2. Map starred events and calculate group stats
@@ -301,6 +325,9 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 
 	// Helper to check for conflicts
 	hasConflict := func(e1 *events.GenconEvent, currentList []WishlistItem) bool {
+		if overlapsAnyPurchased(e1, purchasedEvents) {
+			return true
+		}
 		for _, item := range currentList {
 			if item.Status != "Primary" {
 				continue
@@ -321,6 +348,11 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 
 	// Pass 1: One session per group, prioritizing higher groups
 	for _, gp := range groupPriorities {
+		if purchasedGroups[gp.ClusterKey] {
+			// Mark this group as fully satisfied so no sessions of this game are ever added to the wishlist
+			selectedGroups[gp.ClusterKey] = 999
+			continue
+		}
 		// Find sessions for this group that don't conflict with current wishlist
 		type candidateSession struct {
 			session       *scoredSession
@@ -459,6 +491,10 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 				targetItem := wishlist[i]
 				targetKey := getClusterKey(targetItem.Event)
 
+				if purchasedGroups[targetKey] {
+					continue // do not rearrange purchased events!
+				}
+
 				// Create temp calendar without targetItem
 				var tempCalendar []WishlistItem
 				for j := range wishlist {
@@ -512,6 +548,10 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 
 		for i := range scoredSessions {
 			s := &scoredSessions[i]
+
+			if overlapsAnyPurchased(s.Event, purchasedEvents) {
+				continue
+			}
 
 			// 1. Check if specific event ID is already in wishlist
 			alreadyIn := false

@@ -1,0 +1,15 @@
+# Git and IDEs
+.git
+.idea
+.vscode
+.DS_Store
+
+# Frontend build artifacts & dependencies
+ui/node_modules
+ui/dist
+ui/.angular
+ui/coverage
+
+# Backend binaries
+update
+web
