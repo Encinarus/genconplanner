@@ -88,6 +88,10 @@ WHERE pm.party_id = ANY($1)
 		parties = append(parties, party)
 	}
 
+	sort.Slice(parties, func(i, j int) bool {
+		return parties[i].Id < parties[j].Id
+	})
+
 	return parties, nil
 }
 

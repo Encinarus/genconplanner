@@ -21,6 +21,7 @@ func TestGetPartyByYear(t *testing.T) {
 		cookieValue  string
 		setupStub    func()
 		expectedCode int
+		expectedBody string
 	}{
 		{
 			name:        "Success - Load by Year",
@@ -100,6 +101,31 @@ func TestGetPartyByYear(t *testing.T) {
 			},
 			expectedCode: http.StatusOK,
 		},
+		{
+			name:        "Success - Load by Short Code Non-Member Redaction",
+			param:       "CODE123",
+			cookieValue: "valid-token",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "nonmember@example.com", nil
+				}
+				stub.LoadPartyByCodeFn = func(code string) (*postgres.Party, error) {
+					return &postgres.Party{
+						Id:          2,
+						Name:        "Code Party",
+						Year:        2026,
+						LeaderEmail: "leader@example.com",
+						ShortCode:   "CODE123",
+						Members: []*postgres.User{
+							{Email: "leader@example.com", DisplayName: "Leader", GenconName: "GCLeader", GenconId: "123", GenconEmail: "gcl@example.com"},
+							{Email: "member@example.com", DisplayName: "Member", GenconName: "GCMember", GenconId: "456", GenconEmail: "gcm@example.com"},
+						},
+					}, nil
+				}
+			},
+			expectedCode: http.StatusOK,
+			expectedBody: `{"id":2,"name":"Code Party","year":2026,"leaderEmail":"leader@example.com","shortCode":"CODE123","inviteLink":"http://localhost:8080/party/CODE123","members":[{"displayName":"Leader","email":"leader@example.com","genconName":"","genconId":"","genconEmail":""},{"displayName":"Member","email":"","genconName":"","genconId":"","genconEmail":""}]}`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -111,11 +137,15 @@ func TestGetPartyByYear(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/api/v1/party/"+tt.param, nil)
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
 			if w.Code != tt.expectedCode {
 				t.Errorf("%s: Expected status code %d, got %d", tt.name, tt.expectedCode, w.Code)
+			}
+			if tt.expectedBody != "" && w.Body.String() != tt.expectedBody {
+				t.Errorf("%s: Expected body %s, got %s", tt.name, tt.expectedBody, w.Body.String())
 			}
 		})
 	}
@@ -199,6 +229,7 @@ func TestCreatePartySinglePartyPerYear(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
@@ -295,6 +326,7 @@ func TestJoinPartySinglePartyPerYear(t *testing.T) {
 			req, _ := http.NewRequest("POST", "/api/v1/party/"+tt.param+"/join", nil)
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
@@ -411,6 +443,7 @@ func TestUpdatePartyMemberInfo(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
@@ -461,6 +494,7 @@ func TestRenameUserGenconInfo(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 

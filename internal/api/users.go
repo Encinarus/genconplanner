@@ -846,33 +846,50 @@ func (s *Server) GetParty(c *gin.Context) {
 		return
 	}
 
+	isMember := false
 	if email != "" {
-		// Verify membership if loaded by numeric ID or year
-		_, parseErr := strconv.ParseInt(idParam, 10, 64)
-		if parseErr == nil {
-			isMember := false
-			for _, m := range dbParty.Members {
-				if m.Email == email {
-					isMember = true
-					break
-				}
+		for _, m := range dbParty.Members {
+			if m.Email == email {
+				isMember = true
+				break
 			}
-			if !isMember {
-				c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
-				return
-			}
+		}
+	}
+
+	_, parseErr := strconv.ParseInt(idParam, 10, 64)
+	if parseErr == nil {
+		// If loaded by numeric ID or year, require membership
+		if !isMember {
+			c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+			return
 		}
 	}
 
 	members := make([]PartyMember, 0, len(dbParty.Members))
 	for _, m := range dbParty.Members {
-		members = append(members, PartyMember{
-			DisplayName: m.DisplayName,
-			Email:       m.Email,
-			GenconName:  m.GenconName,
-			GenconId:    m.GenconId,
-			GenconEmail: m.GenconEmail,
-		})
+		if isMember {
+			members = append(members, PartyMember{
+				DisplayName: m.DisplayName,
+				Email:       m.Email,
+				GenconName:  m.GenconName,
+				GenconId:    m.GenconId,
+				GenconEmail: m.GenconEmail,
+			})
+		} else {
+			// Redact sensitive PII for non-members previewing the party via shortCode.
+			// Preserve the leader's email so the UI can identify the leader badge, otherwise redact.
+			memberEmail := ""
+			if m.Email == dbParty.LeaderEmail {
+				memberEmail = m.Email
+			}
+			members = append(members, PartyMember{
+				DisplayName: m.DisplayName,
+				Email:       memberEmail,
+				GenconName:  "",
+				GenconId:    "",
+				GenconEmail: "",
+			})
+		}
 	}
 
 	apiParty := Party{

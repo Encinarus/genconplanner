@@ -8,6 +8,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"slices"
 	"sort"
@@ -367,5 +368,36 @@ func parseHour(c *gin.Context, param string, defaultValue int) int {
 		return defaultValue
 	} else {
 		return parsed
+	}
+}
+
+func LegacyCSRFMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		method := c.Request.Method
+		if method != http.MethodPost && method != http.MethodPut && method != http.MethodDelete && method != http.MethodPatch {
+			c.Next()
+			return
+		}
+
+		origin := c.GetHeader("Origin")
+		if origin == "" {
+			referer := c.GetHeader("Referer")
+			if referer != "" {
+				if !strings.HasPrefix(referer, "http://localhost:") && !strings.HasPrefix(referer, "https://www.genconplanner.com") && !strings.HasPrefix(referer, "https://genconplanner.com") {
+					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "CSRF verification failed: invalid referer"})
+					return
+				}
+			} else {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "CSRF verification failed: missing origin and referer"})
+				return
+			}
+		} else {
+			if !strings.HasPrefix(origin, "http://localhost:") && origin != "https://www.genconplanner.com" && origin != "https://genconplanner.com" {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "CSRF verification failed: invalid origin"})
+				return
+			}
+		}
+
+		c.Next()
 	}
 }

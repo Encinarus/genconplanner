@@ -46,7 +46,7 @@ export class AuthService {
         }
 
         user.getIdToken(true).then(token => {
-          Cookies.set('signinToken', token, { path: '/' });
+          Cookies.set('signinToken', token, { path: '/', secure: window.location.protocol === 'https:', sameSite: 'strict' });
           this.user.set(user);
           this.authLoaded.set(true);
 
@@ -79,7 +79,7 @@ export class AuthService {
     try {
       const result = await signInWithPopup(this.auth, provider);
       const token = await result.user.getIdToken(true);
-      Cookies.set('signinToken', token, { path: '/' });
+      Cookies.set('signinToken', token, { path: '/', secure: window.location.protocol === 'https:', sameSite: 'strict' });
       this.user.set(result.user);
       // On sign in, we can trust the firebase name initially
       this.displayName.set(result.user.displayName);

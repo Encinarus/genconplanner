@@ -252,6 +252,7 @@ func TestAuthMiddleware(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/protected", nil)
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
@@ -331,6 +332,7 @@ func TestLoadUserEvents(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/api/v1/user/events/"+tt.email+"/"+tt.year, nil)
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
@@ -394,6 +396,7 @@ func TestGetUser(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/api/v1/user", nil)
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
@@ -487,6 +490,7 @@ func TestStarEvent(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
@@ -544,6 +548,7 @@ func TestGetStarredEvents(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/api/v1/user/starred/"+tt.year, nil)
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
@@ -607,6 +612,7 @@ func TestBulkClearStarredEvents(t *testing.T) {
 			req, _ := http.NewRequest("POST", "/api/v1/user/starred/clear/"+tt.year, nil)
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 
@@ -708,6 +714,7 @@ func TestBulkReplaceStarredEvents(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{Name: "signinToken", Value: tt.cookieValue})
+				req.Header.Set("Authorization", "Bearer "+tt.cookieValue)
 			}
 			r.ServeHTTP(w, req)
 

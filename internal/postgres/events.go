@@ -356,19 +356,34 @@ func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.
 }
 
 func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
+	var args []interface{}
+	argIndex := 1
+
+	args = append(args, query.Year)
+	yearArg := fmt.Sprintf("$%d", argIndex)
+	argIndex++
+
 	innerFrom := "events"
-	innerWhere := fmt.Sprintf("active AND year = %v", query.Year)
+	innerWhere := fmt.Sprintf("active AND year = %s", yearArg)
 	if query.StartBeforeHour >= 0 {
-		innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') <= %v", innerWhere, query.StartBeforeHour)
+		args = append(args, query.StartBeforeHour)
+		innerWhere = fmt.Sprintf("%s AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') <= $%d", innerWhere, argIndex)
+		argIndex++
 	}
 	if query.StartAfterHour >= 0 {
-		innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') >= %v", innerWhere, query.StartAfterHour)
+		args = append(args, query.StartAfterHour)
+		innerWhere = fmt.Sprintf("%s AND EXTRACT(HOUR FROM start_time AT TIME ZONE 'EDT') >= $%d", innerWhere, argIndex)
+		argIndex++
 	}
 	if query.EndBeforeHour >= 0 {
-		innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') <= %v", innerWhere, query.EndBeforeHour)
+		args = append(args, query.EndBeforeHour)
+		innerWhere = fmt.Sprintf("%s AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') <= $%d", innerWhere, argIndex)
+		argIndex++
 	}
 	if query.EndAfterHour >= 0 {
-		innerWhere = fmt.Sprintf("%v AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') >= %v", innerWhere, query.EndAfterHour)
+		args = append(args, query.EndAfterHour)
+		innerWhere = fmt.Sprintf("%s AND EXTRACT(HOUR FROM end_time AT TIME ZONE 'EDT') >= $%d", innerWhere, argIndex)
+		argIndex++
 	}
 
 	titleRank := "1"
@@ -377,8 +392,12 @@ func FindEvents(db *sql.DB, query *ParsedQuery) ([]*EventGroup, error) {
 	tsquery := strings.Join(query.TextQueries, " & ")
 	tsquery = strings.ReplaceAll(tsquery, "'", "")
 	if len(tsquery) > 0 {
-		innerFrom = fmt.Sprintf("%v, websearch_to_tsquery('english', '%v') q", innerFrom, tsquery)
-		innerWhere = fmt.Sprintf("%v AND search_key @@ q", innerWhere)
+		args = append(args, tsquery)
+		qArg := fmt.Sprintf("$%d", argIndex)
+		argIndex++
+
+		innerFrom = fmt.Sprintf("%s, websearch_to_tsquery('english', %s) q", innerFrom, qArg)
+		innerWhere = fmt.Sprintf("%s AND search_key @@ q", innerWhere)
 		titleRank = "min(ts_rank(title_tsv, q))"
 		searchRank = "min(ts_rank(search_key, q))"
 	}
@@ -394,10 +413,10 @@ SELECT
 	sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as fri_tickets,
 	sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as sat_tickets,
 	sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sun_tickets,
-    %v as title_rank,
-    %v as search_rank
-FROM %v
-WHERE %v
+    %s as title_rank,
+    %s as search_rank
+FROM %s
+WHERE %s
 GROUP BY cluster_id
 `, titleRank, searchRank, innerFrom, innerWhere)
 
@@ -413,10 +432,12 @@ GROUP BY cluster_id
 		}
 		dayPart = strings.Join(days, " OR ")
 	}
-	fullWhere := fmt.Sprintf("e.year = %v AND (%v)", query.Year, dayPart)
+	fullWhere := fmt.Sprintf("e.year = %s AND (%s)", yearArg, dayPart)
 
 	if query.OrgId > 0 {
-		fullWhere = fmt.Sprintf("(%v) AND o.id = %v", fullWhere, query.OrgId)
+		args = append(args, query.OrgId)
+		fullWhere = fmt.Sprintf("(%s) AND o.id = $%d", fullWhere, argIndex)
+		argIndex++
 	}
 
 	fullQuery := fmt.Sprintf(`
@@ -437,18 +458,18 @@ SELECT  distinct
 		c.sun_tickets,
 		c.title_rank as title_rank,
 		c.search_rank as search_rank		
-FROM events e JOIN (%v) AS c ON e.event_id = c.event_id
+FROM events e JOIN (%s) AS c ON e.event_id = c.event_id
     JOIN (
         SELECT alias, MAX(id) as id
         FROM orgs
         GROUP BY alias
     ) o ON lower(o.alias) = lower(e.org_group)
-WHERE %v
+WHERE %s
 ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 `, innerQuery, fullWhere)
 
 	loadedEvents := make([]*EventGroup, 0)
-	rows, err := db.Query(fullQuery)
+	rows, err := db.Query(fullQuery, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -509,27 +530,13 @@ WHERE year=$1`, year)
 
 func bulkDelete(tx *sql.Tx, deletedEvents []string) error {
 	// Deletes aren't true deletes, we mark them as inactive
-	batchSize := 100
-	for len(deletedEvents) > 0 {
-		if len(deletedEvents) < batchSize {
-			batchSize = len(deletedEvents)
-		}
-		batch := make([]string, 0, batchSize)
-		for _, eventId := range deletedEvents[0:batchSize:batchSize] {
-			batch = append(batch, "'"+eventId+"'")
-		}
-
-		deletedEvents = deletedEvents[batchSize:]
-		updateStatement := fmt.Sprintf(
-			"UPDATE events SET active = FALSE WHERE event_id in (%s)",
-			strings.Join(batch, ","))
-
-		_, err := tx.Exec(updateStatement)
-
-		if err != nil {
-			log.Printf("Error on processing event: %s %v", batch, err.(pq.PGError))
-			return err
-		}
+	if len(deletedEvents) == 0 {
+		return nil
+	}
+	_, err := tx.Exec("UPDATE events SET active = FALSE WHERE event_id = ANY($1)", pq.Array(deletedEvents))
+	if err != nil {
+		log.Printf("Error on bulk delete: %v", err)
+		return err
 	}
 	return nil
 }
@@ -752,11 +759,12 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 				"($%d"+strings.Repeat(", $%d", numEventFields-1)+")",
 				rangeSlice(1, numEventFields)...))
 		updateStatement := fmt.Sprintf(
-			"UPDATE events SET %s WHERE event_id='%s'",
+			"UPDATE events SET %s WHERE event_id=$%d",
 			updatedFields,
-			row.EventId)
+			numEventFields+1)
 
 		valueArgs := eventToDbFields(row)
+		valueArgs = append(valueArgs, row.EventId)
 		_, err := tx.Exec(updateStatement, valueArgs...)
 
 		if err != nil {

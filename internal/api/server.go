@@ -66,13 +66,12 @@ func (w *GameCacheWrapper) FindGame(name string) *postgres.Game {
 
 func (s *Server) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		idToken, err := c.Cookie("signinToken")
-		if err != nil || idToken == "" {
-			// Try header as fallback
-			idToken = c.GetHeader("Authorization")
-			if len(idToken) > 7 && idToken[:7] == "Bearer " {
-				idToken = idToken[7:]
-			}
+		idToken := c.GetHeader("Authorization")
+		if len(idToken) > 7 && idToken[:7] == "Bearer " {
+			idToken = idToken[7:]
+		}
+		if idToken == "" && !strings.HasPrefix(c.Request.URL.Path, "/api/v1/") {
+			idToken, _ = c.Cookie("signinToken")
 		}
 
 		if idToken == "" {
@@ -101,13 +100,12 @@ func (s *Server) AuthMiddleware() gin.HandlerFunc {
 
 func (s *Server) OptionalAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		idToken, err := c.Cookie("signinToken")
-		if err != nil || idToken == "" {
-			// Try header as fallback
-			idToken = c.GetHeader("Authorization")
-			if len(idToken) > 7 && idToken[:7] == "Bearer " {
-				idToken = idToken[7:]
-			}
+		idToken := c.GetHeader("Authorization")
+		if len(idToken) > 7 && idToken[:7] == "Bearer " {
+			idToken = idToken[7:]
+		}
+		if idToken == "" && !strings.HasPrefix(c.Request.URL.Path, "/api/v1/") {
+			idToken, _ = c.Cookie("signinToken")
 		}
 
 		if idToken == "" {
@@ -150,7 +148,7 @@ func (s *Server) GetUpdateStatus(c *gin.Context) {
 	lastUpdate, err := s.Repo.GetLastUpdate()
 	if err != nil {
 		log.Printf("Error getting last update: %v\n", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: fmt.Sprintf("Internal server error: %v", err)})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"lastUpdate": lastUpdate})

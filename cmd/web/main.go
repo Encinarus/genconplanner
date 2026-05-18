@@ -106,6 +106,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	r.NoRoute(web.ServeV2(db, cache))
 
 	legacy := r.Group("/legacy")
+	legacy.Use(web.LegacyCSRFMiddleware())
 	legacy.GET("/event/:eid", web.ViewEvent(db))
 	legacy.GET("/search", web.Search(db))
 	legacy.GET("/cat/:year/:cat", web.ViewCategory(db))
