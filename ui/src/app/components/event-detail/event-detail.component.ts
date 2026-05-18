@@ -142,7 +142,7 @@ export class EventDetailComponent implements OnInit {
   handleTierClick(eventId: string, year: number, clickedTier: string): void {
     if (this.isOverride(eventId) && this.getEventTier(eventId) === clickedTier) {
       this.resetOverride(eventId, year);
-    } else if (!this.isOverride(eventId) && this.getEventTier(eventId) === clickedTier) {
+    } else {
       this.setTier(eventId, year, clickedTier);
     }
   }

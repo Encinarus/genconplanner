@@ -11,6 +11,16 @@ import (
 	"github.com/Encinarus/genconplanner/internal/postgres"
 )
 
+type Clock interface {
+	Now() time.Time
+	Sleep(d time.Duration)
+}
+
+type RealClock struct{}
+
+func (RealClock) Now() time.Time { return time.Now() }
+func (RealClock) Sleep(d time.Duration) { time.Sleep(d) }
+
 func addIdsToBacklog(backlog map[int64]bool, newIds []int64) {
 	for _, id := range newIds {
 		if _, found := backlog[id]; !found {
@@ -20,7 +30,7 @@ func addIdsToBacklog(backlog map[int64]bool, newIds []int64) {
 }
 
 func RefreshGame(ctx context.Context, apiGame *bgg.GameItem,
-	familyBacklog map[int64]bool, db *sql.DB) (*postgres.Game, error) {
+	familyBacklog map[int64]bool, db *sql.DB, clock Clock) (*postgres.Game, error) {
 
 	var familyIds []int64
 
@@ -54,7 +64,7 @@ func RefreshGame(ctx context.Context, apiGame *bgg.GameItem,
 		Name:          name,
 		BggId:         apiGame.ID,
 		FamilyIds:     familyIds,
-		LastUpdate:    time.Now(),
+		LastUpdate:    clock.Now(),
 		NumRatings:    apiGame.Statistics.Ratings.NumRatings.Value,
 		AvgRatings:    apiGame.Statistics.Ratings.Average.Value,
 		YearPublished: apiGame.YearPublished.Value,
@@ -67,13 +77,11 @@ func RefreshGame(ctx context.Context, apiGame *bgg.GameItem,
 	return g, nil
 }
 
-func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
-	if apiKey == "" {
-		log.Println("BGG API key not set, skipping BGG update.")
+func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, clock Clock) {
+	if api == nil {
+		log.Println("BGG API client not set, skipping BGG update.")
 		return
 	}
-	ctx := context.Background()
-	api := bgg.NewBggApi(apiKey)
 
 	// Initial seed with kickstarter, this is a big category, good for branching out everywhere :)
 	familyBacklog := map[int64]bool{
@@ -109,10 +117,10 @@ func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
 	}
 
 	// If we haven't updated in 4 days, update now. This should get us faster discovery of new games.
-	familyUpdateLimit := time.Now().Add(-time.Hour * 24 * 4)
+	familyUpdateLimit := clock.Now().Add(-time.Hour * 24 * 4)
 	// If we haven't updated in 4 weeks, update now. Once we know about a game, it's probably fairly stable.
 	// With a rate limit of one call per 5 seconds, we can process ~438k games.
-	gameUpdateLimit := time.Now().Add(-time.Hour * 24 * 28)
+	gameUpdateLimit := clock.Now().Add(-time.Hour * 24 * 28)
 
 	for len(familyBacklog) > 0 || len(gameBacklog) > 0 {
 		log.Printf("Processing backlog")
@@ -147,7 +155,7 @@ func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
 			logDetails := ""
 			for _, apiGame := range apiGames {
 				processedGames++
-				g, err := RefreshGame(ctx, apiGame, familyBacklog, db)
+				g, err := RefreshGame(ctx, apiGame, familyBacklog, db, clock)
 				if err == nil {
 					games[g.BggId] = g
 					if logDetails != "" {
@@ -187,7 +195,7 @@ func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
 			logDetails := ""
 			for _, apiGame := range apiGames {
 				processedGames++
-				g, err := RefreshGame(ctx, apiGame, familyBacklog, db)
+				g, err := RefreshGame(ctx, apiGame, familyBacklog, db, clock)
 				if err == nil {
 					games[g.BggId] = g
 					if logDetails != "" {
@@ -237,7 +245,7 @@ func UpdateGamesFromBGG(db *sql.DB, apiKey string) {
 					Name:       bggFamily.Name.Value,
 					BggId:      bggFamily.ID,
 					GameIds:    gameIds,
-					LastUpdate: time.Now(),
+					LastUpdate: clock.Now(),
 				}
 				families[bggFamily.ID] = dbFamily
 				err = families[bggFamily.ID].Upsert(db)

@@ -69,6 +69,8 @@ CREATE INDEX IF NOT EXISTS idx_user_wishlist_cache_email_year ON public.user_wis
 -- Phase 3: Party Join Links
 ALTER TABLE public.parties ADD COLUMN IF NOT EXISTS short_code TEXT UNIQUE;
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Generate random 8 character hex strings for any existing parties
 UPDATE public.parties 
 SET short_code = encode(gen_random_bytes(4), 'hex')

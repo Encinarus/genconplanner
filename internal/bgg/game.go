@@ -16,6 +16,12 @@ import (
 
 var ErrNoApiKey = errors.New("BGG API key not set")
 
+type BGGClient interface {
+	GetGames(ctx context.Context, ids []int64) ([]*GameItem, error)
+	GetFamilies(ctx context.Context, ids []int64) ([]*FamilyItem, error)
+}
+
+
 // XML tags generated from https://www.onlinetool.io/xmltogo/
 // Game can be a game, or expansion, see the Item.Type field.
 type Games struct {

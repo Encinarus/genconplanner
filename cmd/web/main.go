@@ -9,6 +9,7 @@ import (
 	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/api"
 	"github.com/Encinarus/genconplanner/internal/background"
+	"github.com/Encinarus/genconplanner/internal/bgg"
 	"github.com/Encinarus/genconplanner/internal/logging"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/Encinarus/genconplanner/internal/web"
@@ -63,7 +64,7 @@ func SetupBackground(db *sql.DB) {
 	go func() {
 		for {
 			// Delay until the next tick
-			background.UpdateGamesFromBGG(db, apiKey)
+			background.UpdateGamesFromBGG(context.Background(), db, bgg.NewBggApi(apiKey), background.RealClock{})
 			select {
 			case <-bggTicker.C:
 			}
