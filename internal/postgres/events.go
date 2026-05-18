@@ -468,10 +468,15 @@ ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 	return loadedEvents, nil
 }
 
-func loadEventIds(tx *sql.Tx, year int) (map[string]time.Time, map[string]time.Time, error) {
-	// load all events: ids + last update time
+type PersistedEventInfo struct {
+	LastModified     time.Time
+	TicketsAvailable int
+}
+
+func loadEventIds(tx *sql.Tx, year int) (map[string]PersistedEventInfo, map[string]PersistedEventInfo, error) {
+	// load all events: ids + last update time + tickets available
 	rows, err := tx.Query(`
-SELECT event_id, active, last_modified
+SELECT event_id, active, last_modified, tickets_available
 FROM events
 WHERE year=$1`, year)
 	if err != nil {
@@ -479,25 +484,23 @@ WHERE year=$1`, year)
 	}
 	defer rows.Close()
 
-	var activeEvents map[string]time.Time
-	var inactiveEvents map[string]time.Time
-	activeEvents = make(map[string]time.Time)
-	inactiveEvents = make(map[string]time.Time)
+	activeEvents := make(map[string]PersistedEventInfo)
+	inactiveEvents := make(map[string]PersistedEventInfo)
 
 	for rows.Next() {
 		var id string
 		var active bool
-		var updateTime time.Time
+		var info PersistedEventInfo
 
-		err := rows.Scan(&id, &active, &updateTime)
+		err := rows.Scan(&id, &active, &info.LastModified, &info.TicketsAvailable)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		if active {
-			activeEvents[id] = updateTime
+			activeEvents[id] = info
 		} else {
-			inactiveEvents[id] = updateTime
+			inactiveEvents[id] = info
 		}
 	}
 
@@ -550,12 +553,12 @@ func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) (UpdateSta
 	if err != nil {
 		return stats, err
 	}
-	persistedEvents := make(map[string]time.Time, len(activeEvents)+len(inactiveEvents))
-	for id, updateTime := range activeEvents {
-		persistedEvents[id] = updateTime
+	persistedEvents := make(map[string]PersistedEventInfo, len(activeEvents)+len(inactiveEvents))
+	for id, info := range activeEvents {
+		persistedEvents[id] = info
 	}
-	for id, updateTime := range inactiveEvents {
-		persistedEvents[id] = updateTime
+	for id, info := range inactiveEvents {
+		persistedEvents[id] = info
 	}
 
 	log.Printf("Loaded %d Rows\n", len(persistedEvents))
@@ -564,9 +567,9 @@ func BulkUpdateEvents(tx *sql.Tx, parsedEvents []*events.GenconEvent) (UpdateSta
 	var updatedEvents []*events.GenconEvent
 
 	for _, parsedEvent := range parsedEvents {
-		if updateTime, found := persistedEvents[parsedEvent.EventId]; found {
+		if info, found := persistedEvents[parsedEvent.EventId]; found {
 			_, isActive := activeEvents[parsedEvent.EventId]
-			if !isActive || updateTime.Truncate(time.Second).Before(parsedEvent.LastModified.Truncate(time.Second)) {
+			if !isActive || info.LastModified.Truncate(time.Second).Before(parsedEvent.LastModified.Truncate(time.Second)) || info.TicketsAvailable != parsedEvent.TicketsAvailable {
 				updatedEvents = append(updatedEvents, parsedEvent)
 			} else {
 				stats.Unchanged++

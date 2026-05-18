@@ -1,7 +1,7 @@
 FROM node:22 AS frontend-build
 WORKDIR /ui
 COPY ui/package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN npm ci
 COPY ui/ ./
 RUN npm test -- --watch=false
 RUN npm run build -- --configuration production --output-path=dist/v2
