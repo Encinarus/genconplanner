@@ -42,6 +42,7 @@ type EventRepository interface {
 	JoinParty(partyId int64, email string) error
 	LoadPartySharedInterests(partyId int64, year int) ([]*postgres.SharedInterestGroup, error)
 	UpdatePartyMemberInfo(partyId int64, email string, displayName string, genconName string, genconId string, genconEmail string) error
+	LoadPartyMemberPurchases(partyId int64, year int) (map[string]int, error)
 
 	// User related
 	UpdateDisplayName(email string, name string) error
@@ -184,7 +185,12 @@ func (r *PostgresRepository) UpdatePartyMemberInfo(partyId int64, email string, 
 	return postgres.UpdatePartyMemberInfo(r.DB, partyId, email, displayName, genconName, genconId, genconEmail)
 }
 
+func (r *PostgresRepository) LoadPartyMemberPurchases(partyId int64, year int) (map[string]int, error) {
+	return postgres.LoadPartyMemberPurchases(r.DB, partyId, year)
+}
+
 func (r *PostgresRepository) GetLastUpdate() (time.Time, error) {
 	return postgres.GetLastUpdate(r.DB)
 }
+
 

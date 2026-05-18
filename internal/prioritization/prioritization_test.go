@@ -38,7 +38,7 @@ func TestGeneratePersonalWishlist(t *testing.T) {
 		{EventId: "C1", Tier: "must_have"},
 	}
 
-	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{})
+	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{}, nil)
 
 	if len(wishlist) == 0 {
 		t.Fatal("Expected non-empty wishlist")
@@ -80,7 +80,7 @@ func TestAntiSpam(t *testing.T) {
 		starred = append(starred, postgres.StarredEvent{EventId: id, Tier: "must_have"})
 	}
 
-	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{})
+	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{}, nil)
 	
 	groupCount := 0
 	for _, item := range wishlist {
@@ -343,6 +343,7 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 			tc.candidate.EventId = "CANDIDATE"
 			tc.candidate.Title = "Candidate"
 			tc.candidate.ShortCategory = "RPG"
+			tc.candidate.TicketsAvailable = 10
 			allEvents := []*events.GenconEvent{tc.candidate}
 
 			for i, p := range tc.primary {
@@ -354,10 +355,11 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 				p.Event.EventId = eventId
 				p.Event.Title = fmt.Sprintf("A_Primary %d", i) // Prioritize over Candidate
 				p.Event.ShortCategory = "RPG"
+				p.Event.TicketsAvailable = 10
 				allEvents = append(allEvents, p.Event)
 			}
 
-			wishlist := GeneratePersonalWishlist(starred, allEvents, tc.constraints)
+			wishlist := GeneratePersonalWishlist(starred, allEvents, tc.constraints, nil)
 			
 			foundCandidate := false
 			for _, item := range wishlist {
@@ -393,7 +395,7 @@ func TestRearrangementPass(t *testing.T) {
 		{EventId: "A2", Tier: "must_have"},
 	}
 
-	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{})
+	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{}, nil)
 
 	if len(wishlist) == 0 {
 		t.Fatal("Expected non-empty wishlist")

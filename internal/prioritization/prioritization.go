@@ -107,7 +107,7 @@ func overlapsAnyPurchased(e *events.GenconEvent, purchased []*events.GenconEvent
 	return false
 }
 
-func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*events.GenconEvent, constraints []postgres.WishlistConstraint) []WishlistItem {
+func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*events.GenconEvent, constraints []postgres.WishlistConstraint, partyPurchases map[string]int) []WishlistItem {
 	// 1. Map events by ID for quick lookup
 	eventMap := make(map[string]*events.GenconEvent)
 	for _, e := range allEvents {
@@ -137,6 +137,9 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 		starredMap[se.EventId] = se
 		event, found := eventMap[se.EventId]
 		if !found {
+			continue
+		}
+		if se.Tier != "purchased" && event.TicketsAvailable <= 0 {
 			continue
 		}
 
@@ -170,6 +173,9 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 		if !found {
 			continue
 		}
+		if se.Tier != "purchased" && event.TicketsAvailable <= 0 {
+			continue
+		}
 		key := getClusterKey(event)
 		stats := groupStatsMap[key]
 
@@ -201,6 +207,25 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 		if stats.NumSessions == 1 {
 			score += 1000
 			reasoning = append(reasoning, "Single Session")
+		}
+
+		// Tickets remaining boost (more tickets being better)
+		if event.TicketsAvailable > 0 {
+			score += float64(event.TicketsAvailable) * 10.0
+			reasoning = append(reasoning, fmt.Sprintf("%d Tickets Left", event.TicketsAvailable))
+		}
+
+		// Party member purchases boost
+		if partyPurchases != nil {
+			count := partyPurchases[event.EventId]
+			if count > 0 {
+				score += float64(count) * 2000.0
+				if count == 1 {
+					reasoning = append(reasoning, "1 Party Member Purchased")
+				} else {
+					reasoning = append(reasoning, fmt.Sprintf("%d Party Members Purchased", count))
+				}
+			}
 		}
 
 		// Apply Time Constraints

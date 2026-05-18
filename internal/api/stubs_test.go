@@ -40,6 +40,7 @@ type StubRepository struct {
 	JoinPartyFn            func(int64, string) error
 	LoadPartySharedInterestsFn func(int64, int) ([]*postgres.SharedInterestGroup, error)
 	UpdatePartyMemberInfoFn    func(int64, string, string, string, string, string) error
+	LoadPartyMemberPurchasesFn func(int64, int) (map[string]int, error)
 	UpdateDisplayNameFn    func(string, string) error
 	UpdateUserGenconInfoFn func(string, string, string, string, string) error
 	GetLastUpdateFn        func() (time.Time, error)
@@ -170,6 +171,12 @@ func (s *StubRepository) UpdatePartyMemberInfo(partyId int64, email string, disp
 		return nil
 	}
 	return s.UpdatePartyMemberInfoFn(partyId, email, displayName, genconName, genconId, genconEmail)
+}
+func (s *StubRepository) LoadPartyMemberPurchases(partyId int64, year int) (map[string]int, error) {
+	if s.LoadPartyMemberPurchasesFn == nil {
+		return make(map[string]int), nil
+	}
+	return s.LoadPartyMemberPurchasesFn(partyId, year)
 }
 func (s *StubRepository) UpdateDisplayName(email string, name string) error {
 	return s.UpdateDisplayNameFn(email, name)

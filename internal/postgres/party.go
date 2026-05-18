@@ -404,3 +404,28 @@ WHERE party_id = $5 AND email = $6
 	return err
 }
 
+func LoadPartyMemberPurchases(db *sql.DB, partyId int64, year int) (map[string]int, error) {
+	purchases := make(map[string]int)
+	rows, err := db.Query(`
+SELECT se.event_id, COUNT(DISTINCT se.email)
+FROM starred_events se
+JOIN party_members pm ON se.email = pm.email
+JOIN events e ON se.event_id = e.event_id
+WHERE pm.party_id = $1 AND e.year = $2 AND se.tier = 'purchased'
+GROUP BY se.event_id
+`, partyId, year)
+	if err != nil {
+		return purchases, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var eventId string
+		var count int
+		if err := rows.Scan(&eventId, &count); err == nil {
+			purchases[eventId] = count
+		}
+	}
+	return purchases, nil
+}
+

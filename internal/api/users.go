@@ -1274,8 +1274,27 @@ func (s *Server) GetWishlist(c *gin.Context) {
 			constraints = []postgres.WishlistConstraint{{DayOfWeek: -1, StartHour: 23, EndHour: 6}}
 		}
 
+		var partyId int64
+		user, err := s.Repo.LoadOrCreateUser(email)
+		if err == nil {
+			dbParties, err := s.Repo.LoadParties(user)
+			if err == nil {
+				for _, p := range dbParties {
+					if p.Year == int64(year) {
+						partyId = p.Id
+						break
+					}
+				}
+			}
+		}
+
+		var partyPurchases map[string]int
+		if partyId != 0 {
+			partyPurchases, _ = s.Repo.LoadPartyMemberPurchases(partyId, year)
+		}
+
 		// Use the prioritization package
-		optimized := prioritization.GeneratePersonalWishlist(starred.StarredEvents, allStarredEvents, constraints)
+		optimized := prioritization.GeneratePersonalWishlist(starred.StarredEvents, allStarredEvents, constraints, partyPurchases)
 
 		// Save to cache
 		cacheItems := make([]postgres.WishlistCacheItem, 0, len(optimized))
