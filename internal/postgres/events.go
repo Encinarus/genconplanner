@@ -169,10 +169,10 @@ JOIN (
     GROUP BY cluster_id
 ) c ON e.event_id = c.event_id
 JOIN (
-    SELECT alias, MAX(id) as id
+    SELECT lower(alias) as alias, MAX(id) as id
     FROM orgs
-    GROUP BY alias
-) o ON lower(o.alias) = lower(e.org_group)
+    GROUP BY lower(alias)
+) o ON o.alias = lower(e.org_group)
 WHERE ($9 = 0 OR o.id = $9)
 	`, query.CategoryShortCode, query.Year, query.MinWedTickets,
 		query.MinThuTickets, query.MinFriTickets, query.MinSatTickets,
@@ -229,10 +229,10 @@ JOIN (
     GROUP BY cluster_id
 ) as c ON e.event_id = c.event_id
 JOIN (
-    SELECT alias, MAX(id) as id
+    SELECT lower(alias) as alias, MAX(id) as id
     FROM orgs
-    GROUP BY alias
-) o ON lower(o.alias) = lower(e.org_group)
+    GROUP BY lower(alias)
+) o ON o.alias = lower(e.org_group)
 WHERE e.year = $1
 ORDER BY c.tickets_available > 0 desc, title`, year, short_category)
 	if err != nil {
@@ -460,10 +460,10 @@ SELECT  distinct
 		c.search_rank as search_rank		
 FROM events e JOIN (%s) AS c ON e.event_id = c.event_id
     JOIN (
-        SELECT alias, MAX(id) as id
+        SELECT lower(alias) as alias, MAX(id) as id
         FROM orgs
-        GROUP BY alias
-    ) o ON lower(o.alias) = lower(e.org_group)
+        GROUP BY lower(alias)
+    ) o ON o.alias = lower(e.org_group)
 WHERE %s
 ORDER BY c.title_rank desc, c.search_rank desc, c.tickets_available desc
 `, innerQuery, fullWhere)
