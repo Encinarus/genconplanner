@@ -6,8 +6,9 @@
  */
 
 // CONFIGURATION: Set to http://localhost:8080 for local development.
-// For production deployment, update to https://www.genconplanner.com
-const SERVER_URL = 'http://localhost:8080';
+// For production deployment, update to https://genconplanner.com
+const SERVER_URL = 'https://genconplanner.com';
+
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'sync_tickets') {

@@ -14,7 +14,7 @@ By default, the extension is configured for local development and communicates w
 **For Production Deployment**:
 Before publishing or deploying the extension for production use, open `background.js` and update `SERVER_URL` to the live domain:
 ```javascript
-const SERVER_URL = 'https://www.genconplanner.com';
+const SERVER_URL = 'https://genconplanner.com';
 ```
 
 ## Installation (Developer Mode)

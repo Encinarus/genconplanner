@@ -45,7 +45,7 @@ func (gc *GameCache) PeriodicallyUpdate() {
 }
 
 func (gc *GameCache) UpdateCache() error {
-	dbGames, err := postgres.LoadGames(gc.db)
+	dbGames, err := postgres.LoadGameCacheEntries(gc.db)
 	if err != nil {
 		return err
 	}

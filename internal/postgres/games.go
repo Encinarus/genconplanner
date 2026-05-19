@@ -200,3 +200,42 @@ FROM boardgame bg
 	}
 	return games, nil
 }
+
+func LoadGameCacheEntries(db *sql.DB) ([]*Game, error) {
+	rows, err := db.Query(`
+SELECT 
+    name,
+    bgg_id, 
+    num_ratings,
+    avg_ratings,
+    year_published
+FROM boardgame
+`)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	games := make([]*Game, 0)
+
+	for rows.Next() {
+		var g Game
+		var numRatingHolder sql.NullInt64
+		var avgRatingHolder sql.NullFloat64
+		var yearPublishedHolder sql.NullInt64
+		err = rows.Scan(
+			&g.Name, &g.BggId,
+			&numRatingHolder, &avgRatingHolder,
+			&yearPublishedHolder)
+		if err != nil {
+			return nil, err
+		}
+		g.NumRatings = numRatingHolder.Int64
+		g.AvgRatings = avgRatingHolder.Float64
+		g.YearPublished = yearPublishedHolder.Int64
+		games = append(games, &g)
+	}
+	return games, nil
+}
+
