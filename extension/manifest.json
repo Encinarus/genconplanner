@@ -1,24 +1,33 @@
 {
   "manifest_version": 3,
   "name": "Gen Con Planner Extension",
-  "version": "1.0.0",
-  "description": "Enhances gencon.com event pages and integrates with genconplanner.com.",
+  "version": "1.1.0",
+  "description": "Enhances gencon.com event pages and syncs tickets with genconplanner.com.",
   "permissions": [
-    "storage"
+    "storage",
+    "cookies"
   ],
   "host_permissions": [
     "*://*.gencon.com/*",
-    "*://*.genconplanner.com/*"
+    "*://*.genconplanner.com/*",
+    "*://localhost/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": [
-        "*://*.gencon.com/events/*"
+        "*://*.gencon.com/events/*",
+        "*://*.gencon.com/profile/transactions*",
+        "*://*.gencon.com/transactions*",
+        "*://*.gencon.com/account/transactions*",
+        "*://*.gencon.com/my_transactions/*"
       ],
       "js": [
         "content_gencon.js"
       ],
-      "run_at": "document_start"
+      "run_at": "document_idle"
     }
   ]
 }

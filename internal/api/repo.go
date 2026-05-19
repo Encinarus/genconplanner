@@ -43,6 +43,13 @@ type EventRepository interface {
 	LoadPartySharedInterests(partyId int64, year int) ([]*postgres.SharedInterestGroup, error)
 	UpdatePartyMemberInfo(partyId int64, email string, displayName string, genconName string, genconId string, genconEmail string) error
 	LoadPartyMemberPurchases(partyId int64, year int) (map[string]int, error)
+	SyncPartyTickets(partyId int64, year int, authEmail string, tickets []postgres.TicketSyncInput) ([]*postgres.PartyTicket, error)
+	LoadPartyTickets(partyId int64, year int) ([]*postgres.PartyTicket, error)
+	AddPartyTicket(partyId int64, year int, eventId, purchaserEmail, genconRecipientName, holderEmail, ticketType string) (*postgres.PartyTicket, error)
+	DeletePartyTicket(partyId int64, ticketId string) error
+	InitiateTicketTransfer(partyId int64, ticketId, fromEmail, toEmail, transferType string) (*postgres.TicketTransfer, error)
+	RespondTicketTransfer(partyId int64, transferId, action string) (*postgres.TicketTransfer, error)
+	ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error)
 
 	// User related
 	UpdateDisplayName(email string, name string) error
@@ -192,5 +199,34 @@ func (r *PostgresRepository) LoadPartyMemberPurchases(partyId int64, year int) (
 func (r *PostgresRepository) GetLastUpdate() (time.Time, error) {
 	return postgres.GetLastUpdate(r.DB)
 }
+
+func (r *PostgresRepository) SyncPartyTickets(partyId int64, year int, authEmail string, tickets []postgres.TicketSyncInput) ([]*postgres.PartyTicket, error) {
+	return postgres.SyncPartyTickets(r.DB, partyId, year, authEmail, tickets)
+}
+
+func (r *PostgresRepository) LoadPartyTickets(partyId int64, year int) ([]*postgres.PartyTicket, error) {
+	return postgres.LoadPartyTickets(r.DB, partyId, year)
+}
+
+func (r *PostgresRepository) AddPartyTicket(partyId int64, year int, eventId, purchaserEmail, genconRecipientName, holderEmail, ticketType string) (*postgres.PartyTicket, error) {
+	return postgres.AddPartyTicket(r.DB, partyId, year, eventId, purchaserEmail, genconRecipientName, holderEmail, ticketType)
+}
+
+func (r *PostgresRepository) DeletePartyTicket(partyId int64, ticketId string) error {
+	return postgres.DeletePartyTicket(r.DB, partyId, ticketId)
+}
+
+func (r *PostgresRepository) InitiateTicketTransfer(partyId int64, ticketId, fromEmail, toEmail, transferType string) (*postgres.TicketTransfer, error) {
+	return postgres.InitiateTicketTransfer(r.DB, partyId, ticketId, fromEmail, toEmail, transferType)
+}
+
+func (r *PostgresRepository) RespondTicketTransfer(partyId int64, transferId, action string) (*postgres.TicketTransfer, error) {
+	return postgres.RespondTicketTransfer(r.DB, partyId, transferId, action)
+}
+
+func (r *PostgresRepository) ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error) {
+	return postgres.ToggleTicketReturn(r.DB, partyId, ticketId)
+}
+
 
 

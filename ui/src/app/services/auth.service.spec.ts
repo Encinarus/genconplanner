@@ -9,7 +9,7 @@ vi.mock('firebase/app', () => ({
   initializeApp: vi.fn(() => ({ name: 'mock-app' }))
 }));
 
-vi.mock('firebase/auth', () => ({
+const mockFirebaseAuth = vi.hoisted(() => ({
   getAuth: vi.fn(() => ({ name: 'mock-auth' })),
   GoogleAuthProvider: vi.fn().mockImplementation(function() { return { name: 'google-provider' }; }),
   signInWithPopup: vi.fn(),
@@ -17,13 +17,8 @@ vi.mock('firebase/auth', () => ({
   onAuthStateChanged: vi.fn()
 }));
 
-vi.mock('@firebase/auth', () => ({
-  getAuth: vi.fn(() => ({ name: 'mock-auth' })),
-  GoogleAuthProvider: vi.fn().mockImplementation(function() { return { name: 'google-provider' }; }),
-  signInWithPopup: vi.fn(),
-  signOut: vi.fn(),
-  onAuthStateChanged: vi.fn()
-}));
+vi.mock('firebase/auth', () => mockFirebaseAuth);
+vi.mock('@firebase/auth', () => mockFirebaseAuth);
 
 vi.mock('js-cookie', () => ({
   default: {
@@ -40,6 +35,7 @@ describe('AuthService (Firebase Interaction)', () => {
     // Clear any window serverSideUser before test
     delete (window as any).serverSideUser;
 
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [AuthService]
     });
@@ -47,8 +43,8 @@ describe('AuthService (Firebase Interaction)', () => {
   });
 
   it('should initialize Firebase app and auth on creation', () => {
-    expect(fireAuth.getAuth).toHaveBeenCalled();
-    expect(fireAuth.onAuthStateChanged).toHaveBeenCalled();
+    expect(mockFirebaseAuth.getAuth).toHaveBeenCalled();
+    expect(mockFirebaseAuth.onAuthStateChanged).toHaveBeenCalled();
   });
 
   it('should call signInWithPopup and set cookie on signIn()', async () => {
@@ -56,11 +52,11 @@ describe('AuthService (Firebase Interaction)', () => {
       displayName: 'Firebase User',
       getIdToken: vi.fn().mockResolvedValue('mock-jwt-token')
     };
-    (fireAuth.signInWithPopup as any).mockResolvedValue({ user: mockUser });
+    (mockFirebaseAuth.signInWithPopup as any).mockResolvedValue({ user: mockUser });
 
     await service.signIn();
 
-    expect(fireAuth.signInWithPopup).toHaveBeenCalled();
+    expect(mockFirebaseAuth.signInWithPopup).toHaveBeenCalled();
     expect(Cookies.set).toHaveBeenCalledWith(
       'signinToken',
       'mock-jwt-token',
@@ -71,11 +67,11 @@ describe('AuthService (Firebase Interaction)', () => {
   });
 
   it('should call signOut and remove cookie on signOut()', async () => {
-    (fireAuth.signOut as any).mockResolvedValue(undefined);
+    (mockFirebaseAuth.signOut as any).mockResolvedValue(undefined);
 
     await service.signOut();
 
-    expect(fireAuth.signOut).toHaveBeenCalled();
+    expect(mockFirebaseAuth.signOut).toHaveBeenCalled();
     expect(Cookies.remove).toHaveBeenCalledWith('signinToken', { path: '/' });
     expect(service.user()).toBeNull();
     expect(service.displayName()).toBeNull();

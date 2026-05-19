@@ -248,11 +248,11 @@ ORDER BY e2.start_time, e2.event_id`, fields), userEmail, year)
 }
 
 func UpdateStarredEvent(db *sql.DB, email string, eventId string, tier string, starGroup bool, add bool) (*UserStarredEvents, error) {
-	return updateStarredEventInternal(db, email, eventId, tier, starGroup, add, true)
+	return UpdateStarredEventInternal(db, email, eventId, tier, starGroup, add, true)
 }
 
 func UpdateStarredEventMinimal(db *sql.DB, email string, eventId string, tier string, starGroup bool, add bool) (*UserStarredEvents, error) {
-	return updateStarredEventInternal(db, email, eventId, tier, starGroup, add, false)
+	return UpdateStarredEventInternal(db, email, eventId, tier, starGroup, add, false)
 }
 
 func RemoveStarredEventGroup(db *sql.DB, email string, eventId string) (*UserStarredEvents, error) {
@@ -279,7 +279,7 @@ func RemoveStarredEventGroup(db *sql.DB, email string, eventId string) (*UserSta
 }
 
 
-func updateStarredEventInternal(db *sql.DB, email string, eventId string, tier string, starGroup bool, add bool, fullResponse bool) (*UserStarredEvents, error) {
+func UpdateStarredEventInternal(db *sql.DB, email string, eventId string, tier string, starGroup bool, add bool, fullResponse bool) (*UserStarredEvents, error) {
 	if tier == "" {
 		tier = "very_interested"
 	}

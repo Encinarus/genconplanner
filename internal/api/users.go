@@ -1601,4 +1601,5 @@ func (s *Server) registerUserRoutes(group *gin.RouterGroup) {
 	group.GET("/user/wishlist/:year", s.GetWishlist)
 	group.GET("/user/wishlist/constraints", s.GetWishlistConstraints)
 	group.POST("/user/wishlist/constraints", s.UpdateWishlistConstraints)
+	s.registerTicketRoutes(group)
 }

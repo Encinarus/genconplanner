@@ -316,7 +316,13 @@ ON CONFLICT DO NOTHING
 		return err
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	_ = MatchPendingPartyTickets(db, partyId, int(year))
+	return nil
 }
 
 type MemberInterest struct {
@@ -457,6 +463,13 @@ UPDATE party_members
 SET display_name = $1, gencon_name = $2, gencon_id = $3, gencon_email = $4 
 WHERE party_id = $5 AND email = $6
 `, displayName, genconName, genconId, genconEmail, partyId, strings.ToLower(email))
+
+	if err == nil {
+		var year int
+		if errQ := db.QueryRow("SELECT year FROM parties WHERE party_id = $1", partyId).Scan(&year); errQ == nil {
+			_ = MatchPendingPartyTickets(db, partyId, year)
+		}
+	}
 	return err
 }
 

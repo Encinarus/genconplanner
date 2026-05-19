@@ -131,17 +131,227 @@ function modifyTicketPurchase() {
   return true;
 }
 
-// Attempt immediate execution
-if (!modifyTicketPurchase()) {
-  // If the target container is not yet in the DOM, set up a MutationObserver
-  const observer = new MutationObserver((mutations, obs) => {
-    if (modifyTicketPurchase()) {
-      obs.disconnect();
+/**
+ * Parses the Gen Con transactions page for tickets purchased this year.
+ * Identifies transaction blocks, filters by current year, extracts event IDs,
+ * ticket IDs, purchaser, recipient, and ticket type.
+ */
+function parseTransactionsPage() {
+  if (!window.location.href.includes('/transactions') && !window.location.href.includes('/my_transactions')) return false;
+
+  // Avoid duplicate injection
+  if (document.getElementById('genconplanner-sync-banner')) return true;
+
+  const currentYear = new Date().getFullYear().toString();
+  const tickets = [];
+
+  // Purchaser Name: Extract from page title e.g. "Alek Dembowski's Transactions"
+  let purchaserName = "Myself";
+  const pageTitleEl = document.querySelector('.page-title, h1');
+  if (pageTitleEl && pageTitleEl.textContent.trim()) {
+    const titleText = pageTitleEl.textContent.trim();
+    const match = titleText.match(/^(.+?)(?:&#39;|')s\s+Transactions/i);
+    if (match && match[1].trim()) {
+      purchaserName = match[1].trim();
+    } else {
+      const parts = titleText.split(':');
+      purchaserName = parts[parts.length - 1].trim();
     }
-  });
+  }
 
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  // Find all transaction panels
+  const panels = Array.from(document.querySelectorAll('.panel'));
 
-  // Disconnect observer after 10 seconds to prevent memory leaks on pages without ticket purchase
-  setTimeout(() => observer.disconnect(), 10000);
+  for (const panel of panels) {
+    const titlebar = panel.querySelector('.panel_titlebar');
+    if (!titlebar) continue;
+
+    const titlebarText = titlebar.textContent.trim();
+    // e.g. "Transaction: 2026/05/17 10:56 PM"
+    const yearMatch = titlebarText.match(/\b(202\d)\b/);
+    if (!yearMatch || yearMatch[1] !== currentYear) continue;
+
+    // Extract transaction ID from panel ID e.g. "txn-3684243"
+    let currentTransactionId = panel.id ? panel.id.replace('txn-', '') : "";
+    if (!currentTransactionId) {
+      const txMatch = titlebarText.match(/(?:Transaction|TXN)[:#\s]*(\d+)/i);
+      if (txMatch) currentTransactionId = txMatch[1];
+    }
+
+    // Find all rows in this panel's records table
+    const rows = Array.from(panel.querySelectorAll('table.records tr'));
+    const panelTickets = [];
+
+    for (const row of rows) {
+      const cells = Array.from(row.querySelectorAll('td'));
+      if (cells.length < 2) continue; // Skip header row or malformed rows
+
+      const descCellText = cells[0].textContent.trim();
+      const recipientCellText = cells[1].textContent.trim();
+
+      const isPurchase = descCellText.includes('Ticket Purchase');
+      const isReturn = descCellText.includes('Ticket Return') || descCellText.includes('Ticket Cancellation');
+      if (!isPurchase && !isReturn) continue;
+
+      // Extract Event ID e.g. "- BGM26ND319431 (Gempire on Wednesday..."
+      const eventIdMatch = descCellText.match(/\b([A-Z]{3}\d{2}[A-Z]{2}\d+)\b/);
+      if (!eventIdMatch) continue;
+
+      const eventId = eventIdMatch[1];
+
+      let recipientName = recipientCellText || purchaserName;
+      if (recipientName.includes('Another ticket for me')) {
+        recipientName = 'Another ticket for me';
+      }
+
+      let ticketType = 'physical';
+      if (descCellText.toLowerCase().includes('e-ticket') || descCellText.toLowerCase().includes('eticket') || descCellText.toLowerCase().includes('electronic')) {
+        ticketType = 'eticket';
+      }
+
+      panelTickets.push({
+        eventId,
+        purchaserGenconId: "",
+        purchaserName,
+        recipientGenconId: "",
+        recipientName,
+        ticketType,
+        status: isReturn ? 'returned' : 'active'
+      });
+    }
+
+    // Deterministically sort panel tickets by Event ID, then Recipient Name, then Ticket Type, then Status
+    // This guarantees that even if Gen Con renders table rows in an arbitrary or shifting order,
+    // the generated genconTicketId (e.g. TXN-3684243-1, TXN-3684243-2) will remain 100% stable and locked
+    // to the exact same recipient across repeated imports!
+    panelTickets.sort((a, b) => {
+      if (a.eventId !== b.eventId) return a.eventId.localeCompare(b.eventId);
+      if (a.recipientName !== b.recipientName) return a.recipientName.localeCompare(b.recipientName);
+      if (a.ticketType !== b.ticketType) return a.ticketType.localeCompare(b.ticketType);
+      return a.status.localeCompare(b.status);
+    });
+
+    let ticketIndex = 1;
+    for (const pt of panelTickets) {
+      let genconTicketId = currentTransactionId ? `TXN-${currentTransactionId}-${ticketIndex}` : `TXN-${pt.eventId}-${tickets.length + 1}`;
+      ticketIndex++;
+
+      if (!tickets.some(t => t.eventId === pt.eventId && t.genconTicketId === genconTicketId && t.recipientName === pt.recipientName)) {
+        tickets.push({
+          eventId: pt.eventId,
+          genconTicketId,
+          purchaserGenconId: pt.purchaserGenconId,
+          purchaserName: pt.purchaserName,
+          recipientGenconId: pt.recipientGenconId,
+          recipientName: pt.recipientName,
+          ticketType: pt.ticketType
+        });
+      }
+    }
+  }
+
+  createSyncBanner(tickets, currentYear);
+  return true;
 }
+
+function createSyncBanner(tickets, year) {
+  const pageTitleEl = document.querySelector('.page-title, h1');
+  if (!pageTitleEl) return;
+
+  const container = document.createElement('div');
+  container.id = 'genconplanner-sync-banner';
+  container.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: normal;
+  `;
+
+  const statusText = document.createElement('div');
+  statusText.style.cssText = 'font-size: 14px; font-weight: 500;';
+
+  if (tickets.length === 0) {
+    statusText.style.color = '#64748b';
+    statusText.textContent = `No ${year} tickets found`;
+    container.appendChild(statusText);
+  } else {
+    statusText.style.color = '#64748b';
+    statusText.textContent = `${tickets.length} ticket(s) found`;
+
+    const syncBtn = document.createElement('button');
+    syncBtn.style.cssText = `
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+    syncBtn.textContent = 'Import current year to genconplanner';
+    syncBtn.onmouseover = () => syncBtn.style.background = '#0369a1';
+    syncBtn.onmouseout = () => syncBtn.style.background = '#0284c7';
+
+    syncBtn.onclick = () => {
+      syncBtn.disabled = true;
+      syncBtn.style.background = '#64748b';
+      syncBtn.textContent = 'Importing...';
+      statusText.textContent = '';
+
+      chrome.runtime.sendMessage({ action: 'sync_tickets', tickets }, (response) => {
+        if (response && response.status === 'success') {
+          syncBtn.style.background = '#16a34a';
+          syncBtn.textContent = 'Imported Successfully!';
+          statusText.style.color = '#16a34a';
+          statusText.textContent = `Imported ${response.data.syncedCount || tickets.length} tickets`;
+        } else {
+          syncBtn.disabled = false;
+          syncBtn.style.background = '#0284c7';
+          syncBtn.textContent = 'Try Import Again';
+          statusText.style.color = '#dc2626';
+          statusText.textContent = response ? response.message : 'Failed to connect to background worker.';
+        }
+      });
+    };
+
+    container.appendChild(statusText);
+    container.appendChild(syncBtn);
+  }
+
+  pageTitleEl.style.display = 'flex';
+  pageTitleEl.style.justifyContent = 'space-between';
+  pageTitleEl.style.alignItems = 'center';
+  pageTitleEl.appendChild(container);
+}
+
+// Attempt immediate execution based on URL
+if (window.location.href.includes('/transactions') || window.location.href.includes('/my_transactions')) {
+  if (!parseTransactionsPage()) {
+    const observer = new MutationObserver((mutations, obs) => {
+      if (parseTransactionsPage()) {
+        obs.disconnect();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), 10000);
+  }
+} else if (window.location.href.includes('/events/')) {
+  if (!modifyTicketPurchase()) {
+    const observer = new MutationObserver((mutations, obs) => {
+      if (modifyTicketPurchase()) {
+        obs.disconnect();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), 10000);
+  }
+}
+

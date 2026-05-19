@@ -46,6 +46,13 @@ type StubRepository struct {
 	GetLastUpdateFn        func() (time.Time, error)
 	GetWishlistCacheFn     func(string, int) ([]postgres.WishlistCacheItem, bool, time.Time, error)
 	SaveWishlistCacheFn    func(string, int, []postgres.WishlistCacheItem, time.Time) error
+	SyncPartyTicketsFn     func(int64, int, string, []postgres.TicketSyncInput) ([]*postgres.PartyTicket, error)
+	LoadPartyTicketsFn     func(int64, int) ([]*postgres.PartyTicket, error)
+	AddPartyTicketFn       func(int64, int, string, string, string, string, string) (*postgres.PartyTicket, error)
+	DeletePartyTicketFn    func(int64, string) error
+	InitiateTicketTransferFn func(int64, string, string, string, string) (*postgres.TicketTransfer, error)
+	RespondTicketTransferFn  func(int64, string, string) (*postgres.TicketTransfer, error)
+	ToggleTicketReturnFn     func(int64, string) (*postgres.PartyTicket, error)
 }
 
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
@@ -205,6 +212,55 @@ func (s *StubRepository) SaveWishlistCache(email string, year int, items []postg
 		return nil
 	}
 	return s.SaveWishlistCacheFn(email, year, items, updatedAt)
+}
+
+func (s *StubRepository) SyncPartyTickets(partyId int64, year int, authEmail string, tickets []postgres.TicketSyncInput) ([]*postgres.PartyTicket, error) {
+	if s.SyncPartyTicketsFn == nil {
+		return nil, nil
+	}
+	return s.SyncPartyTicketsFn(partyId, year, authEmail, tickets)
+}
+
+func (s *StubRepository) LoadPartyTickets(partyId int64, year int) ([]*postgres.PartyTicket, error) {
+	if s.LoadPartyTicketsFn == nil {
+		return nil, nil
+	}
+	return s.LoadPartyTicketsFn(partyId, year)
+}
+
+func (s *StubRepository) AddPartyTicket(partyId int64, year int, eventId, purchaserEmail, genconRecipientName, holderEmail, ticketType string) (*postgres.PartyTicket, error) {
+	if s.AddPartyTicketFn == nil {
+		return nil, nil
+	}
+	return s.AddPartyTicketFn(partyId, year, eventId, purchaserEmail, genconRecipientName, holderEmail, ticketType)
+}
+
+func (s *StubRepository) DeletePartyTicket(partyId int64, ticketId string) error {
+	if s.DeletePartyTicketFn == nil {
+		return nil
+	}
+	return s.DeletePartyTicketFn(partyId, ticketId)
+}
+
+func (s *StubRepository) InitiateTicketTransfer(partyId int64, ticketId, fromEmail, toEmail, transferType string) (*postgres.TicketTransfer, error) {
+	if s.InitiateTicketTransferFn == nil {
+		return nil, nil
+	}
+	return s.InitiateTicketTransferFn(partyId, ticketId, fromEmail, toEmail, transferType)
+}
+
+func (s *StubRepository) RespondTicketTransfer(partyId int64, transferId, action string) (*postgres.TicketTransfer, error) {
+	if s.RespondTicketTransferFn == nil {
+		return nil, nil
+	}
+	return s.RespondTicketTransferFn(partyId, transferId, action)
+}
+
+func (s *StubRepository) ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error) {
+	if s.ToggleTicketReturnFn == nil {
+		return nil, nil
+	}
+	return s.ToggleTicketReturnFn(partyId, ticketId)
 }
 
 // StubAuthService implements AuthService for testing.

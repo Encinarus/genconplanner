@@ -405,3 +405,56 @@ CREATE TABLE public.update_log (
     events_unchanged integer,
     error_message text
 );
+
+-- Table: public.party_tickets
+
+-- DROP TABLE public.party_tickets;
+
+CREATE TABLE public.party_tickets (
+    ticket_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    party_id integer NOT NULL REFERENCES public.parties(party_id) ON DELETE CASCADE,
+    event_id character varying(13) NOT NULL REFERENCES public.events(event_id) ON DELETE CASCADE,
+    year integer NOT NULL,
+    
+    purchaser_email text NOT NULL REFERENCES public.users(email),
+    gencon_purchaser_name text DEFAULT '',
+    gencon_ticket_id text,               -- Gen Con Transaction/Ticket ID (e.g., "TXN98765-1")
+    gencon_recipient_name text NOT NULL, -- e.g., "Alice Smith", "Dave Smith", "Another ticket for me"
+    gencon_recipient_id text,            -- Gen Con Account ID if known (e.g., "88341")
+    
+    holder_email text NOT NULL REFERENCES public.users(email), -- Defaults to purchaser_email for unmapped/guest passes
+    
+    ticket_type character varying(20) NOT NULL,       -- 'physical' | 'eticket'
+    ticket_status character varying(20) NOT NULL DEFAULT 'active', -- 'active' | 'returned'
+    transfer_status character varying(30) NOT NULL DEFAULT 'none', -- 'none' | 'name_only_transfer' | 'pending_gencon_transfer' | 'completed'
+    gencon_return_id text,
+    
+    created_at timestamp with time zone DEFAULT now(),
+    last_modified timestamp with time zone DEFAULT now()
+);
+
+CREATE INDEX idx_party_tickets_party_year ON public.party_tickets(party_id, year);
+CREATE INDEX idx_party_tickets_event ON public.party_tickets(event_id);
+CREATE INDEX idx_party_tickets_holder ON public.party_tickets(holder_email, year);
+
+-- Table: public.ticket_transfers
+
+-- DROP TABLE public.ticket_transfers;
+
+CREATE TABLE public.ticket_transfers (
+    transfer_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_id uuid NOT NULL REFERENCES public.party_tickets(ticket_id) ON DELETE CASCADE,
+    party_id integer NOT NULL REFERENCES public.parties(party_id) ON DELETE CASCADE,
+    
+    from_email text NOT NULL REFERENCES public.users(email),
+    to_email text NOT NULL REFERENCES public.users(email),
+    
+    transfer_type character varying(20) NOT NULL, -- 'name_only' | 'eticket'
+    status character varying(20) NOT NULL,        -- 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled'
+    
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE INDEX idx_ticket_transfers_party ON public.ticket_transfers(party_id);
+

@@ -335,4 +335,63 @@ export class ApiService {
   updateWishlistConstraints(constraints: WishlistConstraint[]): Observable<any> {
     return this.http.post<any>(`/api/v1/user/wishlist/constraints`, constraints);
   }
+
+  getPartyTickets(year: number | string): Observable<{ status: string; tickets: PartyTicket[] }> {
+    return this.http.get<{ status: string; tickets: PartyTicket[] }>(`/api/v1/party/${year}/tickets`);
+  }
+
+  addPartyTicket(year: number | string, ticket: { eventId: string; purchaserEmail: string; genconRecipientName: string; holderEmail: string; ticketType: string }): Observable<{ status: string; ticket: PartyTicket }> {
+    return this.http.post<{ status: string; ticket: PartyTicket }>(`/api/v1/party/${year}/tickets`, ticket);
+  }
+
+  deletePartyTicket(year: number | string, ticketId: string): Observable<{ status: string }> {
+    return this.http.delete<{ status: string }>(`/api/v1/party/${year}/tickets/${ticketId}`);
+  }
+
+  transferPartyTicket(year: number | string, ticketId: string, transfer: { toEmail: string; transferType: string; notes?: string }): Observable<{ status: string; transfer: TicketTransfer }> {
+    return this.http.post<{ status: string; transfer: TicketTransfer }>(`/api/v1/party/${year}/tickets/${ticketId}/transfer`, transfer);
+  }
+
+  respondTicketTransfer(year: number | string, transferId: string, action: string): Observable<{ status: string; transfer: TicketTransfer }> {
+    return this.http.post<{ status: string; transfer: TicketTransfer }>(`/api/v1/party/${year}/transfers/${transferId}/respond`, { action });
+  }
+
+  toggleTicketReturn(year: number | string, ticketId: string): Observable<{ status: string; ticket: PartyTicket }> {
+    return this.http.post<{ status: string; ticket: PartyTicket }>(`/api/v1/party/${year}/tickets/${ticketId}/toggle_return`, {});
+  }
+}
+
+export interface PartyTicket {
+  ticketId: string;
+  partyId: number;
+  eventId: string;
+  year: number;
+  purchaserEmail: string;
+  genconPurchaserName: string;
+  genconTicketId: string;
+  genconRecipientName: string;
+  genconRecipientId: string;
+  holderEmail: string;
+  holderDisplayName: string;
+  ticketType: string;
+  ticketStatus: string;
+  transferStatus: string;
+  createdAt: string;
+  lastModified: string;
+  eventTitle?: string;
+  eventStartTime?: string;
+  eventLocation?: string;
+  eventCategory?: string;
+}
+
+export interface TicketTransfer {
+  transferId: string;
+  ticketId: string;
+  partyId: number;
+  fromEmail: string;
+  toEmail: string;
+  transferType: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
