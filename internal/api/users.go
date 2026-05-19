@@ -1560,14 +1560,22 @@ func (s *Server) PartyStream(c *gin.Context) {
 	sub := pubsub.Subscribe(dbParty.Id)
 	defer sub.Unsubscribe()
 
+	// Instantiate a single ticker outside the callback to prevent timer accumulation
+	pingTicker := time.NewTicker(15 * time.Second)
+	defer pingTicker.Stop()
+
 	c.Stream(func(w io.Writer) bool {
+		// Stop the stream if the context is aborted (e.g. write error)
+		if c.IsAborted() {
+			return false
+		}
 		select {
 		case ev := <-sub.C:
 			c.SSEvent("interest_update", ev)
-			return true
-		case <-time.After(15 * time.Second):
+			return !c.IsAborted()
+		case <-pingTicker.C:
 			c.SSEvent("ping", map[string]string{"status": "heartbeat"})
-			return true
+			return !c.IsAborted()
 		case <-c.Request.Context().Done():
 			return false
 		}

@@ -7,8 +7,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/Encinarus/genconplanner/internal/pubsub"
 )
 
 func TestGetPartyByYear(t *testing.T) {
@@ -504,3 +506,119 @@ func TestRenameUserGenconInfo(t *testing.T) {
 		})
 	}
 }
+
+type closeNotifierRecorder struct {
+	*httptest.ResponseRecorder
+	closeChan chan bool
+}
+
+func (r *closeNotifierRecorder) CloseNotify() <-chan bool {
+	return r.closeChan
+}
+
+type errorResponseWriter struct {
+	*closeNotifierRecorder
+}
+
+func (w *errorResponseWriter) Write(b []byte) (int, error) {
+	return 0, fmt.Errorf("write error")
+}
+
+func TestPartyStream(t *testing.T) {
+	server, stub, auth, _, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+		return "test@example.com", nil
+	}
+	stub.LoadPartyFn = func(id int64) (*postgres.Party, error) {
+		if id != 123 {
+			return nil, fmt.Errorf("party not found")
+		}
+		return &postgres.Party{
+			Id:          123,
+			Name:        "Stream Party",
+			Year:        2026,
+			LeaderEmail: "test@example.com",
+			Members: []*postgres.User{
+				{Email: "test@example.com", DisplayName: "Test"},
+			},
+		}, nil
+	}
+
+	t.Run("Streams interest updates and exits on context cancel", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		req, _ := http.NewRequestWithContext(ctx, "GET", "/api/v1/party/123/stream", nil)
+		req.AddCookie(&http.Cookie{Name: "signinToken", Value: "valid-token"})
+		req.Header.Set("Authorization", "Bearer valid-token")
+
+		w := &closeNotifierRecorder{
+			ResponseRecorder: httptest.NewRecorder(),
+			closeChan:        make(chan bool),
+		}
+
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+
+			pubsub.Init()
+			pubsub.PublishTestEvent(123, pubsub.PartyUpdateEvent{
+				PartyId: 123,
+				EventId: "BGM2612345",
+				Email:   "test@example.com",
+				Tier:    "must_have",
+			})
+
+			time.Sleep(50 * time.Millisecond)
+			cancel()
+			select {
+			case w.closeChan <- true:
+			default:
+			}
+		}()
+
+		r.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+		}
+
+		body := w.Body.String()
+		if !strings.Contains(body, "interest_update") || !strings.Contains(body, "BGM2612345") {
+			t.Errorf("Expected stream to contain event data, got: %q", body)
+		}
+	})
+
+	t.Run("Exits stream when write error occurs (c.IsAborted)", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/api/v1/party/123/stream", nil)
+		req.AddCookie(&http.Cookie{Name: "signinToken", Value: "valid-token"})
+		req.Header.Set("Authorization", "Bearer valid-token")
+
+		w := &errorResponseWriter{
+			closeNotifierRecorder: &closeNotifierRecorder{
+				ResponseRecorder: httptest.NewRecorder(),
+				closeChan:        make(chan bool),
+			},
+		}
+
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+
+			pubsub.Init()
+			pubsub.PublishTestEvent(123, pubsub.PartyUpdateEvent{
+				PartyId: 123,
+				EventId: "BGM2612345",
+				Email:   "test@example.com",
+				Tier:    "must_have",
+			})
+		}()
+
+		r.ServeHTTP(w, req)
+
+		// Note: The HTTP status code might be 200 (since Gin set it initially),
+		// but the handler must exit without getting stuck.
+		// If the test finishes, it means the stream successfully terminated on the write error.
+	})
+}
+

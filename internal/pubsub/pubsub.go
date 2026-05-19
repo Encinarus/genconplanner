@@ -126,3 +126,22 @@ func (s *Subscription) Unsubscribe() {
 	}
 	close(s.C)
 }
+
+// PublishTestEvent allows unit tests to push events directly to active subscriptions
+func PublishTestEvent(partyId int64, ev PartyUpdateEvent) {
+	if GlobalHub == nil {
+		Init()
+	}
+	GlobalHub.mu.RLock()
+	defer GlobalHub.mu.RUnlock()
+
+	subs, ok := GlobalHub.subscriptions[partyId]
+	if ok {
+		for _, sub := range subs {
+			select {
+			case sub.C <- ev:
+			default:
+			}
+		}
+	}
+}
