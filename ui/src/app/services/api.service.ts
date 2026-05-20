@@ -382,6 +382,7 @@ export interface PartyTicket {
   eventStartTime?: string;
   eventLocation?: string;
   eventCategory?: string;
+  isMapped?: boolean;
 }
 
 export interface TicketTransfer {

@@ -2,28 +2,26 @@
  * Gen Con Planner Extension - Background Service Worker
  * 
  * Handles cross-origin requests to the Gen Con Planner server API
- * by retrieving the user's signinToken cookie and making the POST request.
+ * by dynamically retrieving the user's signinToken cookie (either from local dev 
+ * or production) and making the POST request.
  */
-
-// CONFIGURATION: Set to http://localhost:8080 for local development.
-// For production deployment, update to https://genconplanner.com
-const SERVER_URL = 'https://genconplanner.com';
-
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'sync_tickets') {
-    // Retrieve the signinToken cookie for the configured server URL
-    chrome.cookies.get({ url: SERVER_URL, name: 'signinToken' }, (cookie) => {
+    const targetEnv = message.targetEnv || 'prod';
+    const serverUrl = targetEnv === 'local' ? 'http://localhost:8080' : 'https://www.genconplanner.com';
+
+    chrome.cookies.get({ url: serverUrl, name: 'signinToken' }, (cookie) => {
       if (!cookie) {
         sendResponse({ 
           status: 'error', 
-          message: `Not logged into Gen Con Planner. Please log in at ${SERVER_URL} first.` 
+          message: `Not logged into Gen Con Planner. Please log in at ${serverUrl} first.` 
         });
         return;
       }
 
       const currentYear = new Date().getFullYear();
-      const endpoint = `${SERVER_URL}/api/v1/party/${currentYear}/tickets/sync`;
+      const endpoint = `${serverUrl}/api/v1/party/${currentYear}/tickets/sync`;
 
       fetch(endpoint, {
         method: 'POST',
@@ -39,7 +37,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(res => {
         if (!res.ok) {
           if (res.status === 401) {
-            throw new Error(`Your Gen Con Planner session has expired. Please open ${SERVER_URL} in a new tab to refresh your login, then try again.`);
+            throw new Error(`Your Gen Con Planner session has expired. Please open ${serverUrl} in a new tab to refresh your login, then try again.`);
           }
           return res.json().then(err => { throw new Error(err.error || `HTTP error ${res.status}`); });
         }
@@ -57,4 +55,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
+
+
 

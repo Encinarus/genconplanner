@@ -416,13 +416,13 @@ CREATE TABLE public.party_tickets (
     event_id character varying(13) NOT NULL REFERENCES public.events(event_id) ON DELETE CASCADE,
     year integer NOT NULL,
     
-    purchaser_email text NOT NULL REFERENCES public.users(email),
+    purchaser_email text NOT NULL,
     gencon_purchaser_name text DEFAULT '',
     gencon_ticket_id text,               -- Gen Con Transaction/Ticket ID (e.g., "TXN98765-1")
     gencon_recipient_name text NOT NULL, -- e.g., "Alice Smith", "Dave Smith", "Another ticket for me"
     gencon_recipient_id text,            -- Gen Con Account ID if known (e.g., "88341")
     
-    holder_email text NOT NULL REFERENCES public.users(email), -- Defaults to purchaser_email for unmapped/guest passes
+    holder_email text NOT NULL, -- Defaults to purchaser_email for unmapped/guest passes
     
     ticket_type character varying(20) NOT NULL,       -- 'physical' | 'eticket'
     ticket_status character varying(20) NOT NULL DEFAULT 'active', -- 'active' | 'returned'

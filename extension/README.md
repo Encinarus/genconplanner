@@ -9,13 +9,9 @@ This browser extension enhances event detail pages and transaction history on [g
 
 ## Configuration & Deployment
 
-By default, the extension is configured for local development and communicates with `http://localhost:8080`. 
+The extension automatically detects whether you have an active session on your local environment (`http://localhost:8080`) or on production (`https://www.genconplanner.com`). 
 
-**For Production Deployment**:
-Before publishing or deploying the extension for production use, open `background.js` and update `SERVER_URL` to the live domain:
-```javascript
-const SERVER_URL = 'https://genconplanner.com';
-```
+It queries the browser cookie store for `signinToken`. If a session exists on `localhost:8080`, it will route requests there to facilitate seamless local testing. Otherwise, it defaults to the production server (`https://www.genconplanner.com`).
 
 ## Installation (Developer Mode)
 

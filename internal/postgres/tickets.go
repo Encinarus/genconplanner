@@ -79,10 +79,13 @@ func resolvePartyMemberEmail(db *sql.DB, partyId int64, genconId string, genconN
 	}
 
 	query := `
-SELECT u.email 
-FROM users u
-JOIN party_members pm ON u.email = pm.email
-WHERE pm.party_id = $1 AND (u.gencon_id = $2 OR lower(u.gencon_name) = $3)
+SELECT pm.email 
+FROM party_members pm
+LEFT JOIN users u ON pm.email = u.email
+WHERE pm.party_id = $1 AND (
+	($2 != '' AND (pm.gencon_id = $2 OR u.gencon_id = $2))
+	OR ($3 != '' AND (lower(pm.gencon_name) = $3 OR lower(u.gencon_name) = $3))
+)
 LIMIT 1`
 	var email string
 	err := db.QueryRow(query, partyId, genconId, strings.ToLower(genconName)).Scan(&email)
@@ -184,10 +187,10 @@ func LoadPartyTickets(db *sql.DB, partyId int64, year int) ([]*PartyTicket, erro
 SELECT 
 	pt.ticket_id, pt.party_id, pt.event_id, pt.year, pt.purchaser_email, COALESCE(pt.gencon_purchaser_name, ''), 
 	COALESCE(pt.gencon_ticket_id, ''), pt.gencon_recipient_name, COALESCE(pt.gencon_recipient_id, ''), 
-	pt.holder_email, u.display_name, pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
+	pt.holder_email, COALESCE(u.display_name, ''), pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
 	COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.location, ''), COALESCE(e.event_type, '')
 FROM party_tickets pt
-JOIN users u ON pt.holder_email = u.email
+LEFT JOIN users u ON pt.holder_email = u.email
 LEFT JOIN events e ON pt.event_id = e.event_id
 WHERE pt.party_id = $1 AND pt.year = $2
 ORDER BY e.start_time, pt.created_at`
@@ -372,9 +375,11 @@ FROM ticket_transfers WHERE transfer_id = $1`, transferId).Scan(
 func MatchPendingPartyTickets(db *sql.DB, partyId int64, year int) error {
 	// Find all members of the party and their Gen Con IDs / Names
 	rows, err := db.Query(`
-SELECT u.email, COALESCE(u.gencon_id, ''), COALESCE(u.gencon_name, '')
-FROM users u
-JOIN party_members pm ON u.email = pm.email
+SELECT pm.email, 
+       COALESCE(NULLIF(pm.gencon_id, ''), NULLIF(u.gencon_id, ''), ''), 
+       COALESCE(NULLIF(pm.gencon_name, ''), NULLIF(u.gencon_name, ''), '')
+FROM party_members pm
+LEFT JOIN users u ON pm.email = u.email
 WHERE pm.party_id = $1`, partyId)
 	if err != nil {
 		return fmt.Errorf("failed to query party members for matching: %w", err)
@@ -406,7 +411,7 @@ WHERE pm.party_id = $1`, partyId)
 SELECT ticket_id, holder_email, event_id 
 FROM party_tickets 
 WHERE party_id = $1 AND year = $2 AND holder_email != $3 
-  AND (gencon_recipient_id = $4 OR (length($5) > 0 AND lower(gencon_recipient_name) = $5))`
+  AND (($4 != '' AND gencon_recipient_id = $4) OR ($5 != '' AND lower(gencon_recipient_name) = $5))`
 
 		ticketRows, errT := db.Query(query, partyId, year, m.email, m.genconId, strings.ToLower(m.genconName))
 		if errT != nil {
@@ -469,10 +474,10 @@ func ToggleTicketReturn(db *sql.DB, partyId int64, ticketId string) (*PartyTicke
 SELECT 
 	pt.ticket_id, pt.party_id, pt.event_id, pt.year, pt.purchaser_email, COALESCE(pt.gencon_purchaser_name, ''), 
 	COALESCE(pt.gencon_ticket_id, ''), pt.gencon_recipient_name, COALESCE(pt.gencon_recipient_id, ''), 
-	pt.holder_email, u.display_name, pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
+	pt.holder_email, COALESCE(u.display_name, ''), pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
 	COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.location, ''), COALESCE(e.event_type, '')
 FROM party_tickets pt
-JOIN users u ON pt.holder_email = u.email
+LEFT JOIN users u ON pt.holder_email = u.email
 LEFT JOIN events e ON pt.event_id = e.event_id
 WHERE pt.party_id = $1 AND pt.ticket_id = $2`, partyId, ticketId).Scan(
 		&t.TicketId, &t.PartyId, &t.EventId, &t.Year, &t.PurchaserEmail, &t.GenconPurchaserName,

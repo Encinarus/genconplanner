@@ -24,6 +24,7 @@ export interface EventInstanceView {
   purchaserGroups: PurchaserGroupView[];
   totalTickets: number;
   ticketHoldersTooltip: string;
+  otherInstances: EventInstanceView[];
 }
 
 export interface EventGroupView {
@@ -109,11 +110,44 @@ export class PartyComponent implements OnInit {
     }
 
     const allTickets = rawTickets.map(t => {
-      const m = t.holderEmail ? memberMap.get(t.holderEmail.toLowerCase()) : null;
       const purchM = t.purchaserEmail ? memberMap.get(t.purchaserEmail.toLowerCase()) : null;
+      const holderEmailLower = t.holderEmail?.toLowerCase() || '';
+      const purchaserEmailLower = t.purchaserEmail?.toLowerCase() || '';
+      
+      let isMapped = false;
+      const m = holderEmailLower ? memberMap.get(holderEmailLower) : null;
+      
+      if (m) {
+        const isPurchaser = holderEmailLower === purchaserEmailLower;
+        if (isPurchaser) {
+          const recName = t.genconRecipientName?.toLowerCase().trim() || '';
+          const pmName = m.genconName?.toLowerCase().trim() || '';
+          const pmDisplay = m.displayName?.toLowerCase().trim() || '';
+          const pmPurchName = t.genconPurchaserName?.toLowerCase().trim() || '';
+          
+          if (recName === pmName || recName === pmDisplay || recName === pmPurchName) {
+            isMapped = true;
+          } else if (t.genconRecipientId && m.genconId && t.genconRecipientId === m.genconId) {
+            isMapped = true;
+          }
+        } else {
+          isMapped = true;
+        }
+      }
+      
+      let displayName = '';
+      if (isMapped) {
+        displayName = m?.displayName || t.holderDisplayName || t.holderEmail;
+      } else {
+        const recName = t.genconRecipientName || '';
+        const firstName = recName.trim().split(/\s+/)[0];
+        displayName = firstName || 'Guest';
+      }
+
       return {
         ...t,
-        holderDisplayName: m?.displayName || t.holderDisplayName || t.holderEmail,
+        isMapped,
+        holderDisplayName: displayName,
         genconPurchaserName: purchM?.displayName || t.genconPurchaserName || t.purchaserEmail
       };
     });
@@ -182,7 +216,8 @@ export class PartyComponent implements OnInit {
         dayOfWeekLong: dayOfWeekLong,
         purchaserGroups: purchaserGroups,
         totalTickets: instTickets.length,
-        ticketHoldersTooltip: holderNames.join(', ')
+        ticketHoldersTooltip: holderNames.join(', '),
+        otherInstances: []
       };
     };
 
@@ -281,6 +316,10 @@ export class PartyComponent implements OnInit {
         });
 
         const allInstViewsForEvent = globalInstanceMap.get(eTitle) || [];
+        for (const iv of currentInstanceViews) {
+          iv.otherInstances = allInstViewsForEvent.filter(other => other.eventId !== iv.eventId);
+        }
+
         const currentInstIds = new Set(currentInstanceViews.map(iv => iv.eventId));
         const otherInstanceViews = allInstViewsForEvent.filter(iv => !currentInstIds.has(iv.eventId));
 
@@ -288,6 +327,17 @@ export class PartyComponent implements OnInit {
           eventTitle: eTitle,
           instances: currentInstanceViews,
           otherInstances: otherInstanceViews
+        });
+      }
+
+      if (groupBy === 'day') {
+        eventGroupViews.sort((a, b) => {
+          const aTime = a.instances[0]?.startTime?.getTime() || 0;
+          const bTime = b.instances[0]?.startTime?.getTime() || 0;
+          if (aTime !== bTime) {
+            return aTime - bTime;
+          }
+          return a.eventTitle.localeCompare(b.eventTitle);
         });
       }
 
@@ -645,5 +695,16 @@ export class PartyComponent implements OnInit {
       },
       error: (err) => alert('Failed to update ticket status: ' + (err.error?.error || err.message))
     });
+  }
+
+  scrollToInstance(eventId: string) {
+    const el = document.getElementById('instance-' + eventId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('highlight-flash');
+      setTimeout(() => {
+        el.classList.remove('highlight-flash');
+      }, 2000);
+    }
   }
 }

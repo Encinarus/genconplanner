@@ -220,3 +220,35 @@
     font-weight: 600;
     color: #212529;
 }
+
+/* Custom Hover Popover for Other Instances */
+.hover-trigger {
+    position: relative;
+}
+
+.hover-trigger:hover .custom-popover {
+    display: block !important;
+}
+
+.custom-popover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    min-width: 320px;
+    max-width: 400px;
+    pointer-events: none; /* Prevents blocking clicks on elements below */
+}
+
+.last-border-0:last-child {
+    border-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+@keyframes flashBackground {
+    0% { background-color: rgba(var(--bs-primary-rgb), 0.25); }
+    100% { background-color: transparent; }
+}
+
+.highlight-flash {
+    animation: flashBackground 2s ease-out;
+}

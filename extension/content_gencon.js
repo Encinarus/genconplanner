@@ -258,78 +258,162 @@ function createSyncBanner(tickets, year) {
   const pageTitleEl = document.querySelector('.page-title, h1');
   if (!pageTitleEl) return;
 
-  const container = document.createElement('div');
-  container.id = 'genconplanner-sync-banner';
-  container.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    font-size: 14px;
-    font-weight: normal;
-  `;
+  // Avoid duplicate injection (recheck here just in case)
+  if (document.getElementById('genconplanner-sync-banner')) return;
 
-  const statusText = document.createElement('div');
-  statusText.style.cssText = 'font-size: 14px; font-weight: 500;';
+  chrome.storage.local.get({ syncTargetEnv: 'prod' }, (result) => {
+    let targetEnv = result.syncTargetEnv;
 
-  if (tickets.length === 0) {
-    statusText.style.color = '#64748b';
-    statusText.textContent = `No ${year} tickets found`;
-    container.appendChild(statusText);
-  } else {
-    statusText.style.color = '#64748b';
-    statusText.textContent = `${tickets.length} ticket(s) found`;
-
-    const syncBtn = document.createElement('button');
-    syncBtn.style.cssText = `
-      background: #0284c7;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+    const container = document.createElement('div');
+    container.id = 'genconplanner-sync-banner';
+    container.style.cssText = `
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      font-weight: normal;
     `;
-    syncBtn.textContent = 'Import current year to genconplanner';
-    syncBtn.onmouseover = () => syncBtn.style.background = '#0369a1';
-    syncBtn.onmouseout = () => syncBtn.style.background = '#0284c7';
 
-    syncBtn.onclick = () => {
-      syncBtn.disabled = true;
-      syncBtn.style.background = '#64748b';
-      syncBtn.textContent = 'Importing...';
-      statusText.textContent = '';
+    const statusText = document.createElement('div');
+    statusText.style.cssText = 'font-size: 14px; font-weight: 500;';
 
-      chrome.runtime.sendMessage({ action: 'sync_tickets', tickets }, (response) => {
-        if (response && response.status === 'success') {
-          syncBtn.style.background = '#16a34a';
-          syncBtn.textContent = 'Imported Successfully!';
-          statusText.style.color = '#16a34a';
-          statusText.textContent = `Imported ${response.data.syncedCount || tickets.length} tickets`;
+    if (tickets.length === 0) {
+      statusText.style.color = '#64748b';
+      statusText.textContent = `No ${year} tickets found`;
+      container.appendChild(statusText);
+    } else {
+      statusText.style.color = '#64748b';
+      statusText.textContent = `${tickets.length} ticket(s) found`;
+
+      // Create environment toggle container
+      const toggleContainer = document.createElement('div');
+      toggleContainer.style.cssText = `
+        display: inline-flex;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 2px;
+        gap: 2px;
+        user-select: none;
+      `;
+
+      const localBtn = document.createElement('button');
+      localBtn.textContent = 'Local Dev';
+      const prodBtn = document.createElement('button');
+      prodBtn.textContent = 'Production';
+
+      const btnStyleBase = `
+        border: none;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        font-family: inherit;
+      `;
+
+      const setActiveStyle = (btn) => {
+        btn.style.cssText = btnStyleBase + `
+          background: #0284c7;
+          color: white;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        `;
+      };
+
+      const setInactiveStyle = (btn) => {
+        btn.style.cssText = btnStyleBase + `
+          background: transparent;
+          color: #64748b;
+        `;
+      };
+
+      const updateToggleUI = () => {
+        if (targetEnv === 'local') {
+          setActiveStyle(localBtn);
+          setInactiveStyle(prodBtn);
         } else {
-          syncBtn.disabled = false;
-          syncBtn.style.background = '#0284c7';
-          syncBtn.textContent = 'Try Import Again';
-          statusText.style.color = '#dc2626';
-          statusText.textContent = response ? response.message : 'Failed to connect to background worker.';
+          setActiveStyle(prodBtn);
+          setInactiveStyle(localBtn);
         }
-      });
-    };
+      };
 
-    container.appendChild(statusText);
-    container.appendChild(syncBtn);
-  }
+      localBtn.onclick = () => {
+        targetEnv = 'local';
+        chrome.storage.local.set({ syncTargetEnv: 'local' });
+        updateToggleUI();
+      };
 
-  pageTitleEl.style.display = 'flex';
-  pageTitleEl.style.justifyContent = 'space-between';
-  pageTitleEl.style.alignItems = 'center';
-  pageTitleEl.appendChild(container);
+      prodBtn.onclick = () => {
+        targetEnv = 'prod';
+        chrome.storage.local.set({ syncTargetEnv: 'prod' });
+        updateToggleUI();
+      };
+
+      updateToggleUI();
+      toggleContainer.appendChild(localBtn);
+      toggleContainer.appendChild(prodBtn);
+
+      const syncBtn = document.createElement('button');
+      syncBtn.style.cssText = `
+        background: #0284c7;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      `;
+      syncBtn.textContent = 'Import current year to genconplanner';
+      syncBtn.onmouseover = () => { if (!syncBtn.disabled) syncBtn.style.background = '#0369a1'; };
+      syncBtn.onmouseout = () => { if (!syncBtn.disabled) syncBtn.style.background = '#0284c7'; };
+
+      syncBtn.onclick = () => {
+        syncBtn.disabled = true;
+        syncBtn.style.background = '#64748b';
+        syncBtn.textContent = 'Importing...';
+        statusText.textContent = '';
+
+        // Disable toggles while sync is active
+        localBtn.disabled = true;
+        prodBtn.disabled = true;
+
+        chrome.runtime.sendMessage({ action: 'sync_tickets', tickets, targetEnv }, (response) => {
+          localBtn.disabled = false;
+          prodBtn.disabled = false;
+
+          if (response && response.status === 'success') {
+            syncBtn.style.background = '#16a34a';
+            syncBtn.textContent = 'Imported Successfully!';
+            statusText.style.color = '#16a34a';
+            statusText.textContent = `Imported ${response.data.syncedCount || tickets.length} tickets`;
+          } else {
+            syncBtn.disabled = false;
+            syncBtn.style.background = '#0284c7';
+            syncBtn.textContent = 'Try Import Again';
+            statusText.style.color = '#dc2626';
+            statusText.textContent = response ? response.message : 'Failed to connect to background worker.';
+          }
+        });
+      };
+
+      container.appendChild(statusText);
+      container.appendChild(toggleContainer);
+      container.appendChild(syncBtn);
+    }
+
+    pageTitleEl.style.display = 'flex';
+    pageTitleEl.style.justifyContent = 'space-between';
+    pageTitleEl.style.alignItems = 'center';
+    pageTitleEl.appendChild(container);
+  });
 }
 
 // Attempt immediate execution based on URL

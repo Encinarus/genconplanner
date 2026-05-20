@@ -162,3 +162,61 @@ func TestMatchPendingPartyTickets_Integration(t *testing.T) {
 		t.Errorf("expected matched holder solo@example.com, got %s", matchedTicket.HolderEmail)
 	}
 }
+
+func TestSyncPartyTickets_MatchByPartyMemberOnly(t *testing.T) {
+	repo := setupSeededDB(t)
+	db := repo.DB
+
+	// 1. Create a user with NO gencon_name or gencon_id
+	_, err := db.Exec(`
+		INSERT INTO users (email, display_name, gencon_name, gencon_id)
+		VALUES ('chris_test@example.com', 'Chris Test', '', '')
+		ON CONFLICT (email) DO UPDATE SET gencon_name = '', gencon_id = ''`)
+	if err != nil {
+		t.Fatalf("failed to insert test user: %v", err)
+	}
+
+	// 2. Add them to party 101, but ONLY set gencon_name in party_members table
+	_, err = db.Exec(`
+		INSERT INTO party_members (party_id, email, display_name, gencon_name, gencon_id)
+		VALUES (101, 'chris_test@example.com', 'Chris', 'Christopher Parsons', '')
+		ON CONFLICT (party_id, email) DO UPDATE SET gencon_name = 'Christopher Parsons', gencon_id = ''`)
+	if err != nil {
+		t.Fatalf("failed to insert party member: %v", err)
+	}
+
+	// 3. Sync a ticket where the recipient name is 'Christopher Parsons'
+	ticketsInput := []postgres.TicketSyncInput{
+		{
+			EventId:           "RPG26ND200001",
+			GenconTicketId:    "TXN999-1",
+			PurchaserGenconId: "GC1001",
+			PurchaserName:     "Party Leader",
+			RecipientGenconId: "",
+			RecipientName:     "Christopher Parsons",
+			TicketType:        "physical",
+		},
+	}
+
+	tickets, err := postgres.SyncPartyTickets(db, 101, 2026, "leader@example.com", ticketsInput)
+	if err != nil {
+		t.Fatalf("SyncPartyTickets failed: %v", err)
+	}
+
+	// Find our synced ticket
+	var foundTicket *postgres.PartyTicket
+	for _, pt := range tickets {
+		if pt.GenconTicketId == "TXN999-1" {
+			foundTicket = pt
+		}
+	}
+
+	if foundTicket == nil {
+		t.Fatalf("missing synced ticket TXN999-1")
+	}
+
+	// It should be mapped to 'chris_test@example.com' (Christopher Parsons)
+	if foundTicket.HolderEmail != "chris_test@example.com" {
+		t.Errorf("expected holder chris_test@example.com, got %s", foundTicket.HolderEmail)
+	}
+}

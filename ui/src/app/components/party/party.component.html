@@ -77,10 +77,10 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2 ms-2">
-                    <span class="badge bg-light text-dark border rounded-pill fw-medium smaller">
+                    <span class="badge bg-light text-dark border rounded-2 fw-medium smaller">
                         <i class="bi bi-calendar-event me-1"></i> {{ p.year }}
                     </span>
-                    <span class="badge bg-light text-secondary border rounded-pill fw-medium smaller">
+                    <span class="badge bg-light text-secondary border rounded-2 fw-medium smaller">
                         <i class="bi bi-people-fill me-1"></i> {{ p.members.length }} members
                     </span>
                 </div>
@@ -120,7 +120,7 @@
                         </h2>
                         
                         <div *ngIf="isMember()" class="d-flex align-items-center gap-2 flex-wrap">
-                            <div class="invite-quick-copy d-flex align-items-center bg-light border rounded-pill pe-1 ps-3 py-1 shadow-sm">
+                            <div class="invite-quick-copy d-flex align-items-center bg-light border rounded-2 pe-1 ps-3 py-1 shadow-sm">
                                 <span class="text-muted smaller me-2 d-none d-md-inline">Invite:</span>
                                 <input type="text" class="bg-transparent border-0 smaller text-muted me-2" [value]="p.inviteLink" readonly #quickInvite style="width: 180px; outline: none;">
                                 <button class="btn btn-sm btn-white rounded-circle shadow-sm p-1 d-flex align-items-center justify-content-center hover-scale" (click)="copyToClipboard(quickInvite.value)" title="Copy invite link">
@@ -151,7 +151,7 @@
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
-                                        <span *ngIf="member.email === p.leaderEmail" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill py-1 px-2 smaller" title="Party Leader">
+                                        <span *ngIf="member.email === p.leaderEmail" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-2 py-1 px-2 smaller" title="Party Leader">
                                             <i class="bi bi-star-fill"></i>
                                         </span>
                                         <button *ngIf="canEditMember(member) && editingMemberEmail() !== member.email" (click)="onEditMember(member)" class="btn btn-sm btn-white border rounded-circle shadow-sm p-1 d-flex align-items-center justify-content-center hover-scale ms-1" title="Edit Member Info" style="width: 32px; height: 32px;">
@@ -257,71 +257,124 @@
                     </div>
 
                     <div *ngIf="!loadingTickets() && tickets().length > 0" class="grouped-tickets-container">
-                        <div *ngFor="let container of groupedTickets()" class="mb-4 bg-white rounded-3 shadow-sm border overflow-hidden">
-                            <div class="bg-light px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
+                        <div *ngFor="let container of groupedTickets()" class="mb-4 bg-white rounded-2 shadow-sm border">
+                            <div class="bg-light px-3 py-2 border-bottom d-flex align-items-center justify-content-between" style="border-top-left-radius: inherit; border-top-right-radius: inherit;">
                                 <h3 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
                                     <i class="bi" [ngClass]="ticketGroupBy() === 'day' ? 'bi-calendar3 text-primary' : 'bi-tag-fill text-success'"></i>
                                     {{ container.groupKey }}
                                 </h3>
-                                <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-2 py-0 smaller fw-medium">
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-2 px-2 py-0 smaller fw-medium">
                                     {{ container.events.length }} Event{{ container.events.length === 1 ? '' : 's' }}
                                 </span>
                             </div>
                             
-                            <div class="p-3">
-                                <div *ngFor="let ev of container.events; let lastEv = last" [ngClass]="{'border-bottom mb-3 pb-3': !lastEv}">
+                            <div class="p-3 pt-2 pb-2">
+                                <div *ngFor="let ev of container.events; let lastEv = last" [ngClass]="{'mb-3': !lastEv}">
                                     <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-2">
-                                        <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                                            <i class="bi bi-bookmark-star text-warning"></i>
-                                            {{ ev.eventTitle }}
-                                        </h4>
-                                        <div *ngIf="ticketGroupBy() === 'day' && ev.otherInstances.length > 0" class="d-flex flex-wrap align-items-center gap-2 smaller text-muted">
-                                            <span class="smaller fw-medium"><i class="bi bi-link-45deg me-1"></i>Other instances:</span>
-                                            <a *ngFor="let oInst of ev.otherInstances" [routerLink]="['/event', oInst.eventId]" class="badge bg-light text-dark border border-secondary-subtle text-decoration-none hover-scale d-flex align-items-center gap-1 py-1 px-2 shadow-sm" [title]="oInst.ticketHoldersTooltip">
-                                                <span>{{ oInst.dayOfWeekShort }} {{ oInst.startTimeFormatted }}</span>
-                                                <span class="text-primary fw-bold">[{{ oInst.totalTickets }} ticket{{ oInst.totalTickets === 1 ? '' : 's' }}]</span>
+                                        <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center flex-wrap gap-2">
+                                            <a [routerLink]="['/event', ev.instances[0]?.eventId]" class="font-monospace text-decoration-none text-primary smaller" style="font-weight: 500;">
+                                                {{ ev.instances[0]?.eventId }}
                                             </a>
-                                        </div>
+                                            {{ ev.eventTitle }}
+                                            <span *ngIf="ev.instances.length === 1" class="d-flex align-items-center gap-2 text-muted fw-normal smaller ms-2">
+                                                <span class="d-flex align-items-center gap-1 text-dark fw-bold text-nowrap">
+                                                    <i class="bi bi-clock text-primary"></i>{{ ev.instances[0].startTimeFormatted }}
+                                                </span>
+                                                <span class="d-flex align-items-center gap-1 text-nowrap">
+                                                    <i class="bi bi-geo-alt text-danger"></i>{{ ev.instances[0].location }}
+                                                </span>
+                                            </span>
+                                        </h4>
                                     </div>
+ 
+                                     <div class="d-flex flex-column gap-2 ps-3 border-start border-2 border-primary-subtle ms-1">
+                                         <div *ngFor="let inst of ev.instances" [id]="'instance-' + inst.eventId" class="bg-light-subtle rounded-2 p-2 border border-light-subtle shadow-sm transition-all">
+                                             <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2 gap-md-3">
+                                                 <!-- Time and Location (Only shown if multiple instances exist) -->
+                                                 <div *ngIf="ev.instances.length > 1" class="d-flex align-items-center gap-3 text-muted fw-medium smaller text-nowrap">
+                                                     <span class="d-flex align-items-center gap-1 text-dark fw-bold">
+                                                         <i class="bi bi-clock text-primary"></i>{{ inst.startTimeFormatted }}
+                                                     </span>
+                                                     <span class="d-flex align-items-center gap-1">
+                                                         <i class="bi bi-geo-alt text-danger"></i>{{ inst.location }}
+                                                     </span>
+                                                 </div>
+                                                 
+                                                 <!-- Divider (desktop only, only shown if multiple instances exist) -->
+                                                 <div *ngIf="ev.instances.length > 1" class="d-none d-md-block border-start" style="height: 1.5rem; border-color: #dee2e6 !important;"></div>
+                                                 
+                                                 <!-- Tickets -->
+                                                 <div class="d-flex flex-column gap-1 flex-grow-1">
+                                                     <div *ngFor="let pg of inst.purchaserGroups" class="d-flex flex-wrap align-items-center gap-2 smaller">
+                                                         <span class="text-muted fw-semibold me-1 smaller text-nowrap">
+                                                             Bought by <span class="text-dark fw-bold">{{ pg.purchaserDisplayName }}</span>:
+                                                         </span>
+                                                         <div class="d-flex flex-wrap gap-1 align-items-center">
+                                                             <button *ngFor="let t of pg.tickets" (click)="openTicketActions(t)" class="btn btn-sm py-0 px-2 rounded-2 d-flex align-items-center gap-1 border hover-scale shadow-sm smaller" [ngClass]="{
+                                                                 'btn-danger bg-danger-subtle text-danger-emphasis border-danger': t.ticketStatus === 'returned',
+                                                                 'bg-warning-subtle text-warning-emphasis border-warning-subtle': t.ticketStatus !== 'returned' && !t.isMapped,
+                                                                 'btn-light bg-white text-dark border-secondary-subtle': t.ticketStatus !== 'returned' && t.isMapped
+                                                             }">
+                                                                 <i class="bi smaller" [ngClass]="
+                                                                     t.ticketStatus === 'returned' ? 'bi-x-circle-fill text-danger' : 
+                                                                     (!t.isMapped ? 'bi-question-circle-fill text-warning' : 'bi-person-fill text-primary')
+                                                                 "></i>
+                                                                 <span class="fw-bold smaller">{{ t.holderDisplayName }}</span>
+                                                                 <span *ngIf="t.ticketStatus === 'returned'" class="badge bg-danger text-white ms-1" style="font-size: 0.65rem;">Returned</span>
+                                                                 <span *ngIf="t.ticketStatus !== 'returned' && t.transferStatus !== 'none'" class="badge bg-info-subtle text-info-emphasis ms-1" style="font-size: 0.65rem;">
+                                                                     {{ t.transferStatus === 'pending_gencon_transfer' ? 'E-Transfer' : (t.transferStatus === 'name_only_transfer' ? 'Name Transfer' : 'Transferred') }}
+                                                                 </span>
+                                                             </button>
+                                                         </div>
+                                                     </div>
+                                                 </div>
 
-                                    <div class="d-flex flex-column gap-2 ps-3 border-start border-2 border-primary-subtle ms-1">
-                                        <div *ngFor="let inst of ev.instances" class="bg-light-subtle rounded-2 p-2 border border-light-subtle shadow-sm">
-                                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1 pb-1 border-bottom border-secondary-subtle smaller">
-                                                <div class="d-flex align-items-center gap-3 text-muted fw-medium">
-                                                    <span class="d-flex align-items-center gap-1 text-dark fw-bold">
-                                                        <i class="bi bi-clock text-primary"></i>{{ inst.startTimeFormatted }}
-                                                    </span>
-                                                    <span class="d-flex align-items-center gap-1">
-                                                        <i class="bi bi-geo-alt text-danger"></i>{{ inst.location }}
-                                                    </span>
-                                                </div>
-                                                <a [routerLink]="['/event', inst.eventId]" class="btn btn-sm btn-link text-decoration-none py-0 px-1 smaller hover-scale fw-semibold d-flex align-items-center gap-1">
-                                                    View in Planner<i class="bi bi-box-arrow-up-right smaller"></i>
-                                                </a>
-                                            </div>
-
-                                            <div class="d-flex flex-column gap-1 pt-1">
-                                                <div *ngFor="let pg of inst.purchaserGroups" class="d-flex flex-wrap align-items-center gap-2 smaller">
-                                                    <span class="text-muted fw-semibold me-1 smaller">
-                                                        <i class="bi bi-person-badge me-1 text-secondary"></i>Purchased by <span class="text-dark fw-bold">{{ pg.purchaserDisplayName }}</span>:
-                                                    </span>
-                                                    <div class="d-flex flex-wrap gap-1 align-items-center">
-                                                        <button *ngFor="let t of pg.tickets" (click)="openTicketActions(t)" class="btn btn-sm py-0 px-2 rounded-pill d-flex align-items-center gap-1 border hover-scale shadow-sm smaller" [ngClass]="{
-                                                            'btn-danger bg-danger-subtle text-danger-emphasis border-danger': t.ticketStatus === 'returned',
-                                                            'btn-light bg-white text-dark border-secondary-subtle': t.ticketStatus !== 'returned'
-                                                        }">
-                                                            <i class="bi smaller" [ngClass]="t.ticketStatus === 'returned' ? 'bi-x-circle-fill text-danger' : 'bi-person-fill text-primary'"></i>
-                                                            <span class="fw-bold smaller">{{ t.holderDisplayName }}</span>
-                                                            <span *ngIf="t.ticketStatus === 'returned'" class="badge bg-danger text-white ms-1" style="font-size: 0.65rem;">Returned</span>
-                                                            <span *ngIf="t.ticketStatus !== 'returned' && t.transferStatus !== 'none'" class="badge bg-info-subtle text-info-emphasis ms-1" style="font-size: 0.65rem;">
-                                                                {{ t.transferStatus === 'pending_gencon_transfer' ? 'E-Transfer' : (t.transferStatus === 'name_only_transfer' ? 'Name Transfer' : 'Transferred') }}
-                                                            </span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                                 <!-- Other Instances block (Triggered per individual instance) -->
+                                                 <div *ngIf="ticketGroupBy() === 'day' && inst.otherInstances.length > 0" class="d-flex flex-wrap align-items-center gap-2 smaller text-muted position-relative hover-trigger ms-md-auto mt-2 mt-md-0">
+                                                     <span class="smaller fw-medium cursor-pointer d-flex align-items-center gap-1">
+                                                         <i class="bi bi-info-circle text-primary"></i>Other instances:
+                                                     </span>
+                                                     
+                                                     <!-- Rich Hover Card -->
+                                                     <div class="custom-popover shadow border rounded-2 p-3 bg-white text-dark position-absolute z-3 end-0 mt-2" style="display: none; top: 100%;">
+                                                         <h5 class="h6 fw-bold border-bottom pb-2 mb-2 text-primary smaller">Other Instances</h5>
+                                                         <div class="d-flex flex-column gap-2 text-start">
+                                                             <div *ngFor="let oInst of inst.otherInstances" class="smaller border-bottom pb-2 last-border-0">
+                                                                 <div class="d-flex justify-content-between fw-bold text-dark mb-1">
+                                                                     <span>{{ oInst.dayOfWeekLong }} {{ oInst.startTimeFormatted }}</span>
+                                                                     <span class="text-primary font-monospace">{{ oInst.eventId }}</span>
+                                                                 </div>
+                                                                 <div class="d-flex flex-column gap-1 ms-2 border-start ps-2 border-light-subtle">
+                                                                     <div *ngFor="let pg of oInst.purchaserGroups" class="text-muted smaller">
+                                                                         <span class="fw-semibold text-dark smaller">Bought by {{ pg.purchaserDisplayName }}:</span>
+                                                                         <div class="d-flex flex-wrap gap-1 mt-1">
+                                                                             <span *ngFor="let t of pg.tickets" class="badge py-0.5 px-2 rounded-2 border d-flex align-items-center gap-1" [ngClass]="{
+                                                                                 'bg-danger-subtle text-danger border-danger-subtle': t.ticketStatus === 'returned',
+                                                                                 'bg-warning-subtle text-warning-emphasis border-warning-subtle': t.ticketStatus !== 'returned' && !t.isMapped,
+                                                                                 'bg-light text-dark border-secondary-subtle': t.ticketStatus !== 'returned' && t.isMapped
+                                                                             }">
+                                                                                 <i class="bi" [ngClass]="
+                                                                                     t.ticketStatus === 'returned' ? 'bi-x-circle-fill text-danger' : 
+                                                                                     (!t.isMapped ? 'bi-question-circle-fill text-warning' : 'bi-person-fill text-primary')
+                                                                                 " style="font-size: 0.65rem;"></i>
+                                                                                 <span class="fw-bold" style="font-size: 0.65rem;">{{ t.holderDisplayName }}</span>
+                                                                             </span>
+                                                                         </div>
+                                                                     </div>
+                                                                 </div>
+                                                             </div>
+                                                         </div>
+                                                     </div>
+                                                     
+                                                     <!-- Badges for direct scrolling -->
+                                                     <a *ngFor="let oInst of inst.otherInstances" (click)="scrollToInstance(oInst.eventId); $event.preventDefault(); $event.stopPropagation();" class="badge bg-light text-dark border border-secondary-subtle text-decoration-none hover-scale d-flex align-items-center gap-1 py-1 px-2 shadow-sm cursor-pointer" [title]="oInst.ticketHoldersTooltip">
+                                                         <span>{{ oInst.dayOfWeekShort }} {{ oInst.startTimeFormatted }}</span>
+                                                         <span class="text-primary fw-bold">[{{ oInst.totalTickets }}]</span>
+                                                     </a>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
                                 </div>
                             </div>
                         </div>
@@ -453,7 +506,7 @@
         <!-- Modal: Ticket Actions -->
         <div *ngIf="selectedTicketActions()" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
                     <div class="modal-header bg-light border-bottom p-4">
                         <div>
                             <span class="badge bg-primary-subtle text-primary-emphasis mb-1">Ticket Management</span>
@@ -462,7 +515,7 @@
                         <button type="button" class="btn-close" (click)="selectedTicketActions.set(null)"></button>
                     </div>
                     <div class="modal-body p-4">
-                        <div class="mb-4 bg-light p-3 rounded-3 border border-light-subtle">
+                        <div class="mb-4 bg-light p-3 rounded-2 border border-light-subtle">
                             <div class="fw-bold text-dark">{{ selectedTicketActions()?.eventTitle || selectedTicketActions()?.eventId }}</div>
                             <div class="text-muted smaller mt-1">
                                 <i class="bi bi-person-badge me-1"></i>Gen Con Recipient: <span class="fw-semibold text-dark">{{ selectedTicketActions()?.genconRecipientName }}</span>
@@ -474,7 +527,7 @@
                         </div>
 
                         <!-- Section 1: Toggle Return Status -->
-                        <div class="card border-0 bg-light-subtle shadow-sm rounded-4 mb-4 p-4 border border-secondary-subtle">
+                        <div class="card border-0 bg-light-subtle shadow-sm rounded-2 mb-4 p-4 border border-secondary-subtle">
                             <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
                                 <i class="bi bi-arrow-return-left text-danger"></i>Return / Cancellation Status
                             </h6>
@@ -482,7 +535,7 @@
                                 If this ticket was returned or cancelled on gencon.com, mark it as returned to release the schedule lock and update wishlist priorities.
                             </p>
                             <div>
-                                <button (click)="onToggleTicketReturn(selectedTicketActions()!)" class="btn px-4 py-2 rounded-pill fw-bold d-flex align-items-center gap-2 hover-scale shadow-sm" [ngClass]="{
+                                <button (click)="onToggleTicketReturn(selectedTicketActions()!)" class="btn px-4 py-2 rounded-2 fw-bold d-flex align-items-center gap-2 hover-scale shadow-sm" [ngClass]="{
                                     'btn-outline-danger': selectedTicketActions()?.ticketStatus !== 'returned',
                                     'btn-success': selectedTicketActions()?.ticketStatus === 'returned'
                                 }">
@@ -493,7 +546,7 @@
                         </div>
 
                         <!-- Section 2: Transfer Ticket -->
-                        <div *ngIf="selectedTicketActions()?.holderEmail?.toLowerCase() === auth.user()?.email?.toLowerCase() && selectedTicketActions()?.ticketStatus !== 'returned'" class="card border-0 bg-light-subtle shadow-sm rounded-4 p-4 border border-secondary-subtle">
+                        <div *ngIf="selectedTicketActions()?.holderEmail?.toLowerCase() === auth.user()?.email?.toLowerCase() && selectedTicketActions()?.ticketStatus !== 'returned'" class="card border-0 bg-light-subtle shadow-sm rounded-2 p-4 border border-secondary-subtle">
                             <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
                                 <i class="bi bi-arrow-left-right text-primary"></i>Transfer Ticket to Party Member
                             </h6>
@@ -520,7 +573,7 @@
                                 <textarea class="form-control border-0 shadow-sm" [(ngModel)]="transferNotes" rows="2" placeholder="Optional notes for the recipient"></textarea>
                             </div>
                             <div>
-                                <button type="button" class="btn btn-primary px-4 py-2 rounded-pill fw-bold d-flex align-items-center gap-2 hover-scale shadow-sm" (click)="onConfirmTransferActions()" [disabled]="!transferToEmail">
+                                <button type="button" class="btn btn-primary px-4 py-2 rounded-2 fw-bold d-flex align-items-center gap-2 hover-scale shadow-sm" (click)="onConfirmTransferActions()" [disabled]="!transferToEmail">
                                     <i class="bi bi-send-fill"></i>Initiate Transfer
                                 </button>
                             </div>
@@ -532,7 +585,7 @@
                         </div>
                     </div>
                     <div class="modal-footer bg-light border-top p-4">
-                        <button type="button" class="btn btn-secondary px-4 py-2 rounded-pill fw-bold" (click)="selectedTicketActions.set(null)">Close</button>
+                        <button type="button" class="btn btn-secondary px-4 py-2 rounded-2 fw-bold" (click)="selectedTicketActions.set(null)">Close</button>
                     </div>
                 </div>
             </div>
