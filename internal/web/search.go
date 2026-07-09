@@ -24,7 +24,7 @@ func Search(db *sql.DB) func(c *gin.Context) {
 			totalEvents += group.Count
 		}
 		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
+			_ = c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		} else {
 			appContext := c.MustGet("context").(*Context)

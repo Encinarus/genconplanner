@@ -331,7 +331,7 @@ WHERE tt.party_id = $1 AND tt.transfer_id = $2`, partyId, transferId).Scan(&tick
 		return nil, fmt.Errorf("transfer is not in pending state")
 	}
 
-	newStatus := status
+	var newStatus string
 	if action == "accept" || action == "complete" {
 		newStatus = "completed"
 		_, errUpdate := db.Exec("UPDATE party_tickets SET holder_email = $1, transfer_status = 'completed', last_modified = now() WHERE ticket_id = $2", toEmail, ticketId)
@@ -399,7 +399,6 @@ WHERE pm.party_id = $1`, partyId)
 		}
 		members = append(members, m)
 	}
-	rows.Close()
 
 	// For each member, find tickets where gencon_recipient_id or gencon_recipient_name matches, but holder_email does not match
 	for _, m := range members {
@@ -431,7 +430,7 @@ WHERE party_id = $1 AND year = $2 AND holder_email != $3
 				pTickets = append(pTickets, pt)
 			}
 		}
-		ticketRows.Close()
+		_ = ticketRows.Close()
 
 		for _, pt := range pTickets {
 			_, errU := db.Exec("UPDATE party_tickets SET holder_email = $1, last_modified = now() WHERE ticket_id = $2", m.email, pt.ticketId)

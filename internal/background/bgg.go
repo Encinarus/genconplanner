@@ -18,7 +18,7 @@ type Clock interface {
 
 type RealClock struct{}
 
-func (RealClock) Now() time.Time { return time.Now() }
+func (RealClock) Now() time.Time        { return time.Now() }
 func (RealClock) Sleep(d time.Duration) { time.Sleep(d) }
 
 func addIdsToBacklog(backlog map[int64]bool, newIds []int64) {

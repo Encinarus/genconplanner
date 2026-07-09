@@ -167,7 +167,7 @@ func processQueryParams(c *gin.Context) QueryParams {
 		param, found := c.GetQuery(day)
 
 		if found && len(param) > 0 {
-			if b, err := strconv.ParseBool(param); err == nil {
+			if b, parseErr := strconv.ParseBool(param); parseErr == nil {
 				params.Days[day] = b
 			}
 		}
@@ -357,6 +357,7 @@ func getFirebaseConfig() FirebaseConfig {
 	}
 }
 
+//nolint:unparam // defaultValue always receives -1 but kept for flexibility
 func parseHour(c *gin.Context, param string, defaultValue int) int {
 	raw, found := c.GetQuery(param)
 	if !found {
@@ -426,4 +427,3 @@ func LegacyCSRFMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-

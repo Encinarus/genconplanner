@@ -20,7 +20,7 @@ func (s *Server) registerTicketRoutes(group *gin.RouterGroup) {
 	group.POST("/party/:party_id/tickets/:ticket_id/toggle_return", s.ToggleTicketReturn)
 }
 
-func (s *Server) getPartyForYear(c *gin.Context, yearParam string, email string) (*postgres.Party, int, error) {
+func (s *Server) getPartyForYear(yearParam string, email string) (*postgres.Party, int, error) {
 	year, err := strconv.Atoi(yearParam)
 	if err != nil {
 		return nil, 0, fmt.Errorf("invalid year parameter")
@@ -52,7 +52,7 @@ type SyncTicketsRequest struct {
 
 func (s *Server) SyncTickets(c *gin.Context) {
 	email := GetUserEmail(c)
-	party, year, err := s.getPartyForYear(c, c.Param("party_id"), email)
+	party, year, err := s.getPartyForYear(c.Param("party_id"), email)
 	if err != nil {
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 		return
@@ -80,7 +80,7 @@ func (s *Server) SyncTickets(c *gin.Context) {
 
 func (s *Server) GetTickets(c *gin.Context) {
 	email := GetUserEmail(c)
-	party, year, err := s.getPartyForYear(c, c.Param("party_id"), email)
+	party, year, err := s.getPartyForYear(c.Param("party_id"), email)
 	if err != nil {
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 		return
@@ -109,7 +109,7 @@ type AddTicketRequest struct {
 
 func (s *Server) AddTicket(c *gin.Context) {
 	email := GetUserEmail(c)
-	party, year, err := s.getPartyForYear(c, c.Param("party_id"), email)
+	party, year, err := s.getPartyForYear(c.Param("party_id"), email)
 	if err != nil {
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 		return
@@ -136,7 +136,7 @@ func (s *Server) AddTicket(c *gin.Context) {
 
 func (s *Server) DeleteTicket(c *gin.Context) {
 	email := GetUserEmail(c)
-	party, _, err := s.getPartyForYear(c, c.Param("party_id"), email)
+	party, _, err := s.getPartyForYear(c.Param("party_id"), email)
 	if err != nil {
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 		return
@@ -160,7 +160,7 @@ type TransferTicketRequest struct {
 
 func (s *Server) TransferTicket(c *gin.Context) {
 	email := GetUserEmail(c)
-	party, _, err := s.getPartyForYear(c, c.Param("party_id"), email)
+	party, _, err := s.getPartyForYear(c.Param("party_id"), email)
 	if err != nil {
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 		return
@@ -192,7 +192,7 @@ type RespondTransferRequest struct {
 
 func (s *Server) RespondTransfer(c *gin.Context) {
 	email := GetUserEmail(c)
-	party, _, err := s.getPartyForYear(c, c.Param("party_id"), email)
+	party, _, err := s.getPartyForYear(c.Param("party_id"), email)
 	if err != nil {
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 		return
@@ -220,7 +220,7 @@ func (s *Server) RespondTransfer(c *gin.Context) {
 
 func (s *Server) ToggleTicketReturn(c *gin.Context) {
 	email := GetUserEmail(c)
-	party, _, err := s.getPartyForYear(c, c.Param("party_id"), email)
+	party, _, err := s.getPartyForYear(c.Param("party_id"), email)
 	if err != nil {
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 		return

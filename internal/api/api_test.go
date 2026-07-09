@@ -13,7 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 func TestCategoryValidation(t *testing.T) {
 	server, stub, _, _, r := setupTestServer()
 	server.RegisterRoutes(r.Group("/api"))
@@ -278,10 +277,10 @@ func TestLoadUserEvents(t *testing.T) {
 		expectedCode int
 	}{
 		{
-			name:         "Success path",
-			email:        "test@example.com",
-			year:         "2024",
-			cookieValue:  "valid-token",
+			name:        "Success path",
+			email:       "test@example.com",
+			year:        "2024",
+			cookieValue: "valid-token",
 			setupStub: func() {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
@@ -298,10 +297,10 @@ func TestLoadUserEvents(t *testing.T) {
 			expectedCode: http.StatusOK,
 		},
 		{
-			name:         "Unauthorized - Email mismatch",
-			email:        "other@example.com",
-			year:         "2024",
-			cookieValue:  "valid-token",
+			name:        "Unauthorized - Email mismatch",
+			email:       "other@example.com",
+			year:        "2024",
+			cookieValue: "valid-token",
 			setupStub: func() {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
@@ -310,10 +309,10 @@ func TestLoadUserEvents(t *testing.T) {
 			expectedCode: http.StatusUnauthorized,
 		},
 		{
-			name:         "Invalid year",
-			email:        "test@example.com",
-			year:         "abc",
-			cookieValue:  "valid-token",
+			name:        "Invalid year",
+			email:       "test@example.com",
+			year:        "abc",
+			cookieValue: "valid-token",
 			setupStub: func() {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil

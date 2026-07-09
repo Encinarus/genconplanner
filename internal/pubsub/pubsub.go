@@ -61,31 +61,28 @@ func Init() {
 }
 
 func (h *Hub) run() {
-	for {
-		select {
-		case n := <-h.listener.Notify:
-			if n == nil {
-				continue
-			}
-			var ev PartyUpdateEvent
-			if err := json.Unmarshal([]byte(n.Extra), &ev); err != nil {
-				log.Printf("pubsub unmarshal error: %v\n", err)
-				continue
-			}
+	for n := range h.listener.Notify {
+		if n == nil {
+			continue
+		}
+		var ev PartyUpdateEvent
+		if err := json.Unmarshal([]byte(n.Extra), &ev); err != nil {
+			log.Printf("pubsub unmarshal error: %v\n", err)
+			continue
+		}
 
-			h.mu.RLock()
-			subs, ok := h.subscriptions[ev.PartyId]
-			if ok {
-				for _, sub := range subs {
-					select {
-					case sub.C <- ev:
-					default:
-						// channel buffer full, skip to avoid blocking hub
-					}
+		h.mu.RLock()
+		subs, ok := h.subscriptions[ev.PartyId]
+		if ok {
+			for _, sub := range subs {
+				select {
+				case sub.C <- ev:
+				default:
+					// channel buffer full, skip to avoid blocking hub
 				}
 			}
-			h.mu.RUnlock()
 		}
+		h.mu.RUnlock()
 	}
 }
 

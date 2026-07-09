@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-func intField(fieldValue string, defaultValue int, fieldName string) int {
+func intField(fieldValue string, fieldName string) int {
 	if len(fieldValue) == 0 {
-		return defaultValue
+		return 0
 	}
 	value, err := strconv.Atoi(fieldValue)
 	if err != nil {
@@ -56,8 +56,8 @@ func linetoEvent(row []string) *GenconEvent {
 		EventType:            row[5],
 		GameSystem:           row[6],
 		RulesEdition:         row[7],
-		MinPlayers:           intField(row[8], 0, "MinPlayers"),
-		MaxPlayers:           intField(row[9], 0, "MaxPlayers"),
+		MinPlayers:           intField(row[8], "MinPlayers"),
+		MaxPlayers:           intField(row[9], "MaxPlayers"),
 		AgeRequired:          row[10],
 		ExperienceRequired:   row[11],
 		MaterialsProvided:    row[12] == "Yes",
@@ -68,8 +68,8 @@ func linetoEvent(row []string) *GenconEvent {
 		Website:              row[17],
 		Email:                row[18],
 		Tournament:           row[19] == "Yes",
-		RoundNumber:          intField(row[20], 0, "RoundNumber"),
-		TotalRounds:          intField(row[21], 0, "TotalRounds"),
+		RoundNumber:          intField(row[20], "RoundNumber"),
+		TotalRounds:          intField(row[21], "TotalRounds"),
 		MinPlayTime:          (int)(60 * floatField(row[22], 0, "MinPlayTime")),
 		AttendeeRegistration: row[23],
 		Cost:                 (int)(floatField(row[24], 0, "Cost")),
@@ -77,7 +77,7 @@ func linetoEvent(row []string) *GenconEvent {
 		RoomName:             row[26],
 		TableNumber:          row[27],
 		SpecialCategory:      row[28],
-		TicketsAvailable:     intField(row[29], 0, "TicketsAvailable"),
+		TicketsAvailable:     intField(row[29], "TicketsAvailable"),
 		LastModified:         lastModified,
 		ShortCategory:        shortCategory,
 	}

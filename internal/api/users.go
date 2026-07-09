@@ -241,13 +241,13 @@ func (s *Server) GetStarredEvents(c *gin.Context) {
 		summary.ShortDescription = dbGroup.Description
 		summary.NumEvents = dbGroup.Count
 		summary.GameSystem.Name = dbGroup.GameSystem
-		
+
 		summary.WedTickets = dbGroup.WedTickets
 		summary.ThuTickets = dbGroup.ThursTickets
 		summary.FriTickets = dbGroup.FriTickets
 		summary.SatTickets = dbGroup.SatTickets
 		summary.SunTickets = dbGroup.SunTickets
-		
+
 		apiResults = append(apiResults, summary)
 	}
 
@@ -344,7 +344,7 @@ func (s *Server) getEventPartyMembers(email string, year int) map[string][]postg
 	for _, group := range partyInterests {
 		var members []postgres.MemberInterest
 		for _, m := range group.MemberInterests {
-			if strings.ToLower(m.Email) != strings.ToLower(email) && m.Tier != "not_interested" {
+			if !strings.EqualFold(m.Email, email) && m.Tier != "not_interested" {
 				members = append(members, m)
 			}
 		}
@@ -588,7 +588,7 @@ func (s *Server) BulkReplaceStarredEvents(c *gin.Context) {
 	}
 
 	var req BulkReplaceRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
 		return
 	}
@@ -808,7 +808,7 @@ func (s *Server) CreateParty(c *gin.Context) {
 	c.JSON(http.StatusOK, apiParty)
 }
 
-func (s *Server) getPartyFromParam(c *gin.Context, idParam string, email string, allowShortCode bool) (*postgres.Party, error) {
+func (s *Server) getPartyFromParam(idParam string, email string, allowShortCode bool) (*postgres.Party, error) {
 	id, parseErr := strconv.ParseInt(idParam, 10, 64)
 	if parseErr == nil {
 		if id >= 2000 && id <= 2100 {
@@ -841,7 +841,7 @@ func (s *Server) getPartyFromParam(c *gin.Context, idParam string, email string,
 func (s *Server) GetParty(c *gin.Context) {
 	idParam := c.Param("party_id")
 	email := GetUserEmail(c)
-	dbParty, err := s.getPartyFromParam(c, idParam, email, true)
+	dbParty, err := s.getPartyFromParam(idParam, email, true)
 
 	if err != nil {
 		log.Printf("error loading party: %v\n", err)
@@ -919,14 +919,14 @@ func (s *Server) RenameParty(c *gin.Context) {
 		return
 	}
 
-	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email, false)
+	dbParty, err := s.getPartyFromParam(c.Param("party_id"), email, false)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
 	}
 
 	var req RenamePartyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
 		return
 	}
@@ -957,14 +957,14 @@ func (s *Server) TransferLeadership(c *gin.Context) {
 		return
 	}
 
-	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email, false)
+	dbParty, err := s.getPartyFromParam(c.Param("party_id"), email, false)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
 	}
 
 	var req TransferLeadershipRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
 		return
 	}
@@ -1051,7 +1051,7 @@ func (s *Server) LeaveParty(c *gin.Context) {
 		return
 	}
 
-	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email, false)
+	dbParty, err := s.getPartyFromParam(c.Param("party_id"), email, false)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
@@ -1087,7 +1087,7 @@ func (s *Server) DeleteParty(c *gin.Context) {
 		return
 	}
 
-	dbParty, err := s.getPartyFromParam(c, c.Param("party_id"), email, false)
+	dbParty, err := s.getPartyFromParam(c.Param("party_id"), email, false)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
@@ -1175,7 +1175,7 @@ func (s *Server) UpdatePartyMemberInfo(c *gin.Context) {
 	}
 
 	idParam := c.Param("party_id")
-	dbParty, err := s.getPartyFromParam(c, idParam, email, false)
+	dbParty, err := s.getPartyFromParam(idParam, email, false)
 	if err != nil {
 		log.Printf("error loading party: %v\n", err)
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
@@ -1280,25 +1280,25 @@ func (s *Server) GetWishlist(c *gin.Context) {
 			})
 		}
 	} else {
-		allStarredEvents, err := s.Repo.LoadStarredEvents(email, year)
-		if err != nil {
-			log.Printf("error loading starred events: %v\n", err)
+		allStarredEvents, loadErr := s.Repo.LoadStarredEvents(email, year)
+		if loadErr != nil {
+			log.Printf("error loading starred events: %v\n", loadErr)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 			return
 		}
 
-		constraints, err := s.Repo.GetWishlistConstraints(email)
-		if err != nil {
-			log.Printf("error loading wishlist constraints: %v\n", err)
+		constraints, constErr := s.Repo.GetWishlistConstraints(email)
+		if constErr != nil {
+			log.Printf("error loading wishlist constraints: %v\n", constErr)
 			// Fallback to defaults rather than failing
 			constraints = []postgres.WishlistConstraint{{DayOfWeek: -1, StartHour: 23, EndHour: 6}}
 		}
 
 		var partyId int64
-		user, err := s.Repo.LoadOrCreateUser(email)
-		if err == nil {
-			dbParties, err := s.Repo.LoadParties(user)
-			if err == nil {
+		user, userErr := s.Repo.LoadOrCreateUser(email)
+		if userErr == nil {
+			dbParties, partiesErr := s.Repo.LoadParties(user)
+			if partiesErr == nil {
 				for _, p := range dbParties {
 					if p.Year == int64(year) {
 						partyId = p.Id
@@ -1327,7 +1327,9 @@ func (s *Server) GetWishlist(c *gin.Context) {
 				Score:     item.Score,
 			})
 		}
-		s.Repo.SaveWishlistCache(email, year, cacheItems, updatedAt)
+		if saveErr := s.Repo.SaveWishlistCache(email, year, cacheItems, updatedAt); saveErr != nil {
+			log.Printf("error saving wishlist cache: %v\n", saveErr)
+		}
 
 		partyMembersMap := s.getEventPartyMembers(email, year)
 		results = make([]WishlistItem, 0, len(optimized))
@@ -1377,7 +1379,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 					for _, group := range partyInterests {
 						var memberNames []string
 						for _, m := range group.MemberInterests {
-							if strings.ToLower(m.Email) != strings.ToLower(email) && m.Tier != "not_interested" {
+							if !strings.EqualFold(m.Email, email) && m.Tier != "not_interested" {
 								memberNames = append(memberNames, m.DisplayName)
 							}
 						}
@@ -1493,7 +1495,7 @@ func (s *Server) GetPartyInterests(c *gin.Context) {
 	}
 
 	idParam := c.Param("party_id")
-	dbParty, err := s.getPartyFromParam(c, idParam, email, true)
+	dbParty, err := s.getPartyFromParam(idParam, email, true)
 
 	if err != nil || dbParty == nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
@@ -1537,7 +1539,7 @@ func (s *Server) PartyStream(c *gin.Context) {
 	}
 
 	idParam := c.Param("party_id")
-	dbParty, err := s.getPartyFromParam(c, idParam, email, true)
+	dbParty, err := s.getPartyFromParam(idParam, email, true)
 
 	if err != nil || dbParty == nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})

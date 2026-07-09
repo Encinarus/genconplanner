@@ -5,15 +5,16 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+
 	"github.com/gin-gonic/gin"
 )
 
 func PrintEnv() {
 	log.Println("--- Environment Variables ---")
 	sensitiveKeys := map[string]bool{
-		"BGG_API_KEY":      true,
-		"FIREBASE_CONFIG":  true,
-		"FIREBASE_API_KEY": true,
+		"BGG_API_KEY":       true,
+		"FIREBASE_CONFIG":   true,
+		"FIREBASE_API_KEY":  true,
 		"POSTGRES_PASSWORD": true,
 	}
 

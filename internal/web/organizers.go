@@ -2,15 +2,16 @@ package web
 
 import (
 	"database/sql"
-	"github.com/Encinarus/genconplanner/internal/postgres"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/gin-gonic/gin"
 )
 
 func MergeOrgs(db *sql.DB) gin.HandlerFunc {
-	return func (c *gin.Context) {
+	return func(c *gin.Context) {
 		// TODO(alek): add acl check here. I guess I need a concept of admin users
 		stringOrgIds, ok := c.GetPostFormArray("id")
 		if !ok {
@@ -31,7 +32,7 @@ func MergeOrgs(db *sql.DB) gin.HandlerFunc {
 
 		orgs, err := postgres.LoadAllOrgs(db)
 		if err != nil {
-			c.Error(err)
+			_ = c.Error(err)
 			return
 		}
 		c.HTML(http.StatusOK, "organizers.html", gin.H{
@@ -41,11 +42,11 @@ func MergeOrgs(db *sql.DB) gin.HandlerFunc {
 }
 
 func ViewOrgs(db *sql.DB) gin.HandlerFunc {
-	return func (c *gin.Context) {
+	return func(c *gin.Context) {
 		// TODO(alek): add acl check here. I guess I need a concept of admin users
 		orgs, err := postgres.LoadAllOrgs(db)
 		if err != nil {
-			c.Error(err)
+			_ = c.Error(err)
 			return
 		}
 		//c.Header("Content-Type", "application/json")

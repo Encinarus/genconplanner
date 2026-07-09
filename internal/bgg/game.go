@@ -21,7 +21,6 @@ type BGGClient interface {
 	GetFamilies(ctx context.Context, ids []int64) ([]*FamilyItem, error)
 }
 
-
 // XML tags generated from https://www.onlinetool.io/xmltogo/
 // Game can be a game, or expansion, see the Item.Type field.
 type Games struct {
@@ -142,7 +141,7 @@ func (bgg *BggApi) get(ctx context.Context, url string, v interface{}) error {
 		}
 
 		if resp.StatusCode == http.StatusAccepted {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			log.Printf("BGG API returned 202 (Accepted) for %s, waiting 4 seconds to retry...", url)
 			select {
 			case <-ctx.Done():

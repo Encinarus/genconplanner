@@ -11,48 +11,48 @@ import (
 
 // StubRepository implements EventRepository for testing.
 type StubRepository struct {
-	LoadCategorySummaryFn func(int) ([]*postgres.CategorySummary, error)
+	LoadCategorySummaryFn        func(int) ([]*postgres.CategorySummary, error)
 	LoadEventGroupsForCategoryFn func(string, int) ([]*postgres.EventGroup, error)
-	SearchEventsFn        func(postgres.SearchQuery) ([]*postgres.EventGroup, error)
-	LoadSimilarEventsFn   func(string, string) ([]*events.GenconEvent, error)
-	LoadOrCreateUserFn    func(string) (*postgres.User, error)
-	GetStarredIdsFn       func(string, int) (*postgres.UserStarredEvents, error)
-	GetAllStarredIdsFn    func(string) (*postgres.UserStarredEvents, error)
-	UpdateStarredEventFn  func(string, string, string, bool, bool) (*postgres.UserStarredEvents, error)
+	SearchEventsFn               func(postgres.SearchQuery) ([]*postgres.EventGroup, error)
+	LoadSimilarEventsFn          func(string, string) ([]*events.GenconEvent, error)
+	LoadOrCreateUserFn           func(string) (*postgres.User, error)
+	GetStarredIdsFn              func(string, int) (*postgres.UserStarredEvents, error)
+	GetAllStarredIdsFn           func(string) (*postgres.UserStarredEvents, error)
+	UpdateStarredEventFn         func(string, string, string, bool, bool) (*postgres.UserStarredEvents, error)
 	UpdateStarredEventMinimalFn  func(string, string, string, bool, bool) (*postgres.UserStarredEvents, error)
 	RemoveStarredEventGroupFn    func(string, string) (*postgres.UserStarredEvents, error)
-	LoadStarredEventsFn   func(string, int) ([]*events.GenconEvent, error)
-	LoadStarredEventGroupsFn func(string, int) ([]*postgres.EventGroup, error)
-	LoadStarredEventClustersFn func(string, int, []*events.GenconEvent) ([]*postgres.CalendarEventCluster, error)
-	ClearStarredEventsFn   func(string, int) error
-	BulkStarEventsFn       func(string, int, []string, bool, bool, bool) error
-	LoadAgendaFn           func(string, int) ([]*postgres.AgendaEntry, error)
-	GetWishlistConstraintsFn func(string) ([]postgres.WishlistConstraint, error)
-	UpdateWishlistConstraintsFn func(string, []postgres.WishlistConstraint) error
-	LoadPartiesFn          func(*postgres.User) ([]*postgres.Party, error)
-	LoadPartyFn            func(int64) (*postgres.Party, error)
-	LoadPartyByCodeFn      func(string) (*postgres.Party, error)
-	NewPartyFn             func(string, int64, string) (*postgres.Party, error)
-	UpdatePartyLeaderFn    func(int64, string) error
-	RenamePartyFn          func(int64, string) error
-	DeletePartyFn          func(int64) error
-	RemoveMemberFn         func(int64, string) error
-	JoinPartyFn            func(int64, string) error
-	LoadPartySharedInterestsFn func(int64, int) ([]*postgres.SharedInterestGroup, error)
-	UpdatePartyMemberInfoFn    func(int64, string, string, string, string, string) error
-	LoadPartyMemberPurchasesFn func(int64, int) (map[string]int, error)
-	UpdateDisplayNameFn    func(string, string) error
-	UpdateUserGenconInfoFn func(string, string, string, string, string) error
-	GetLastUpdateFn        func() (time.Time, error)
-	GetWishlistCacheFn     func(string, int) ([]postgres.WishlistCacheItem, bool, time.Time, error)
-	SaveWishlistCacheFn    func(string, int, []postgres.WishlistCacheItem, time.Time) error
-	SyncPartyTicketsFn     func(int64, int, string, []postgres.TicketSyncInput) ([]*postgres.PartyTicket, error)
-	LoadPartyTicketsFn     func(int64, int) ([]*postgres.PartyTicket, error)
-	AddPartyTicketFn       func(int64, int, string, string, string, string, string) (*postgres.PartyTicket, error)
-	DeletePartyTicketFn    func(int64, string) error
-	InitiateTicketTransferFn func(int64, string, string, string, string) (*postgres.TicketTransfer, error)
-	RespondTicketTransferFn  func(int64, string, string) (*postgres.TicketTransfer, error)
-	ToggleTicketReturnFn     func(int64, string) (*postgres.PartyTicket, error)
+	LoadStarredEventsFn          func(string, int) ([]*events.GenconEvent, error)
+	LoadStarredEventGroupsFn     func(string, int) ([]*postgres.EventGroup, error)
+	LoadStarredEventClustersFn   func(string, int, []*events.GenconEvent) ([]*postgres.CalendarEventCluster, error)
+	ClearStarredEventsFn         func(string, int) error
+	BulkStarEventsFn             func(string, int, []string, bool, bool, bool) error
+	LoadAgendaFn                 func(string, int) ([]*postgres.AgendaEntry, error)
+	GetWishlistConstraintsFn     func(string) ([]postgres.WishlistConstraint, error)
+	UpdateWishlistConstraintsFn  func(string, []postgres.WishlistConstraint) error
+	LoadPartiesFn                func(*postgres.User) ([]*postgres.Party, error)
+	LoadPartyFn                  func(int64) (*postgres.Party, error)
+	LoadPartyByCodeFn            func(string) (*postgres.Party, error)
+	NewPartyFn                   func(string, int64, string) (*postgres.Party, error)
+	UpdatePartyLeaderFn          func(int64, string) error
+	RenamePartyFn                func(int64, string) error
+	DeletePartyFn                func(int64) error
+	RemoveMemberFn               func(int64, string) error
+	JoinPartyFn                  func(int64, string) error
+	LoadPartySharedInterestsFn   func(int64, int) ([]*postgres.SharedInterestGroup, error)
+	UpdatePartyMemberInfoFn      func(int64, string, string, string, string, string) error
+	LoadPartyMemberPurchasesFn   func(int64, int) (map[string]int, error)
+	UpdateDisplayNameFn          func(string, string) error
+	UpdateUserGenconInfoFn       func(string, string, string, string, string) error
+	GetLastUpdateFn              func() (time.Time, error)
+	GetWishlistCacheFn           func(string, int) ([]postgres.WishlistCacheItem, bool, time.Time, error)
+	SaveWishlistCacheFn          func(string, int, []postgres.WishlistCacheItem, time.Time) error
+	SyncPartyTicketsFn           func(int64, int, string, []postgres.TicketSyncInput) ([]*postgres.PartyTicket, error)
+	LoadPartyTicketsFn           func(int64, int) ([]*postgres.PartyTicket, error)
+	AddPartyTicketFn             func(int64, int, string, string, string, string, string) (*postgres.PartyTicket, error)
+	DeletePartyTicketFn          func(int64, string) error
+	InitiateTicketTransferFn     func(int64, string, string, string, string) (*postgres.TicketTransfer, error)
+	RespondTicketTransferFn      func(int64, string, string) (*postgres.TicketTransfer, error)
+	ToggleTicketReturnFn         func(int64, string) (*postgres.PartyTicket, error)
 }
 
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {

@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/xml"
-	"io/ioutil"
+	"io"
 	"log"
 	"strconv"
 	"strings"
@@ -132,7 +132,7 @@ func ParseGenconSheet(rawBytes []byte) []*GenconEvent {
 	if err != nil {
 		panic(err)
 	}
-	sheetBytes, err := ioutil.ReadAll(dataSheet)
+	sheetBytes, err := io.ReadAll(dataSheet)
 	if err != nil {
 		panic(err)
 	}

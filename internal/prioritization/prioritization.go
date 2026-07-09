@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"time"
+
 	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 )
@@ -197,7 +198,7 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 		} else {
 			scarcityBonus = 5000.0 // Extremely rare/sold out?
 		}
-		
+
 		if scarcityBonus > 1000 {
 			reasoning = append(reasoning, "Rare Event")
 		}
@@ -268,7 +269,7 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 	// Greedy selection: highest priority group gets its best fitting session.
 	var wishlist []WishlistItem
 	selectedGroups := make(map[string]int) // ClusterKey -> Count
-	
+
 	// Helper to check for gaps in flexible constraints
 	checkFlexibleConstraints := func(candidate *events.GenconEvent, currentList []WishlistItem) bool {
 		dow := int(candidate.StartTime.Weekday())
@@ -364,11 +365,7 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 			}
 		}
 
-		if !checkFlexibleConstraints(e1, currentList) {
-			return true
-		}
-
-		return false
+		return !checkFlexibleConstraints(e1, currentList)
 	}
 
 	// Pass 1: One session per group, prioritizing higher groups
@@ -466,7 +463,7 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 					if before9End > 540 {
 						before9End = 540
 					}
-					score -= float64(before9End - startMins) * 2.0 // -2 points per minute before 9am
+					score -= float64(before9End-startMins) * 2.0 // -2 points per minute before 9am
 				}
 
 				if endMins > 1140 {
@@ -474,7 +471,7 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 					if after7Start < 1140 {
 						after7Start = 1140
 					}
-					score -= float64(endMins - after7Start) * 2.0 // -2 points per minute after 7pm
+					score -= float64(endMins-after7Start) * 2.0 // -2 points per minute after 7pm
 				}
 			}
 
@@ -608,7 +605,7 @@ func GeneratePersonalWishlist(starred []postgres.StarredEvent, allEvents []*even
 
 					// Extra penalty if it overlaps with a session of the SAME game
 					if getClusterKey(item.Event) == s.ClusterKey {
-						overlapPenalty += 5000 
+						overlapPenalty += 5000
 					}
 				}
 			}

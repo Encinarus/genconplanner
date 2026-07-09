@@ -28,3 +28,10 @@ linters-settings:
       - name: exported
         arguments:
           - disableStutteringCheck
+
+issues:
+  exclude-rules:
+    - path: internal/events/event.go
+      linters:
+        - misspell
+

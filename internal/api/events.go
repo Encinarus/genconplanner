@@ -27,7 +27,7 @@ type EventsSearch struct {
 // Used in search results
 type EventSummary struct {
 	AnchorEventId    string     `json:"anchorEventId"`
-	Title 			 string 	`json:"title"`
+	Title            string     `json:"title"`
 	ShortDescription string     `json:"shortDescription"`
 	NumEvents        int        `json:"numEvents"`
 	WedTickets       int        `json:"wedTickets"`
@@ -193,7 +193,7 @@ func (s *Server) LookupEvent(c *gin.Context) {
 			convertEvent(&apiEvent, dbEvent)
 			apiEvent.GameSystem = s.lookupGame(dbEvent.GameSystem)
 		}
-		
+
 		// Add all events (including the current one) to RelatedEvents
 		var related EventRef
 		related.EventId = dbEvent.EventId

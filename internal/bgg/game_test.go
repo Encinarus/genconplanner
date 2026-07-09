@@ -61,7 +61,7 @@ func TestParseGameItem(t *testing.T) {
 	if game.Statistics.Ratings.AverageWeight.Value == 0 {
 		t.Errorf("Expected AverageWeight.Value to be > 0, got %v", game.Statistics.Ratings.AverageWeight.Value)
 	}
-	
+
 	if game.Statistics.Ratings.NumWeights.Value == 0 {
 		t.Errorf("Expected NumWeights.Value to be > 0, got %v", game.Statistics.Ratings.NumWeights.Value)
 	}

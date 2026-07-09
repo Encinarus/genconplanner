@@ -55,27 +55,27 @@ func SetupTestDB(t *testing.T) (*sql.DB, error) {
 
 	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
-		pgContainer.Terminate(ctx)
+		_ = pgContainer.Terminate(ctx)
 		return nil, fmt.Errorf("failed to get connection string: %w", err)
 	}
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		pgContainer.Terminate(ctx)
+		_ = pgContainer.Terminate(ctx)
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
 	// Ensure connection is active
-	if err := db.PingContext(ctx); err != nil {
-		db.Close()
-		pgContainer.Terminate(ctx)
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+	if pingErr := db.PingContext(ctx); pingErr != nil {
+		_ = db.Close()
+		_ = pgContainer.Terminate(ctx)
+		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
 	// Register cleanup on test completion
 	t.Cleanup(func() {
-		db.Close()
-		pgContainer.Terminate(ctx)
+		_ = db.Close()
+		_ = pgContainer.Terminate(ctx)
 	})
 
 	// Find repo root to locate migration files
@@ -93,6 +93,7 @@ func SetupTestDB(t *testing.T) (*sql.DB, error) {
 	}
 
 	for _, file := range migrationFiles {
+		// #nosec G304
 		content, err := os.ReadFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read migration file %s: %w", file, err)

@@ -2,12 +2,13 @@ package web
 
 import (
 	"database/sql"
-	"github.com/Encinarus/genconplanner/internal/postgres"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/gin-gonic/gin"
 )
 
 func User(db *sql.DB) gin.HandlerFunc {

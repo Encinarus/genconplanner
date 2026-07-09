@@ -1,7 +1,6 @@
 package api
 
 import (
-
 	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/background"
 	"github.com/gin-gonic/gin"

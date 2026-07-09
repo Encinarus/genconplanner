@@ -227,6 +227,3 @@ func (r *PostgresRepository) RespondTicketTransfer(partyId int64, transferId, ac
 func (r *PostgresRepository) ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error) {
 	return postgres.ToggleTicketReturn(r.DB, partyId, ticketId)
 }
-
-
-

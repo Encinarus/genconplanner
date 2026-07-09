@@ -35,7 +35,7 @@ func ServeV2(db *sql.DB, cache *background.GameCache) gin.HandlerFunc {
 		// If path starts with /v2, strip it, otherwise use it as is
 		filePath := strings.TrimPrefix(path, "/v2")
 		filePath = strings.TrimPrefix(filePath, "/")
-		
+
 		if filePath != "" {
 			fullPath := "static/v2/" + filePath
 			if _, err := os.Stat(fullPath); err == nil {
@@ -69,7 +69,7 @@ func serveV2Static(c *gin.Context) {
 	appContext := c.MustGet("context").(*Context)
 	content, err := getV2Index()
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -115,7 +115,7 @@ func serveV2WithMeta(c *gin.Context, db *sql.DB, cache *background.GameCache, ei
 	// 2. Get base index.html content
 	content, err := getV2Index()
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -125,16 +125,16 @@ func serveV2WithMeta(c *gin.Context, db *sql.DB, cache *background.GameCache, ei
 	var metaBuf bytes.Buffer
 	t, err := template.New("").Funcs(GetTemplateFunctions(cache)).ParseGlob("templates/*")
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	
+
 	err = t.ExecuteTemplate(&metaBuf, "meta", gin.H{
 		"event": e,
 		"isV2":  true,
 	})
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 

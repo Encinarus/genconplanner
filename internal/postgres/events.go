@@ -1,9 +1,7 @@
 package postgres
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/csv"
 	"fmt"
 	"log"
 	"strings"
@@ -253,49 +251,6 @@ ORDER BY c.tickets_available > 0 desc, title`, year, short_category)
 	return groups, nil
 }
 
-func reformatRawQuery(rawQuery string) string {
-	rawQuery = strings.Replace(rawQuery, "!", "", -1)
-	rawQuery = strings.Replace(rawQuery, "&", "", -1)
-	rawQuery = strings.Replace(rawQuery, "(", "", -1)
-	rawQuery = strings.Replace(rawQuery, ")", "", -1)
-	rawQuery = strings.Replace(rawQuery, "|", "", -1)
-
-	queryReader := csv.NewReader(bytes.NewBufferString(rawQuery))
-	queryReader.Comma = ' '
-
-	splitQuery, _ := queryReader.Read()
-
-	queryTerms := make([]string, 0)
-	for _, term := range splitQuery {
-		invertTerm := false
-		if strings.HasPrefix(term, "-") {
-			term = strings.TrimLeft(term, "-")
-			invertTerm = true
-		}
-
-		// Now remove remaining symbols we want to allow in field-specific
-		// searches, but not in the general text search
-		term = strings.Replace(term, "<", "", -1)
-		term = strings.Replace(term, ">", "", -1)
-		term = strings.Replace(term, "=", "", -1)
-		term = strings.Replace(term, "-", "", -1)
-		term = strings.Replace(term, "~", "", -1)
-		term = strings.TrimSpace(term)
-		if len(term) == 0 {
-			continue
-		}
-		if invertTerm {
-			term = "!" + term
-		}
-		queryTerms = append(queryTerms, term)
-	}
-
-	tsquery := strings.Join(queryTerms, " & ")
-	tsquery = strings.ReplaceAll(tsquery, "'", "")
-
-	return tsquery
-}
-
 func LoadCategorySummary(db *sql.DB, year int) ([]*CategorySummary, error) {
 	rows, err := db.Query(`
 SELECT event_type, COUNT(1)
@@ -328,6 +283,7 @@ func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.
 	year := events.YearFromEvent(eventId)
 
 	fields := "e1." + strings.Join(eventFields(), ", e1.")
+	// #nosec G201
 	raw_query := fmt.Sprintf(`
 	SELECT distinct %s, se.event_id is not null, o.id
 	FROM events e1 
@@ -437,9 +393,9 @@ GROUP BY cluster_id
 	if query.OrgId > 0 {
 		args = append(args, query.OrgId)
 		fullWhere = fmt.Sprintf("(%s) AND o.id = $%d", fullWhere, argIndex)
-		argIndex++
 	}
 
+	// #nosec G201
 	fullQuery := fmt.Sprintf(`
 SELECT  distinct
 		e.event_id,
@@ -786,6 +742,7 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 			fmt.Sprintf(
 				"($%d"+strings.Repeat(", $%d", numEventFields-1)+")",
 				rangeSlice(1, numEventFields)...))
+		// #nosec G201
 		updateStatement := fmt.Sprintf(
 			"UPDATE events SET %s WHERE event_id=$%d",
 			updatedFields,
@@ -796,7 +753,7 @@ func bulkUpdate(tx *sql.Tx, updatedRows []*events.GenconEvent) error {
 		_, err := tx.Exec(updateStatement, valueArgs...)
 
 		if err != nil {
-			log.Printf("Error on updating event: %v %v", row, err.(pq.PGError))
+			log.Printf("Error on updating event: %v %v", row, err.(*pq.Error))
 			return err
 		}
 	}
@@ -828,6 +785,7 @@ func bulkInsert(tx *sql.Tx, newRows []*events.GenconEvent) error {
 					rangeSlice(i*numEventFields+1, i*numEventFields+numEventFields)...))
 			valueArgs = append(valueArgs, eventToDbFields(row)...)
 		}
+		// #nosec G201
 		insertStatement := fmt.Sprintf(
 			"INSERT INTO events (%s) VALUES %s",
 			strings.Join(eventFields, ","),
@@ -835,7 +793,7 @@ func bulkInsert(tx *sql.Tx, newRows []*events.GenconEvent) error {
 		_, err := tx.Exec(insertStatement, valueArgs...)
 
 		if err != nil {
-			log.Printf("Error on processing event: %v %v", batch, err.(pq.PGError))
+			log.Printf("Error on processing event: %v %v", batch, err.(*pq.Error))
 			return err
 		}
 	}

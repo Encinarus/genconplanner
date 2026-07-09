@@ -27,9 +27,15 @@ func TestServeV2(t *testing.T) {
 	origDir, _ := os.Getwd()
 	tmpDir, _ := os.MkdirTemp("", "v2test")
 	defer os.RemoveAll(tmpDir)
-	
-	os.Chdir(tmpDir)
-	defer os.Chdir(origDir)
+
+	if errChdir := os.Chdir(tmpDir); errChdir != nil {
+		t.Fatalf("failed to change directory to temp: %s", errChdir)
+	}
+	defer func() {
+		if errChdir := os.Chdir(origDir); errChdir != nil {
+			t.Logf("failed to restore directory: %s", errChdir)
+		}
+	}()
 
 	err = os.MkdirAll("static/v2", 0755)
 	if err != nil {
@@ -59,7 +65,7 @@ func TestServeV2(t *testing.T) {
 
 	// 3. Setup Gin
 	gin.SetMode(gin.TestMode)
-	
+
 	// Create a cache (empty is fine for this test)
 	cache := background.NewGameCache(db)
 
@@ -106,12 +112,12 @@ func TestServeV2(t *testing.T) {
 
 		body := w.Body.String()
 		t.Logf("Response body: %s", body)
-		
+
 		// Verify title replacement
 		if !strings.Contains(body, "<title>Event: Test Event Title</title>") {
 			t.Errorf("missing or incorrect title")
 		}
-		
+
 		// Verify Open Graph tags
 		if !strings.Contains(body, `meta property="og:title" content="Test Event Title"`) {
 			t.Errorf("missing og:title")
@@ -119,7 +125,7 @@ func TestServeV2(t *testing.T) {
 		if !strings.Contains(body, `meta property="og:description" content="Short Desc"`) {
 			t.Errorf("missing og:description")
 		}
-		
+
 		// Verify Twitter data (Game system)
 		if !strings.Contains(body, `meta property="twitter:label1" content="Game"`) {
 			t.Errorf("missing twitter:label1")
@@ -144,7 +150,7 @@ func TestServeV2(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", w.Code)
 		}
-		
+
 		if w.Body.String() != indexContent {
 			t.Errorf("expected original index content, got %s", w.Body.String())
 		}

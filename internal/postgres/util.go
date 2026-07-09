@@ -6,8 +6,8 @@ import "database/sql"
 // Need to do it in an anonymous function to avoid binding err and tx
 func CleanupTransaction(err error, tx *sql.Tx) {
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 	} else {
-		tx.Commit()
+		_ = tx.Commit()
 	}
 }

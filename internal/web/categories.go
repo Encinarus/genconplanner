@@ -24,7 +24,7 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 			context.Year, err = strconv.Atoi(c.Param("year"))
 			if err != nil {
 				log.Printf("Error parsing year")
-				c.AbortWithError(http.StatusBadRequest, err)
+				_ = c.AbortWithError(http.StatusBadRequest, err)
 				return
 			}
 		} else {
@@ -35,7 +35,7 @@ func CategoryList(db *sql.DB) func(c *gin.Context) {
 
 		if err != nil {
 			log.Printf("Error loading categories, %v", err)
-			c.AbortWithError(500, err)
+			_ = c.AbortWithError(500, err)
 			return
 		}
 
@@ -79,7 +79,7 @@ func ViewCategory(db *sql.DB) func(c *gin.Context) {
 		eventGroups, err := postgres.LoadEventGroupsForCategory(db, params.Category, params.Year)
 		if err != nil {
 			log.Printf("Error loading event groups")
-			c.AbortWithError(http.StatusBadRequest, err)
+			_ = c.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
 

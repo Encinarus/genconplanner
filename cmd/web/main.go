@@ -35,7 +35,9 @@ func main() {
 	logging.PrintEnv()
 
 	// Don't care about canceling or errors
-	go hmetrics.Report(context.Background(), hmetrics.DefaultEndpoint, nil)
+	go func() {
+		_ = hmetrics.Report(context.Background(), hmetrics.DefaultEndpoint, nil)
+	}()
 
 	db, err := postgres.OpenDb()
 	if err != nil {
@@ -65,9 +67,7 @@ func SetupBackground(db *sql.DB) {
 		for {
 			// Delay until the next tick
 			background.UpdateGamesFromBGG(context.Background(), db, bgg.NewBggApi(apiKey), background.RealClock{})
-			select {
-			case <-bggTicker.C:
-			}
+			<-bggTicker.C
 		}
 	}()
 
@@ -75,15 +75,14 @@ func SetupBackground(db *sql.DB) {
 	go func() {
 		for {
 			background.UpdateEventsFromGencon(db, *sourceFile)
-			select {
-			case <-genconTicker.C:
-			}
+			<-genconTicker.C
 		}
 	}()
 }
 
 func SetupWeb(db *sql.DB, cache *background.GameCache) {
 
+	//nolint:staticcheck // option.WithCredentialsJSON is deprecated but compatible with this configuration
 	opt := option.WithCredentialsJSON([]byte(os.Getenv("FIREBASE_CONFIG")))
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
@@ -135,7 +134,11 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 
 	p := *port
 	if os.Getenv("PORT") != "" {
-		fmt.Sscanf(os.Getenv("PORT"), "%d", &p)
+		if _, err := fmt.Sscanf(os.Getenv("PORT"), "%d", &p); err != nil {
+			log.Printf("Error parsing PORT: %v", err)
+		}
 	}
-	r.Run(fmt.Sprintf(":%d", p))
+	if err := r.Run(fmt.Sprintf(":%d", p)); err != nil {
+		log.Fatalf("Error running server: %v", err)
+	}
 }

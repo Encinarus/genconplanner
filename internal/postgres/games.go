@@ -2,9 +2,10 @@ package postgres
 
 import (
 	"database/sql"
-	"github.com/lib/pq"
 	"log"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type GameFamily struct {
@@ -68,7 +69,7 @@ FROM boardgame_family bg
 
 	for rows.Next() {
 		var gf GameFamily
-		var lastUpdateHolder pq.NullTime
+		var lastUpdateHolder sql.NullTime
 		err = rows.Scan(
 			&gf.Name, &gf.BggId, pq.Array(&gf.GameIds), &lastUpdateHolder)
 		if err != nil {
@@ -162,7 +163,7 @@ FROM boardgame bg
 
 	for rows.Next() {
 		var g Game
-		var lastUpdateHolder pq.NullTime
+		var lastUpdateHolder sql.NullTime
 		var numRatingHolder sql.NullInt64
 		var avgRatingHolder sql.NullFloat64
 		var numWeightsHolder sql.NullInt64
@@ -269,7 +270,7 @@ FROM boardgame
 	games := make([]*GameSyncInfo, 0)
 	for rows.Next() {
 		var g GameSyncInfo
-		var lastUpdateHolder pq.NullTime
+		var lastUpdateHolder sql.NullTime
 		err = rows.Scan(&g.BggId, pq.Array(&g.FamilyIds), &g.HasDescription, &lastUpdateHolder)
 		if err != nil {
 			return nil, err
@@ -296,7 +297,7 @@ FROM boardgame_family
 	families := make([]*FamilySyncInfo, 0)
 	for rows.Next() {
 		var gf FamilySyncInfo
-		var lastUpdateHolder pq.NullTime
+		var lastUpdateHolder sql.NullTime
 		err = rows.Scan(&gf.BggId, pq.Array(&gf.GameIds), &lastUpdateHolder)
 		if err != nil {
 			return nil, err
@@ -306,5 +307,3 @@ FROM boardgame_family
 	}
 	return families, nil
 }
-
-

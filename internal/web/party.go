@@ -2,13 +2,14 @@ package web
 
 import (
 	"database/sql"
-	"github.com/Encinarus/genconplanner/internal/postgres"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/gin-gonic/gin"
 )
 
 func Party(db *sql.DB) func(c *gin.Context) {
@@ -26,7 +27,7 @@ func Party(db *sql.DB) func(c *gin.Context) {
 			partyId, err = strconv.ParseInt(c.Param("party_id"), 10, 64)
 			if err != nil {
 				log.Printf("Error parsing party_id")
-				c.AbortWithError(http.StatusBadRequest, err)
+				_ = c.AbortWithError(http.StatusBadRequest, err)
 				return
 			}
 		} else {
@@ -35,6 +36,11 @@ func Party(db *sql.DB) func(c *gin.Context) {
 
 		var party *postgres.Party
 		parties, err := postgres.LoadParties(db, appContext.User)
+		if err != nil {
+			log.Printf("Error loading parties: %v", err)
+			_ = c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
 		for _, p := range parties {
 			if p.Id == partyId {
 				party = p
@@ -43,8 +49,8 @@ func Party(db *sql.DB) func(c *gin.Context) {
 		}
 
 		c.HTML(http.StatusOK, "party.html", gin.H{
-			"party":       party,
-			"context":      appContext,
+			"party":   party,
+			"context": appContext,
 		})
 	}
 }

@@ -2,7 +2,7 @@ package background
 
 import (
 	"database/sql"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +14,7 @@ import (
 )
 
 func parseHttp(sourceFile string) []*events.GenconEvent {
+	// #nosec G107
 	resp, err := http.Get(sourceFile)
 
 	if err != nil {
@@ -21,30 +22,42 @@ func parseHttp(sourceFile string) []*events.GenconEvent {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	spreadsheetBytes, err := ioutil.ReadAll(resp.Body)
+	spreadsheetBytes, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Printf("Error reading response body: %v", readErr)
+		panic(readErr)
+	}
 	return events.ParseGenconSheet(spreadsheetBytes)
 }
 
 func parseSheet(sourceFile string) []*events.GenconEvent {
+	// #nosec G304
 	fileReader, err := os.Open(sourceFile)
 
 	if err != nil {
 		panic(err)
 	}
 	defer fileReader.Close()
-	fileBytes, err := ioutil.ReadAll(fileReader)
+	fileBytes, readErr := io.ReadAll(fileReader)
+	if readErr != nil {
+		panic(readErr)
+	}
 
 	return events.ParseGenconSheet(fileBytes)
 }
 
 func parseCsv(sourceFile string) []*events.GenconEvent {
+	// #nosec G304
 	fileReader, err := os.Open(sourceFile)
 
 	if err != nil {
 		panic(err)
 	}
 	defer fileReader.Close()
-	fileBytes, err := ioutil.ReadAll(fileReader)
+	fileBytes, readErr := io.ReadAll(fileReader)
+	if readErr != nil {
+		panic(readErr)
+	}
 
 	return events.ParseGenconCsv(fileBytes)
 }
@@ -59,7 +72,7 @@ func writeEvents(db *sql.DB, genconEvents []*events.GenconEvent) (postgres.Updat
 	stats, err = postgres.BulkUpdateEvents(tx, genconEvents)
 	if err != nil {
 		logging.LogWithError(err, "Error bulk updating events")
-		tx.Rollback()
+		_ = tx.Rollback()
 		return stats, err
 	}
 	err = tx.Commit()

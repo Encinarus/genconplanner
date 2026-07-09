@@ -117,6 +117,7 @@ func YearFromEvent(rawEventId string) int {
 	return year
 }
 
+//nolint:unparam // locale is currently unused but kept for completeness
 func splitId(rawEventId string) (string, int, string, string) {
 	category := ""
 	rawYear := ""

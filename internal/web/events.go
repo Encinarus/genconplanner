@@ -56,7 +56,7 @@ func renderHtml(c *gin.Context, result *LookupResult, appContext *Context) {
 		starred = starred && allStarred(loadedEvents)
 	}
 	nextUpdateTime := time.Now().Add(time.Hour).Truncate(time.Hour).Add(time.Minute * 5)
-	c.Header("Cache-Control", fmt.Sprintf("max-age=%d", nextUpdateTime.Sub(time.Now())/time.Second))
+	c.Header("Cache-Control", fmt.Sprintf("max-age=%d", time.Until(nextUpdateTime)/time.Second))
 
 	c.HTML(http.StatusOK, "event.html", gin.H{
 		"result":       result,
@@ -66,9 +66,9 @@ func renderHtml(c *gin.Context, result *LookupResult, appContext *Context) {
 	})
 }
 
-func renderJson(c *gin.Context, result *LookupResult, appContext *Context) {
+func renderJson(c *gin.Context, result *LookupResult) {
 	c.Header("Content-Type", "application/json")
-	json.NewEncoder(c.Writer).Encode(result)
+	_ = json.NewEncoder(c.Writer).Encode(result)
 }
 
 func renderNotFound(c *gin.Context, eventId string, appContext *Context) {
@@ -90,7 +90,7 @@ func ViewEvent(db *sql.DB) gin.HandlerFunc {
 		result, err := lookupEvent(db, eventId, appContext.Email)
 		if err != nil {
 			log.Printf("Unable to lookup event %v\n", err)
-			c.AbortWithError(http.StatusInternalServerError, err)
+			_ = c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 		if result == nil || result.MainEvent == nil {
@@ -101,7 +101,7 @@ func ViewEvent(db *sql.DB) gin.HandlerFunc {
 
 		_, json := c.GetQuery("json")
 		if json {
-			renderJson(c, result, appContext)
+			renderJson(c, result)
 		} else {
 			renderHtml(c, result, appContext)
 		}

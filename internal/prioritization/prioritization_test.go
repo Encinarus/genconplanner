@@ -11,7 +11,7 @@ import (
 
 func TestGeneratePersonalWishlist(t *testing.T) {
 	now := time.Now()
-	
+
 	// Group A: Must have, two sessions
 	eA1 := &events.GenconEvent{
 		EventId: "A1", Title: "Group A", StartTime: now, EndTime: now.Add(time.Hour), TicketsAvailable: 10,
@@ -19,12 +19,12 @@ func TestGeneratePersonalWishlist(t *testing.T) {
 	eA2 := &events.GenconEvent{
 		EventId: "A2", Title: "Group A", StartTime: now.Add(2 * time.Hour), EndTime: now.Add(3 * time.Hour), TicketsAvailable: 10,
 	}
-	
+
 	// Group B: Very interested, conflicts with A1
 	eB1 := &events.GenconEvent{
 		EventId: "B1", Title: "Group B", StartTime: now, EndTime: now.Add(time.Hour), TicketsAvailable: 5,
 	}
-	
+
 	// Group C: Must have, single session, rare
 	eC1 := &events.GenconEvent{
 		EventId: "C1", Title: "Group C", StartTime: now.Add(4 * time.Hour), EndTime: now.Add(5 * time.Hour), TicketsAvailable: 2,
@@ -51,16 +51,16 @@ func TestGeneratePersonalWishlist(t *testing.T) {
 	}
 
 	// Group A should have one session in Primary.
-	// Between A1 and A2, they are equal tier. 
+	// Between A1 and A2, they are equal tier.
 	// A1 conflicts with B1? No, B1 is lower priority.
-	
+
 	primaryCount := 0
 	for _, item := range wishlist {
 		if item.Status == "Primary" {
 			primaryCount++
 		}
 	}
-	
+
 	if primaryCount < 3 {
 		t.Errorf("Expected at least 3 primary items, got %d", primaryCount)
 	}
@@ -70,7 +70,7 @@ func TestAntiSpam(t *testing.T) {
 	now := time.Now()
 	allEvents := []*events.GenconEvent{}
 	starred := []postgres.StarredEvent{}
-	
+
 	for i := 0; i < 10; i++ {
 		id := string(rune('0' + i))
 		e := &events.GenconEvent{
@@ -81,14 +81,14 @@ func TestAntiSpam(t *testing.T) {
 	}
 
 	wishlist := GeneratePersonalWishlist(starred, allEvents, []postgres.WishlistConstraint{}, nil)
-	
+
 	groupCount := 0
 	for _, item := range wishlist {
 		if item.Event.Title == "Spam Group" {
 			groupCount++
 		}
 	}
-	
+
 	if groupCount > 3 {
 		t.Errorf("Expected at most 3 items from Spam Group, got %d", groupCount)
 	}
@@ -122,7 +122,7 @@ func TestExclusiveBlockedTimes(t *testing.T) {
 		{
 			name:     "Event ending at block start (8:00)",
 			start:    time.Date(2026, 7, 30, 6, 0, 0, 0, events.INDIANAPOLIS), // Thursday
-			duration: 120, // 6:00 to 8:00
+			duration: 120,                                                     // 6:00 to 8:00
 			blocked:  false,
 		},
 		{
@@ -333,10 +333,10 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Generate wishlist with these constraints
-			// To simplify, we just call the underlying logic if we can, 
-			// but since it's an anonymous function in GeneratePersonalWishlist, 
+			// To simplify, we just call the underlying logic if we can,
+			// but since it's an anonymous function in GeneratePersonalWishlist,
 			// we have to call the whole thing.
-			
+
 			starred := []postgres.StarredEvent{
 				{EventId: "CANDIDATE", Tier: "must_have"},
 			}
@@ -360,7 +360,7 @@ func TestFlexibleBlockedTimes(t *testing.T) {
 			}
 
 			wishlist := GeneratePersonalWishlist(starred, allEvents, tc.constraints, nil)
-			
+
 			foundCandidate := false
 			for _, item := range wishlist {
 				if item.Event.EventId == "CANDIDATE" && item.Status == "Primary" {

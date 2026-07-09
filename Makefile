@@ -1,4 +1,4 @@
-.PHONY: fmt lint test security tidy
+.PHONY: fmt lint test security sec tidy
 
 # Format code
 fmt:
@@ -15,8 +15,8 @@ lint:
 		go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run ./...; \
 	fi
 
-# Run tests
-test:
+# Run tests and security scans
+test: security
 	go test ./...
 
 # Run security scans locally
@@ -25,6 +25,8 @@ security:
 	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 	@echo "Running security AST check (gosec)..."
 	go run github.com/securego/gosec/v2/cmd/gosec@latest ./...
+
+sec: security
 
 # Tidy dependencies
 tidy:

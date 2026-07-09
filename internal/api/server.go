@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"net/http"
+	"strings"
 
 	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/background"

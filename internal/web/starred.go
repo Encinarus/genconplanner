@@ -2,14 +2,15 @@ package web
 
 import (
 	"database/sql"
-	"github.com/Encinarus/genconplanner/internal/events"
-	"github.com/Encinarus/genconplanner/internal/postgres"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/gin-gonic/gin"
 )
 
 func GetStarredEvents(db *sql.DB) func(c *gin.Context) {
@@ -23,7 +24,7 @@ func GetStarredEvents(db *sql.DB) func(c *gin.Context) {
 
 		starredRows, err := postgres.GetAllStarredIds(db, appContext.Email)
 		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
+			_ = c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 		c.Header("Cache-Control", "no-cache")
@@ -41,7 +42,7 @@ func GetStarredEventGroups(db *sql.DB) func(c *gin.Context) {
 			appContext.Year, err = strconv.Atoi(c.Param("year"))
 			if err != nil {
 				log.Printf("Error parsing year")
-				c.AbortWithError(http.StatusBadRequest, err)
+				_ = c.AbortWithError(http.StatusBadRequest, err)
 				return
 			}
 		}
@@ -50,13 +51,13 @@ func GetStarredEventGroups(db *sql.DB) func(c *gin.Context) {
 		starredEvents, err := postgres.LoadStarredEvents(db, appContext.Email, appContext.Year)
 		if err != nil {
 			log.Printf("Error loading starred events")
-			c.AbortWithError(http.StatusBadRequest, err)
+			_ = c.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
 		groupedEvents, err := postgres.LoadStarredEventClusters(db, appContext.Email, appContext.Year, starredEvents)
 		if err != nil {
 			log.Printf("Error loading starred groups")
-			c.AbortWithError(http.StatusBadRequest, err)
+			_ = c.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
 
@@ -88,7 +89,7 @@ func StarEvent(db *sql.DB) func(c *gin.Context) {
 
 		starredRows, err := postgres.UpdateStarredEvent(db, appContext.Email, eventId, "", related, add)
 		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
+			_ = c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 		c.JSON(http.StatusOK, starredRows)
@@ -106,7 +107,7 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 			appContext.Year, err = strconv.Atoi(c.Param("year"))
 			if err != nil {
 				log.Printf("Error parsing year")
-				c.AbortWithError(http.StatusBadRequest, err)
+				_ = c.AbortWithError(http.StatusBadRequest, err)
 				return
 			}
 		}
@@ -122,13 +123,13 @@ func StarredPage(db *sql.DB) func(c *gin.Context) {
 		starredEvents, err := postgres.LoadStarredEvents(db, appContext.Email, appContext.Year)
 		if err != nil {
 			log.Printf("Error loading starred events")
-			c.AbortWithError(http.StatusBadRequest, err)
+			_ = c.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
 		groupedEvents, err := postgres.LoadStarredEventClusters(db, appContext.Email, appContext.Year, starredEvents)
 		if err != nil {
 			log.Printf("Error loading starred groups")
-			c.AbortWithError(http.StatusBadRequest, err)
+			_ = c.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
 

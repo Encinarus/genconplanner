@@ -2,13 +2,14 @@ package background
 
 import (
 	"database/sql"
-	"github.com/Encinarus/genconplanner/internal/postgres"
 	"log"
 	"math"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Encinarus/genconplanner/internal/postgres"
 )
 
 type GameCache struct {
@@ -37,9 +38,7 @@ func (gc *GameCache) PeriodicallyUpdate() {
 				log.Printf("Error updating cache: %v", err)
 			}
 
-			select {
-			case <-bgTicker.C:
-			}
+			<-bgTicker.C
 		}
 	}()
 }

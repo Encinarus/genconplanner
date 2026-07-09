@@ -497,4 +497,3 @@ GROUP BY se.event_id
 	}
 	return purchases, nil
 }
-

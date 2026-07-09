@@ -621,4 +621,3 @@ func TestPartyStream(t *testing.T) {
 		// If the test finishes, it means the stream successfully terminated on the write error.
 	})
 }
-

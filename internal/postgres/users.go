@@ -260,7 +260,7 @@ func RemoveStarredEventGroup(db *sql.DB, email string, eventId string) (*UserSta
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	_, err = tx.Exec(`
 		DELETE FROM starred_events WHERE email = $1 AND event_id IN (
@@ -278,7 +278,6 @@ func RemoveStarredEventGroup(db *sql.DB, email string, eventId string) (*UserSta
 	return GetStarredIds(db, email, events.YearFromEvent(eventId))
 }
 
-
 func UpdateStarredEventInternal(db *sql.DB, email string, eventId string, tier string, starGroup bool, add bool, fullResponse bool) (*UserStarredEvents, error) {
 	if tier == "" {
 		tier = "very_interested"
@@ -287,19 +286,19 @@ func UpdateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if starGroup {
 		if add {
 			// Update the group default tier
 			// 1. Check if there's already a level = 'group' row for this group
-			res, err := tx.Exec(`
+			res, execErr := tx.Exec(`
 				UPDATE starred_events SET tier = $3 
 				WHERE email = $1 AND level = 'group' AND event_id IN (
 					SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.cluster_id = e2.cluster_id WHERE e1.event_id = $2
 				)`, email, eventId, tier)
-			if err != nil {
-				return nil, err
+			if execErr != nil {
+				return nil, execErr
 			}
 			rowsAffected, _ := res.RowsAffected()
 			if rowsAffected == 0 {
@@ -317,7 +316,7 @@ func UpdateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 			// Check if there are any specific instances with an override (level = 'event').
 			var overrideEventId string
 			var overrideTier string
-			err := tx.QueryRow(`
+			scanErr := tx.QueryRow(`
 				SELECT se.event_id, se.tier 
 				FROM starred_events se
 				JOIN events e1 ON se.event_id = e1.event_id
@@ -326,7 +325,7 @@ func UpdateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 				ORDER BY e1.event_id LIMIT 1
 			`, email, eventId).Scan(&overrideEventId, &overrideTier)
 
-			if err == sql.ErrNoRows {
+			if scanErr == sql.ErrNoRows {
 				// If no specific instances have an override, this should remove it entirely from the schedule.
 				_, err = tx.Exec(`
 					DELETE FROM starred_events WHERE email = $1 AND event_id IN (
@@ -335,8 +334,8 @@ func UpdateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 				if err != nil {
 					return nil, err
 				}
-			} else if err != nil {
-				return nil, err
+			} else if scanErr != nil {
+				return nil, scanErr
 			} else {
 				// If there are specific instances with an override, the default should be updated to match the instance with the override, and the override on that specific instance should be removed.
 				// 1. Delete the old group default row(s).
@@ -440,7 +439,7 @@ func BulkStarEvents(db *sql.DB, email string, year int, eventIds []string, overw
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if overwrite {
 		// 1. Clear existing for the year
@@ -537,6 +536,7 @@ GROUP BY e.year, e.short_category, e.title, e.short_description
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
 
 	type groupData struct {
 		allEventIds   []string
@@ -550,12 +550,10 @@ GROUP BY e.year, e.short_category, e.title, e.short_description
 		var y int
 		var cat, title, desc string
 		if err := rows.Scan(&y, &cat, &title, &desc, pq.Array(&g.allEventIds), pq.Array(&g.starredLevels), pq.Array(&g.starredTiers)); err != nil {
-			rows.Close()
 			return err
 		}
 		groups = append(groups, g)
 	}
-	rows.Close()
 
 	tierPriority := func(tier string) int {
 		switch tier {
@@ -741,7 +739,7 @@ WHERE email=$1
 	defer rows.Close()
 
 	var user *User
-	for rows.Next() {
+	if rows.Next() {
 		var loadedUser User
 		if err := rows.Scan(
 			&loadedUser.Email,
@@ -754,8 +752,6 @@ WHERE email=$1
 		} else {
 			user = &loadedUser
 		}
-
-		break
 	}
 
 	if user == nil {
@@ -828,7 +824,7 @@ func UpdateWishlistConstraints(db *sql.DB, email string, constraints []WishlistC
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Mark as initialized
 	_, err = tx.Exec("UPDATE users SET wishlist_constraints_initialized = TRUE WHERE email = $1", email)
@@ -850,7 +846,7 @@ func UpdateWishlistConstraints(db *sql.DB, email string, constraints []WishlistC
 			return err
 		}
 	}
-	
+
 	// Mark wishlist as dirty
 	_, err = tx.Exec("UPDATE users SET wishlist_dirty = TRUE, wishlist_updated_at = NOW() WHERE email = $1", email)
 	if err != nil {
@@ -910,7 +906,7 @@ func SaveWishlistCache(db *sql.DB, email string, year int, items []WishlistCache
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	_, err = tx.Exec("DELETE FROM user_wishlist_cache WHERE email = $1 AND year = $2", email, year)
 	if err != nil {
@@ -934,4 +930,3 @@ func SaveWishlistCache(db *sql.DB, email string, year int, items []WishlistCache
 
 	return tx.Commit()
 }
-
