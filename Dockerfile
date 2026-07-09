@@ -20,6 +20,13 @@ COPY ./static ./static
 
 RUN go test ./...
 
+# Run dependency vulnerability check
+RUN go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+# Run static analysis security scanner
+RUN go run github.com/securego/gosec/v2/cmd/gosec@latest ./...
+
+
 
 
 # --------------------------
