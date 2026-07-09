@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject, computed, effect, ViewChild } from '
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
-import { ApiService, EventSummary, StarredEventDetail, StarredPageData, WishlistConstraint } from '../../services/api.service';
+import { ApiService, StarredEventDetail, StarredPageData, WishlistConstraint } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { StarredService } from '../../services/starred.service';
 import { LinkService } from '../../services/link.service';
@@ -14,7 +14,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
-import { forkJoin, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
 declare var bootstrap: any;
@@ -336,7 +336,7 @@ export class StarredComponent implements OnInit {
 
     // React to view mode changes to re-process calendar
     effect(() => {
-      const mode = this.viewMode();
+      this.viewMode();
       const data = this.starredService.starredPageData();
       if (data) {
         this.processData(data);
@@ -738,6 +738,7 @@ export class StarredComponent implements OnInit {
     const yearLastTwo = (year % 100).toString().padStart(2, '0');
     
     // Regex for GenCon IDs: [A-Z]{3,4}YYND\d{6,}
+    // eslint-disable-next-line security/detect-non-literal-regexp
     const idRegex = new RegExp(`[A-Z]{3,4}${yearLastTwo}ND\\d{6,}`, 'g');
     const matches: string[] = text.match(idRegex) || [];
 

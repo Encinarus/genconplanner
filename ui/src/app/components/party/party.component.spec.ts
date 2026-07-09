@@ -97,7 +97,7 @@ describe('PartyComponent', () => {
   });
 
   it('should rename party correctly', () => {
-    vi.spyOn(mockApiService, 'renameParty').mockImplementation((id: any, name: any) => of({ success: true }));
+    vi.spyOn(mockApiService, 'renameParty').mockImplementation(() => of({ success: true }));
     component.onEditName();
     component.tempName.set('New Alpha Party');
     component.onSaveName();

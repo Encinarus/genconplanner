@@ -2,7 +2,6 @@ import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import Cookies from 'js-cookie';
 import { AuthService } from './auth.service';
-import * as fireAuth from 'firebase/auth';
 
 // Mock firebase modules
 vi.mock('firebase/app', () => ({

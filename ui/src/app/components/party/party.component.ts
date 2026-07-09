@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { ApiService, Party, PartyMember, PartyTicket, TicketTransfer } from '../../services/api.service';
+import { ApiService, Party, PartyMember, PartyTicket } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { PartyService } from '../../services/party.service';
 import { Title } from '@angular/platform-browser';

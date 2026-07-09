@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { CategoryDetailComponent } from './category-detail.component';
 import { ApiService } from '../../services/api.service';
-import { ActivatedRoute, Router, provideRouter, RouterModule } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventSummary } from '../../services/api.service';
