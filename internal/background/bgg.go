@@ -114,12 +114,12 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 		gameBacklog[id] = true
 	}
 
-	families := make(map[int64]*postgres.GameFamily)
-	games := make(map[int64]*postgres.Game)
+	families := make(map[int64]*postgres.FamilySyncInfo)
+	games := make(map[int64]*postgres.GameSyncInfo)
 
 	log.Printf("Beginning update of games from BGG, initial game backlog: %v", len(gameBacklog))
 
-	dbGames, err := postgres.LoadGames(db)
+	dbGames, err := postgres.LoadGameSyncInfos(db)
 	if err != nil {
 		log.Printf("Unable to load games, continuing %v", err)
 	}
@@ -128,7 +128,7 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 		addIdsToBacklog(familyBacklog, g.FamilyIds)
 	}
 
-	dbFamilies, err := postgres.LoadFamilies(db)
+	dbFamilies, err := postgres.LoadFamilySyncInfos(db)
 	if err != nil {
 		log.Printf("Unable to load game families, continuing %v", err)
 	}
@@ -178,7 +178,12 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 				processedGames++
 				g, err := RefreshGame(ctx, apiGame, familyBacklog, db, clock)
 				if err == nil {
-					games[g.BggId] = g
+					games[g.BggId] = &postgres.GameSyncInfo{
+						BggId:          g.BggId,
+						FamilyIds:      g.FamilyIds,
+						LastUpdate:     g.LastUpdate,
+						HasDescription: g.Description != "",
+					}
 					if logDetails != "" {
 						logDetails += ", "
 					}
@@ -193,7 +198,7 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 			dbGame, found := games[id]
 			if !found {
 				continue
-			} else if dbGame.LastUpdate.After(gameUpdateLimit) && dbGame.Description != "" {
+			} else if dbGame.LastUpdate.After(gameUpdateLimit) && dbGame.HasDescription {
 				// We still want this for identifying families to load
 				addIdsToBacklog(familyBacklog, dbGame.FamilyIds)
 				continue
@@ -218,7 +223,12 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 				processedGames++
 				g, err := RefreshGame(ctx, apiGame, familyBacklog, db, clock)
 				if err == nil {
-					games[g.BggId] = g
+					games[g.BggId] = &postgres.GameSyncInfo{
+						BggId:          g.BggId,
+						FamilyIds:      g.FamilyIds,
+						LastUpdate:     g.LastUpdate,
+						HasDescription: g.Description != "",
+					}
 					if logDetails != "" {
 						logDetails += ", "
 					}
@@ -268,11 +278,15 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 					GameIds:    gameIds,
 					LastUpdate: clock.Now(),
 				}
-				families[bggFamily.ID] = dbFamily
-				err = families[bggFamily.ID].Upsert(db)
+				err = dbFamily.Upsert(db)
 				if err != nil {
 					log.Printf("Issue saving family: %v", err)
 					continue
+				}
+				families[bggFamily.ID] = &postgres.FamilySyncInfo{
+					BggId:      dbFamily.BggId,
+					GameIds:    dbFamily.GameIds,
+					LastUpdate: dbFamily.LastUpdate,
 				}
 				if logDetails != "" {
 					logDetails += ", "

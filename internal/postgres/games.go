@@ -239,3 +239,72 @@ FROM boardgame
 	return games, nil
 }
 
+type GameSyncInfo struct {
+	BggId          int64
+	FamilyIds      []int64
+	LastUpdate     time.Time
+	HasDescription bool
+}
+
+type FamilySyncInfo struct {
+	BggId      int64
+	GameIds    []int64
+	LastUpdate time.Time
+}
+
+func LoadGameSyncInfos(db *sql.DB) ([]*GameSyncInfo, error) {
+	rows, err := db.Query(`
+SELECT 
+	bgg_id, 
+	family_ids,
+	description != '' AND description IS NOT NULL as has_description,
+	last_update
+FROM boardgame
+`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	games := make([]*GameSyncInfo, 0)
+	for rows.Next() {
+		var g GameSyncInfo
+		var lastUpdateHolder pq.NullTime
+		err = rows.Scan(&g.BggId, pq.Array(&g.FamilyIds), &g.HasDescription, &lastUpdateHolder)
+		if err != nil {
+			return nil, err
+		}
+		g.LastUpdate = lastUpdateHolder.Time
+		games = append(games, &g)
+	}
+	return games, nil
+}
+
+func LoadFamilySyncInfos(db *sql.DB) ([]*FamilySyncInfo, error) {
+	rows, err := db.Query(`
+SELECT 
+	bgg_id,
+	game_ids,
+	last_update
+FROM boardgame_family
+`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	families := make([]*FamilySyncInfo, 0)
+	for rows.Next() {
+		var gf FamilySyncInfo
+		var lastUpdateHolder pq.NullTime
+		err = rows.Scan(&gf.BggId, pq.Array(&gf.GameIds), &lastUpdateHolder)
+		if err != nil {
+			return nil, err
+		}
+		gf.LastUpdate = lastUpdateHolder.Time
+		families = append(families, &gf)
+	}
+	return families, nil
+}
+
+
