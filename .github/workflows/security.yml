@@ -44,6 +44,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/package-lock.json'
 
+      - name: Enable Corepack
+        run: corepack enable npm
+        working-directory: ui
+
       - name: Install Frontend Dependencies
         run: npm ci
         working-directory: ui

@@ -1,5 +1,6 @@
 FROM node:22 AS frontend-build
 WORKDIR /ui
+RUN corepack enable npm
 COPY ui/package*.json ./
 RUN npm ci
 COPY ui/ ./
