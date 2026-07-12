@@ -27,9 +27,12 @@ RUN go test ./...
 # --------------------------
 FROM genconplanner-base AS update
 
+ENV GOMEMLIMIT=384MiB
+ENV GOGC=80
+
 RUN groupadd -r appgroup && \
     useradd -r -g appgroup appuser && \
-    go build -o /usr/local/bin/update ./cmd/update
+    go build -ldflags="-s -w" -o /usr/local/bin/update ./cmd/update
 COPY --chown=appuser:appgroup ./data ./data
 
 RUN chown -R appuser:appgroup /usr/src/app
@@ -41,12 +44,15 @@ CMD ["/usr/local/bin/update", "-overrideDNS=true"]
 # --------------------------
 FROM genconplanner-base AS web
 
+ENV GOMEMLIMIT=384MiB
+ENV GOGC=80
+
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
 COPY --chown=appuser:appgroup ./templates ./templates
 COPY --chown=appuser:appgroup ./static ./static
 COPY --chown=appuser:appgroup --from=frontend-build /ui/dist/v2/browser ./static/v2
-RUN go build -o /usr/local/bin/web ./cmd/web && \
+RUN go build -ldflags="-s -w" -o /usr/local/bin/web ./cmd/web && \
     chown -R appuser:appgroup /usr/src/app
 USER appuser
 
