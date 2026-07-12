@@ -1,4 +1,4 @@
-.PHONY: fmt lint backend-lint test security sec tidy ui-lint ui-audit docker-lint docker-scan
+.PHONY: fmt lint backend-lint test security sec tidy ui-lint ui-audit docker-lint docker-scan secrets-scan
 
 # Format code
 fmt:
@@ -31,6 +31,8 @@ security:
 	npm audit --prefix ui
 	@echo "Running Docker configuration security scan (trivy)..."
 	@make docker-scan
+	@echo "Running secrets leakage scan (gitleaks)..."
+	@make secrets-scan
 
 sec: security
 # Run UI linting
@@ -59,6 +61,16 @@ docker-scan:
 	else \
 		echo "trivy not found in PATH, running via Docker container..."; \
 		docker run --rm -v $$(pwd):/apps aquasecurity/trivy config /apps; \
+	fi
+
+# Run secrets scanning
+secrets-scan:
+	@echo "Running Gitleaks..."
+	@if command -v gitleaks >/dev/null 2>&1; then \
+		gitleaks detect --verbose --redact; \
+	else \
+		echo "gitleaks not found in PATH, running via Docker container..."; \
+		docker run --rm -v $$(pwd):/path zricethezav/gitleaks:latest detect --source=/path --verbose --redact; \
 	fi
 
 # Tidy dependencies

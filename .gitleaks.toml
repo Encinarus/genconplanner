@@ -1,0 +1,5 @@
+[allowlist]
+description = "Ignore public client-side Firebase API key"
+regexes = [
+    "AIzaSyAGtjwGiHYFnXE1UbzLTPeIz8Ix06WIdBs"
+]
