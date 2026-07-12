@@ -1,4 +1,4 @@
-.PHONY: fmt lint backend-lint test security sec tidy ui-lint ui-audit
+.PHONY: fmt lint backend-lint test security sec tidy ui-lint ui-audit docker-lint docker-scan
 
 # Format code
 fmt:
@@ -6,7 +6,7 @@ fmt:
 	go run golang.org/x/tools/cmd/goimports@latest -w .
 
 # Run all linters (Backend & UI)
-lint: backend-lint ui-lint
+lint: backend-lint ui-lint docker-lint
 
 backend-lint:
 	@echo "Running golangci-lint..."
@@ -29,6 +29,8 @@ security:
 	go run github.com/securego/gosec/v2/cmd/gosec@latest ./...
 	@echo "Running UI dependency audit..."
 	npm audit --prefix ui
+	@echo "Running Docker configuration security scan (trivy)..."
+	@make docker-scan
 
 sec: security
 # Run UI linting
@@ -38,6 +40,26 @@ ui-lint:
 # Run UI dependency audit
 ui-audit:
 	npm audit --prefix ui
+
+# Run Docker linting
+docker-lint:
+	@echo "Running Hadolint..."
+	@if command -v hadolint >/dev/null 2>&1; then \
+		hadolint Dockerfile; \
+	else \
+		echo "hadolint not found in PATH, running via Docker container..."; \
+		docker run --rm -i hadolint/hadolint < Dockerfile; \
+	fi
+
+# Run Docker configuration security scans
+docker-scan:
+	@echo "Running Trivy Config Scan..."
+	@if command -v trivy >/dev/null 2>&1; then \
+		trivy config .; \
+	else \
+		echo "trivy not found in PATH, running via Docker container..."; \
+		docker run --rm -v $$(pwd):/apps aquasecurity/trivy config /apps; \
+	fi
 
 # Tidy dependencies
 tidy:

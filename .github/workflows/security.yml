@@ -55,3 +55,15 @@ jobs:
       - name: Run Frontend Audit
         run: npm audit --audit-level=high
         working-directory: ui
+
+      - name: Run Hadolint (Dockerfile linter)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+      - name: Run Trivy vulnerability scanner (Config mode)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          exit-code: '1'
+          hide-prevented: 'true'

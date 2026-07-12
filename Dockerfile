@@ -26,19 +26,32 @@ RUN go test ./...
 # --------------------------
 FROM genconplanner-base AS update
 
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 RUN go build -o /usr/local/bin/update ./cmd/update
-COPY ./data ./data
+COPY --chown=appuser:appgroup ./data ./data
+
+RUN chown -R appuser:appgroup /usr/src/app
+USER appuser
+
 CMD ["/usr/local/bin/update", "-overrideDNS=true"]
 
 
 # --------------------------
 FROM genconplanner-base AS web
 
-COPY ./templates ./templates
-COPY ./static ./static
-COPY --from=frontend-build /ui/dist/v2/browser ./static/v2
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+
+COPY --chown=appuser:appgroup ./templates ./templates
+COPY --chown=appuser:appgroup ./static ./static
+COPY --chown=appuser:appgroup --from=frontend-build /ui/dist/v2/browser ./static/v2
 RUN go build -o /usr/local/bin/web ./cmd/web
 
+RUN chown -R appuser:appgroup /usr/src/app
+USER appuser
+
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/ || exit 1
 
 CMD ["/usr/local/bin/web"]
