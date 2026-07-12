@@ -66,7 +66,7 @@ jobs:
           dockerfile: Dockerfile
 
       - name: Run Trivy vulnerability scanner (Config mode)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'config'
           exit-code: '1'

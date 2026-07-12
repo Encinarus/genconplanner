@@ -18,7 +18,7 @@ backend-lint:
 	fi
 
 # Run tests and security scans
-test: security
+test: lint security
 	go test ./...
 
 # Run security scans locally (Backend & UI)
