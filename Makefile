@@ -60,7 +60,7 @@ docker-scan:
 		trivy config .; \
 	else \
 		echo "trivy not found in PATH, running via Docker container..."; \
-		docker run --rm -v $$(pwd):/apps aquasecurity/trivy config /apps; \
+		docker run --rm -v $$(pwd):/apps aquasec/trivy:latest config /apps; \
 	fi
 
 # Run secrets scanning

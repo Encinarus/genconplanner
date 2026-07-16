@@ -456,3 +456,12 @@ CREATE OR REPLACE TRIGGER trig_party_interest_update
 AFTER INSERT OR UPDATE OR DELETE ON public.starred_events
 FOR EACH ROW EXECUTE FUNCTION public.notify_party_interest_update();
 
+-- Table: public.admin_users
+CREATE TABLE public.admin_users (
+  email text NOT NULL,
+  CONSTRAINT admin_users_pkey PRIMARY KEY (email)
+);
+
+ALTER TABLE public.admin_users
+  OWNER to postgres;
+

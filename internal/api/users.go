@@ -24,6 +24,7 @@ type User struct {
 	GenconName  string `json:"genconName"`
 	GenconId    string `json:"genconId"`
 	GenconEmail string `json:"genconEmail"`
+	IsAdmin     bool   `json:"isAdmin"`
 }
 
 type UserEvents struct {
@@ -120,12 +121,20 @@ func (s *Server) GetUser(c *gin.Context) {
 		return
 	}
 
+	isAdmin, err := s.Repo.IsAdmin(email)
+	if err != nil {
+		log.Printf("error checking admin status: %v\n", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
+		return
+	}
+
 	var user User
 	user.DisplayName = dbUser.DisplayName
 	user.Email = dbUser.Email
 	user.GenconName = dbUser.GenconName
 	user.GenconId = dbUser.GenconId
 	user.GenconEmail = dbUser.GenconEmail
+	user.IsAdmin = isAdmin
 	c.JSON(http.StatusOK, user)
 }
 

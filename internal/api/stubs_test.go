@@ -53,6 +53,9 @@ type StubRepository struct {
 	InitiateTicketTransferFn     func(int64, string, string, string, string) (*postgres.TicketTransfer, error)
 	RespondTicketTransferFn      func(int64, string, string) (*postgres.TicketTransfer, error)
 	ToggleTicketReturnFn         func(int64, string) (*postgres.PartyTicket, error)
+	IsAdminFn                    func(string) (bool, error)
+	LoadAllOrgsFn                func() ([]*postgres.Organizer, error)
+	MergeOrgsFn                  func([]int64) error
 }
 
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
@@ -261,6 +264,27 @@ func (s *StubRepository) ToggleTicketReturn(partyId int64, ticketId string) (*po
 		return nil, nil
 	}
 	return s.ToggleTicketReturnFn(partyId, ticketId)
+}
+
+func (s *StubRepository) IsAdmin(email string) (bool, error) {
+	if s.IsAdminFn == nil {
+		return false, nil
+	}
+	return s.IsAdminFn(email)
+}
+
+func (s *StubRepository) LoadAllOrgs() ([]*postgres.Organizer, error) {
+	if s.LoadAllOrgsFn == nil {
+		return nil, nil
+	}
+	return s.LoadAllOrgsFn()
+}
+
+func (s *StubRepository) MergeOrgs(orgs []int64) error {
+	if s.MergeOrgsFn == nil {
+		return nil
+	}
+	return s.MergeOrgsFn(orgs)
 }
 
 // StubAuthService implements AuthService for testing.

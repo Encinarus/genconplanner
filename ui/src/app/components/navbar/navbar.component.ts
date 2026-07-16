@@ -30,6 +30,7 @@ export class NavbarComponent implements OnInit {
     return years;
   });
   displayName = this.authService.displayName;
+  isAdmin = this.authService.isAdmin;
   searchQuery = signal<string>('');
   partyForCurrentYear = computed(() => {
     const currentYear = this.year();

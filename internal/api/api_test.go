@@ -364,7 +364,7 @@ func TestGetUser(t *testing.T) {
 				}
 			},
 			expectedCode: http.StatusOK,
-			expectedBody: `{"email":"test@example.com","displayName":"Test User","genconName":"","genconId":"","genconEmail":""}`,
+			expectedBody: `{"email":"test@example.com","displayName":"Test User","genconName":"","genconId":"","genconEmail":"","isAdmin":false}`,
 		},
 		{
 			name:         "Unauthorized",

@@ -55,6 +55,11 @@ type EventRepository interface {
 	UpdateDisplayName(email string, name string) error
 	UpdateUserGenconInfo(email string, displayName string, genconName string, genconId string, genconEmail string) error
 	GetLastUpdate() (time.Time, error)
+
+	// Admin related
+	IsAdmin(email string) (bool, error)
+	LoadAllOrgs() ([]*postgres.Organizer, error)
+	MergeOrgs(orgs []int64) error
 }
 
 type PostgresRepository struct {
@@ -226,4 +231,16 @@ func (r *PostgresRepository) RespondTicketTransfer(partyId int64, transferId, ac
 
 func (r *PostgresRepository) ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error) {
 	return postgres.ToggleTicketReturn(r.DB, partyId, ticketId)
+}
+
+func (r *PostgresRepository) IsAdmin(email string) (bool, error) {
+	return postgres.IsAdmin(r.DB, email)
+}
+
+func (r *PostgresRepository) LoadAllOrgs() ([]*postgres.Organizer, error) {
+	return postgres.LoadAllOrgs(r.DB)
+}
+
+func (r *PostgresRepository) MergeOrgs(orgs []int64) error {
+	return postgres.MergeOrgs(r.DB, orgs)
 }

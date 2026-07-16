@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/Encinarus/genconplanner/internal/background"
+	"github.com/Encinarus/genconplanner/internal/events"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 )
@@ -174,4 +176,31 @@ func injectUser(html string, user *postgres.User) string {
 
 	script := fmt.Sprintf("<script>window.serverSideUser = %s;</script>\n", string(userJson))
 	return strings.Replace(html, "</head>", script+"</head>", 1)
+}
+
+type LookupResult struct {
+	MainEvent    *events.GenconEvent
+	EventsPerDay map[string][]*events.GenconEvent
+	TotalTickets int
+}
+
+func lookupEvent(db *sql.DB, eventId string, userEmail string) (*LookupResult, error) {
+	foundEvents, err := postgres.LoadSimilarEvents(db, eventId, userEmail)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("Found %v events similar to %s", len(foundEvents), eventId)
+
+	result := LookupResult{
+		EventsPerDay: events.PartitionEventsByDay(foundEvents),
+	}
+	for _, event := range foundEvents {
+		if event.EventId == eventId {
+			result.MainEvent = event
+		}
+
+		result.TotalTickets += event.TicketsAvailable
+	}
+
+	return &result, nil
 }

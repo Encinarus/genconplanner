@@ -105,29 +105,6 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	})
 	r.NoRoute(web.ServeV2(db, cache))
 
-	legacy := r.Group("/legacy")
-	legacy.Use(web.LegacyCSRFMiddleware())
-	legacy.GET("/event/:eid", web.ViewEvent(db))
-	legacy.GET("/search", web.Search(db))
-	legacy.GET("/cat/:year/:cat", web.ViewCategory(db))
-	index := func(c *gin.Context) {
-		c.Redirect(http.StatusTemporaryRedirect,
-			fmt.Sprintf("/legacy/cat/%d", time.Now().Year()))
-	}
-	legacy.GET("/", index)
-	legacy.GET("/index", index)
-	legacy.GET("/cat/:year", web.CategoryList(db))
-	legacy.GET("/starred/:year", web.StarredPage(db))
-	legacy.POST("/starEvent/", web.StarEvent(db))
-	legacy.GET("/starEvent/", web.GetStarredEvents(db))
-	legacy.GET("/listStarredGroups/:year", web.GetStarredEventGroups(db))
-	legacy.GET("/about", web.About(db))
-	legacy.GET("/user", web.User(db))
-	legacy.GET("/admin/orgs/", web.ViewOrgs(db))
-	legacy.POST("/admin/orgs/", web.MergeOrgs(db))
-
-	legacy.POST("/party/new", web.NewParty(db))
-	legacy.GET("/party/:party_id", web.Party(db))
 
 	repo := &api.PostgresRepository{DB: db}
 	api.BuildAPIRoutes(r.Group("/api"), repo, cache, app)

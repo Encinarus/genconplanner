@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'cat/2026', pathMatch: 'full' },
@@ -41,6 +42,11 @@ export const routes: Routes = [
     path: 'party/:id/:tab', 
     loadComponent: () => import('./components/party/party.component').then(m => m.PartyComponent),
     canActivate: [authGuard]
+  },
+  {
+    path: 'admin/orgs',
+    loadComponent: () => import('./components/admin-orgs/admin-orgs.component').then(m => m.AdminOrgsComponent),
+    canActivate: [authGuard, adminGuard]
   },
   // Redirect any other routes to home for now
   { path: '**', redirectTo: '' }

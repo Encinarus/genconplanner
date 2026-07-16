@@ -10,6 +10,8 @@ latest.dump
 # Node / Angular
 ui/node_modules/
 ui/dist/
+ui/test-results/
+ui/playwright-report/
 .angular/
 
 # OS files

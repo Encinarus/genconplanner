@@ -930,3 +930,9 @@ func SaveWishlistCache(db *sql.DB, email string, year int, items []WishlistCache
 
 	return tx.Commit()
 }
+
+func IsAdmin(db *sql.DB, email string) (bool, error) {
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM admin_users WHERE lower(email) = lower($1))", email).Scan(&exists)
+	return exists, err
+}

@@ -98,6 +98,27 @@ func (s *Server) AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
+func (s *Server) AdminOnly() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		email := GetUserEmail(c)
+		if email == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+			return
+		}
+		isAdmin, err := s.Repo.IsAdmin(email)
+		if err != nil {
+			log.Printf("AdminOnly error checking admin: %v", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+			return
+		}
+		if !isAdmin {
+			c.AbortWithStatusJSON(http.StatusForbidden, ErrorResponse{Error: "Forbidden"})
+			return
+		}
+		c.Next()
+	}
+}
+
 func (s *Server) OptionalAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idToken := c.GetHeader("Authorization")
@@ -140,6 +161,14 @@ func (s *Server) RegisterRoutes(group *gin.RouterGroup) {
 		auth.Use(s.AuthMiddleware())
 		{
 			s.registerUserRoutes(auth)
+		}
+
+		// Admin protected group
+		admin := v1.Group("/admin")
+		admin.Use(s.AuthMiddleware(), s.AdminOnly())
+		{
+			admin.GET("/orgs", s.ViewOrgs)
+			admin.POST("/orgs/merge", s.MergeOrgs)
 		}
 	}
 }

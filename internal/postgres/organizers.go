@@ -14,9 +14,9 @@ type Organizer struct {
 	NumEvents int64
 }
 
-func MergeOrgs(db *sql.DB, orgs []int64) {
+func MergeOrgs(db *sql.DB, orgs []int64) error {
 	if len(orgs) < 2 {
-		return
+		return nil
 	}
 	// The lowest numbered org will be the winner
 	sort.Slice(orgs, func(i, j int) bool {
@@ -31,7 +31,9 @@ func MergeOrgs(db *sql.DB, orgs []int64) {
 		smallest, pq.Array(orgs))
 	if err != nil {
 		log.Printf("Error when updating orgs: %v", err)
+		return err
 	}
+	return nil
 }
 
 func LoadAllOrgs(db *sql.DB) ([]*Organizer, error) {

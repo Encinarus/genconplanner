@@ -359,6 +359,20 @@ export class ApiService {
   toggleTicketReturn(year: number | string, ticketId: string): Observable<{ status: string; ticket: PartyTicket }> {
     return this.http.post<{ status: string; ticket: PartyTicket }>(`/api/v1/party/${year}/tickets/${ticketId}/toggle_return`, {});
   }
+
+  getAdminOrganizers(): Observable<AdminOrganizer[]> {
+    return this.http.get<AdminOrganizer[]>('/api/v1/admin/orgs');
+  }
+
+  mergeAdminOrganizers(ids: number[]): Observable<any> {
+    return this.http.post<any>('/api/v1/admin/orgs/merge', { ids });
+  }
+}
+
+export interface AdminOrganizer {
+  id: number;
+  aliases: string[];
+  numEvents: number;
 }
 
 export interface PartyTicket {

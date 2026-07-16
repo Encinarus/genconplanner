@@ -22,6 +22,7 @@ export class AuthService {
   genconName = signal<string | null>(null);
   genconId = signal<string | null>(null);
   genconEmail = signal<string | null>(null);
+  isAdmin = signal<boolean>(false);
   authLoaded = signal<boolean>(false);
 
   constructor() {
@@ -59,6 +60,7 @@ export class AuthService {
               this.genconName.set(data.genconName || null);
               this.genconId.set(data.genconId || null);
               this.genconEmail.set(data.genconEmail || null);
+              this.isAdmin.set(!!data.isAdmin);
             }
           }).catch(err => console.error('Error fetching user profile', err));
         });
@@ -70,12 +72,14 @@ export class AuthService {
           this.genconName.set(serverUser.genconName || null);
           this.genconId.set(serverUser.genconId || null);
           this.genconEmail.set(serverUser.genconEmail || null);
+          this.isAdmin.set(!!serverUser.isAdmin);
         } else {
           this.user.set(null);
           this.displayName.set(null);
           this.genconName.set(null);
           this.genconId.set(null);
           this.genconEmail.set(null);
+          this.isAdmin.set(false);
           Cookies.remove('signinToken', { path: '/' });
         }
         this.authLoaded.set(true);
@@ -107,6 +111,7 @@ export class AuthService {
       this.genconName.set(null);
       this.genconId.set(null);
       this.genconEmail.set(null);
+      this.isAdmin.set(false);
     } catch (error) {
       console.error('Sign out error', error);
     }
