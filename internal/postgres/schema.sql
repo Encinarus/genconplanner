@@ -96,6 +96,7 @@ CREATE TABLE public.boardgame_family
 (
     name text COLLATE pg_catalog."default" NOT NULL,
     bgg_id integer NOT NULL,
+    game_ids integer[],
     last_update date,
     CONSTRAINT boardgame_family_pkey PRIMARY KEY (bgg_id)
 )
