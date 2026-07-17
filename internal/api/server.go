@@ -169,6 +169,7 @@ func (s *Server) RegisterRoutes(group *gin.RouterGroup) {
 		{
 			admin.GET("/orgs", s.ViewOrgs)
 			admin.POST("/orgs/merge", s.MergeOrgs)
+			admin.GET("/orgs/merge-suggestions", s.GetMergeSuggestions)
 		}
 	}
 }

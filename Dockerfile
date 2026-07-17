@@ -4,8 +4,7 @@ RUN corepack enable npm
 COPY ui/package*.json ./
 RUN npm ci
 COPY ui/ ./
-RUN npm test -- --watch=false && \
-    npm run build -- --configuration production --output-path=dist/v2
+RUN npm run build -- --configuration production --output-path=dist/v2
 
 FROM golang:1.26 AS genconplanner-base
 

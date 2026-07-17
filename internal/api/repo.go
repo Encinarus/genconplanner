@@ -60,6 +60,7 @@ type EventRepository interface {
 	IsAdmin(email string) (bool, error)
 	LoadAllOrgs() ([]*postgres.Organizer, error)
 	MergeOrgs(orgs []int64) error
+	LoadEventOrgMetadata() ([]postgres.EventOrgMetadata, error)
 }
 
 type PostgresRepository struct {
@@ -243,4 +244,8 @@ func (r *PostgresRepository) LoadAllOrgs() ([]*postgres.Organizer, error) {
 
 func (r *PostgresRepository) MergeOrgs(orgs []int64) error {
 	return postgres.MergeOrgs(r.DB, orgs)
+}
+
+func (r *PostgresRepository) LoadEventOrgMetadata() ([]postgres.EventOrgMetadata, error) {
+	return postgres.LoadEventOrgMetadata(r.DB)
 }

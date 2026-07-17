@@ -38,7 +38,7 @@ func MergeOrgs(db *sql.DB, orgs []int64) error {
 
 func LoadAllOrgs(db *sql.DB) ([]*Organizer, error) {
 	rows, err := db.Query(`
-SELECT o.id, array_agg(distinct e.org_group), count(distinct e.event_id)
+SELECT o.id, coalesce(array_agg(distinct e.org_group) filter (where e.org_group is not null), '{}'), count(distinct e.event_id)
 FROM orgs o LEFT JOIN events e ON (lower(o.alias) = lower(e.org_group))
 GROUP BY 1
 `)
@@ -58,3 +58,36 @@ GROUP BY 1
 	}
 	return orgs, nil
 }
+
+type EventOrgMetadata struct {
+	OrgGroup string
+	Title    string
+	Year     int
+	GmNames  string
+	Email    string
+	Website  string
+}
+
+func LoadEventOrgMetadata(db *sql.DB) ([]EventOrgMetadata, error) {
+	rows, err := db.Query(`
+SELECT coalesce(org_group, ''), coalesce(title, ''), coalesce(year, 0), coalesce(gm_names, ''), coalesce(email, ''), coalesce(website, '')
+FROM events
+WHERE org_group IS NOT NULL AND org_group <> ''
+`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []EventOrgMetadata
+	for rows.Next() {
+		var m EventOrgMetadata
+		err = rows.Scan(&m.OrgGroup, &m.Title, &m.Year, &m.GmNames, &m.Email, &m.Website)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, m)
+	}
+	return results, nil
+}
+

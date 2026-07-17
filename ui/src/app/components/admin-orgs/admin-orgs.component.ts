@@ -1,164 +1,280 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { ApiService, AdminOrganizer } from '../../services/api.service';
+import { ApiService, OrganizerWithSuggestions, MergeSuggestion } from '../../services/api.service';
 
 @Component({
   selector: 'app-admin-orgs',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   template: `
-    <div class="admin-container">
-      <header class="admin-header">
-        <div class="header-left">
-          <a routerLink="/" class="back-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Planner
-          </a>
-          <h1>Organizer Administration</h1>
-          <p class="subtitle">Search, inspect, and merge duplicate organizers in the system.</p>
-        </div>
-      </header>
-
-      <!-- Main Controls -->
-      <div class="controls-card">
-        <div class="search-wrapper">
-          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    <div class="container-fluid px-4 py-4">
+      <div class="mb-4">
+        <a routerLink="/" class="text-decoration-none small text-primary d-inline-flex align-items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          <input
-            type="text"
-            placeholder="Search by organizer name or alias..."
-            [ngModel]="searchQuery()"
-            (ngModelChange)="searchQuery.set($event)"
-            class="search-input"
-          />
-        </div>
+          Back to Planner
+        </a>
+        <h1 class="mt-2 mb-1 h3 fw-bold">Organizer Duplicate Review</h1>
+        <p class="text-muted mb-0 small">Review and merge duplicate event organizers. Prioritized by highest likelihood of duplication.</p>
       </div>
 
       <!-- Loading State -->
-      <div *ngIf="loading()" class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading organizers...</p>
+      <div *ngIf="loading() && organizers().length === 0" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted mt-2">Running similarity analysis...</p>
       </div>
 
       <!-- Error State -->
-      <div *ngIf="error()" class="error-card">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="error-icon">
+      <div *ngIf="error()" class="alert alert-danger d-flex align-items-center gap-3 p-4 mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
-        <div class="error-details">
-          <h3>Error Loading Organizers</h3>
-          <p>{{ error() }}</p>
-          <button (click)="loadOrganizers()" class="retry-btn">Retry</button>
+        <div>
+          <h5 class="alert-heading mb-1 h6 fw-bold">Error Loading Suggestions</h5>
+          <p class="mb-2 small">{{ error() }}</p>
+          <button (click)="loadOrganizers()" class="btn btn-danger btn-sm">Retry</button>
         </div>
       </div>
 
-      <!-- Content -->
-      <div *ngIf="!loading() && !error()" class="org-content">
-        <div class="org-stats">
-          Total Organizers: <strong>{{ organizers().length }}</strong> | 
-          Filtered: <strong>{{ filteredOrganizers().length }}</strong>
-        </div>
+      <div *ngIf="!loading() && organizers().length === 0" class="alert alert-success text-center py-4 shadow-sm border">
+         <h5 class="h6 fw-bold mb-1 text-success">All Clean!</h5>
+         <p class="mb-0 text-muted small">No duplicate organizer matches were detected in the system.</p>
+      </div>
 
-        <div class="org-grid">
-          <div 
-            *ngFor="let org of filteredOrganizers()" 
-            class="org-card" 
-            [class.selected]="isSelected(org.id)"
-            (click)="toggleSelection(org.id)"
-          >
-            <div class="card-selection">
-              <input 
-                type="checkbox" 
-                [checked]="isSelected(org.id)"
-                (click)="$event.stopPropagation(); toggleSelection(org.id)"
-                class="checkbox-custom"
-                id="checkbox-{{org.id}}"
-              />
-              <label for="checkbox-{{org.id}}" class="checkbox-label" (click)="$event.stopPropagation()"></label>
+      <!-- Split-Pane Layout -->
+      <div class="row g-4" *ngIf="organizers().length > 0">
+        
+        <!-- Left Pane: Candidates List -->
+        <div class="col-lg-5 col-xl-4">
+          <div class="card shadow-sm border">
+            <div class="card-header bg-light">
+              <h5 class="card-title h6 mb-0 fw-bold">Review Queue ({{ filteredOrganizers().length }})</h5>
             </div>
-            
-            <div class="card-body">
-              <div class="card-header">
-                <span class="org-id">ID: #{{ org.id }}</span>
-                <span class="event-badge" [class.no-events]="org.numEvents === 0">
-                  {{ org.numEvents }} {{ org.numEvents === 1 ? 'event' : 'events' }}
+            <div class="p-3 border-bottom">
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-muted">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
                 </span>
+                <input
+                  type="text"
+                  placeholder="Search candidates..."
+                  [ngModel]="searchQuery()"
+                  (ngModelChange)="searchQuery.set($event)"
+                  class="form-control form-control-sm border-start-0"
+                />
               </div>
-              
-              <ul class="alias-list">
-                <li *ngFor="let alias of org.aliases" class="alias-item">
-                  <span *ngIf="alias; else noAlias">{{ alias }}</span>
-                  <ng-template #noAlias><span class="empty-alias">No organizer name provided</span></ng-template>
-                </li>
-              </ul>
             </div>
-          </div>
-        </div>
-
-        <div *ngIf="filteredOrganizers().length === 0" class="empty-search">
-          <p>No organizers found matching "{{ searchQuery() }}"</p>
-        </div>
-      </div>
-
-      <!-- Action Panel (Bottom Floating Bar) -->
-      <div class="action-panel" [class.active]="selectedIds().size >= 2">
-        <div class="action-content">
-          <div class="selection-info">
-            <span class="count">{{ selectedIds().size }}</span>
-            <span class="label">organizers selected for merge</span>
-          </div>
-          <div class="action-buttons">
-            <button (click)="clearSelection()" class="cancel-btn">Cancel</button>
-            <button 
-              (click)="confirmMerge()" 
-              [disabled]="merging()" 
-              class="merge-btn"
-            >
-              <span *ngIf="!merging()">Merge Selected</span>
-              <span *ngIf="merging()" class="spinner-sm"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Confirmation Modal -->
-      <div class="modal-backdrop" *ngIf="showConfirmModal()">
-        <div class="confirm-modal">
-          <div class="modal-header">
-            <h3>Confirm Merge</h3>
-            <button (click)="showConfirmModal.set(false)" class="close-btn">&times;</button>
-          </div>
-          <div class="modal-body">
-            <p>Are you sure you want to merge these <strong>{{ selectedIds().size }}</strong> organizers?</p>
             
-            <div class="modal-warning">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>This operation is permanent. The organizer with the smallest ID will be kept, and all other IDs will be merged into it in the events database.</span>
-            </div>
-
-            <div class="selected-summary">
-              <ul>
-                <li *ngFor="let org of getSelectedOrganizers()">
-                  <strong>ID #{{ org.id }}</strong> ({{ org.numEvents }} events)
-                  <div class="summary-aliases">{{ org.aliases.join(', ') }}</div>
-                </li>
-              </ul>
+            <div class="list-group list-group-flush overflow-auto" style="max-height: 65vh;">
+              <div
+                *ngFor="let org of filteredOrganizers()"
+                (click)="selectOrganizer(org)"
+                [class.active]="selectedOrg()?.id === org.id"
+                class="list-group-item list-group-item-action candidate-row p-3 border-bottom"
+              >
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <strong class="text-truncate fw-bold" style="font-size: 0.95rem;">
+                    {{ org.aliases[0] || 'Un-named Organizer' }}
+                  </strong>
+                  <span class="badge bg-danger rounded-pill" style="font-size: 0.75rem;">
+                    {{ org.suggestions.length }} {{ org.suggestions.length === 1 ? 'match' : 'matches' }}
+                  </span>
+                </div>
+                <div class="text-muted small d-flex justify-content-between">
+                  <span>ID: #{{ org.id }}</span>
+                  <span>{{ org.numEvents }} events</span>
+                </div>
+              </div>
+              <div *ngIf="filteredOrganizers().length === 0" class="text-center py-4 text-muted small">
+                No duplicate candidates match your search.
+              </div>
             </div>
           </div>
-          <div class="modal-footer">
-            <button (click)="showConfirmModal.set(false)" class="cancel-btn" [disabled]="merging()">Cancel</button>
-            <button (click)="executeMerge()" class="execute-btn" [disabled]="merging()">
-              <span *ngIf="!merging()">Proceed with Merge</span>
-              <span *ngIf="merging()" class="spinner-sm"></span>
-            </button>
+        </div>
+
+        <!-- Right Pane: Detail Review Panel -->
+        <div class="col-lg-7 col-xl-8">
+          
+          <!-- Placeholder Screen -->
+          <div *ngIf="!selectedOrg()" class="card bg-light border text-center p-5 shadow-sm">
+            <div class="my-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-muted">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <h5 class="h6 fw-bold">Select Organizer to Inspect</h5>
+            <p class="text-muted small mb-0">Choose an organizer from the queue on the left to verify and merge duplicate records.</p>
+          </div>
+
+          <!-- Selected Organizer Review Panel -->
+          <div *ngIf="selectedOrg()">
+            
+            <!-- Selected Base Organizer details -->
+            <div class="card mb-4 border shadow-sm">
+              <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0 h6 fw-bold">Active Organizer Record</h5>
+                  <span class="badge bg-secondary">ID #{{ selectedOrg()?.id }}</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="row align-items-center">
+                  <div class="col-sm-8">
+                    <h6 class="fw-bold mb-1">{{ selectedOrg()?.aliases?.[0] }}</h6>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                      <span *ngFor="let alias of selectedOrg()?.aliases" class="badge bg-light text-dark border px-2 py-1 small">
+                        {{ alias }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="col-sm-4 text-sm-end mt-3 mt-sm-0 border-start-sm">
+                    <div class="text-muted small">Event Count</div>
+                    <div class="h4 fw-bold mb-0 text-primary">{{ selectedOrg()?.numEvents }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <h5 class="h6 fw-bold text-secondary mb-3 mt-4">Suggested Duplicate Matches ({{ selectedOrg()?.suggestions?.length }})</h5>
+
+            <!-- List of match candidates -->
+            <div *ngFor="let suggestion of selectedOrg()?.suggestions" class="card mb-4 border-warning border-start border-4 shadow-sm">
+              <div class="card-header bg-white d-flex justify-content-between align-items-center border-bottom py-3">
+                <div>
+                  <h6 class="mb-0 fw-bold text-dark">{{ suggestion.aliases[0] }}</h6>
+                  <small class="text-muted">ID: #{{ suggestion.id }} &bull; {{ suggestion.numEvents }} events</small>
+                </div>
+                <button class="btn btn-warning btn-sm fw-bold d-flex align-items-center gap-1" (click)="initiateMerge(selectedOrg()!, suggestion)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                  Merge...
+                </button>
+              </div>
+              <div class="card-body">
+                
+                <!-- Similarity indicators reasons -->
+                <div class="mb-3">
+                  <label class="text-muted small fw-bold mb-1">Similarity Indicators:</label>
+                  <div class="d-flex flex-column gap-1">
+                    <div *ngFor="let reason of suggestion.reasons" class="d-flex align-items-start gap-2 small">
+                      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle mt-0.5" style="font-size: 0.7rem; padding: 2px 6px;">MATCH</span>
+                      <span class="text-dark">{{ reason }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Events Side-by-Side Comparison -->
+                <div class="mt-3">
+                  <label class="text-muted small fw-bold mb-2">Events Timeline History Comparison:</label>
+                  <div class="border rounded bg-light p-3" style="font-size: 0.85rem;">
+                    <div class="row">
+                      
+                      <!-- Selected Org Event titles -->
+                      <div class="col-md-6 border-end pb-3 pb-md-0">
+                        <div class="fw-bold border-bottom pb-1 mb-2 text-dark text-truncate">#{{ selectedOrg()?.id }}: {{ selectedOrg()?.aliases?.[0] }}</div>
+                        <div *ngFor="let yearSample of selectedOrg()?.eventSamples" class="mb-3">
+                          <span class="badge bg-secondary mb-1" style="font-size: 0.75rem;">{{ yearSample.year }}</span>
+                          <ul class="list-unstyled ps-2 mb-0">
+                            <li *ngFor="let title of yearSample.titles" class="text-truncate text-muted small py-0.5" [title]="title">
+                              &bull; {{ title }}
+                            </li>
+                          </ul>
+                        </div>
+                        <div *ngIf="!selectedOrg()?.eventSamples?.length" class="text-muted italic small">No event titles found</div>
+                      </div>
+
+                      <!-- Suggestion Org Event titles -->
+                      <div class="col-md-6 pt-3 pt-md-0">
+                        <div class="fw-bold border-bottom pb-1 mb-2 text-dark text-truncate">#{{ suggestion.id }}: {{ suggestion.aliases[0] }}</div>
+                        <div *ngFor="let yearSample of suggestion.eventSamples" class="mb-3">
+                          <span class="badge bg-secondary mb-1" style="font-size: 0.75rem;">{{ yearSample.year }}</span>
+                          <ul class="list-unstyled ps-2 mb-0">
+                            <li *ngFor="let title of yearSample.titles" class="text-truncate text-muted small py-0.5" [title]="title">
+                              &bull; {{ title }}
+                            </li>
+                          </ul>
+                        </div>
+                        <div *ngIf="!suggestion.eventSamples.length" class="text-muted italic small">No event titles found</div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Confirmation Modal Overlay -->
+      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.5);" *ngIf="showConfirmModal()">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title h6 fw-bold">Confirm Duplicate Merge</h5>
+              <button type="button" class="btn-close" (click)="showConfirmModal.set(false)" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p class="small text-dark mb-3">Are you sure you want to merge these duplicate organizer records?</p>
+              
+              <!-- Merge Direction Summary -->
+              <div class="alert alert-warning py-3 px-3 mb-3 border">
+                <div class="d-flex align-items-start gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-warning flex-shrink-0 mt-0.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div class="small">
+                    <div class="fw-bold mb-1 text-warning-emphasis">This action is permanent and cannot be undone.</div>
+                    All aliases, history, and events mapping of the duplicate will be combined under the keeping record ID.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Winner / Loser Detail boxes -->
+              <div class="vstack gap-2">
+                <div class="p-3 border rounded bg-success-subtle text-success-emphasis d-flex justify-content-between align-items-center">
+                  <div>
+                    <div class="text-muted small fw-medium">KEEPING RECORD (Smallest ID)</div>
+                    <strong class="h6 fw-bold text-success-emphasis mb-0 mt-1 d-block">{{ getMergeWinnerAliases()[0] }}</strong>
+                  </div>
+                  <span class="badge bg-success" style="font-size: 0.8rem;">ID #{{ getMergeWinnerId() }}</span>
+                </div>
+                
+                <div class="text-center text-muted small my-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13l-7 7-7-7m14-6l-7 7-7-7" />
+                  </svg>
+                </div>
+
+                <div class="p-3 border rounded bg-danger-subtle text-danger-emphasis d-flex justify-content-between align-items-center">
+                  <div>
+                    <div class="text-muted small fw-medium">MERGING RECORD (To be deleted/merged)</div>
+                    <strong class="h6 fw-bold text-danger-emphasis mb-0 mt-1 d-block">{{ getMergeLoserAliases()[0] }}</strong>
+                  </div>
+                  <span class="badge bg-danger" style="font-size: 0.8rem;">ID #{{ getMergeLoserId() }}</span>
+                </div>
+              </div>
+
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="showConfirmModal.set(false)" [disabled]="merging()">Cancel</button>
+              <button type="button" class="btn btn-danger btn-sm fw-bold" (click)="executeMerge()" [disabled]="merging()">
+                <span *ngIf="!merging()">Execute Merge</span>
+                <span *ngIf="merging()" class="spinner-border spinner-border-sm" role="status"></span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -167,549 +283,28 @@ import { ApiService, AdminOrganizer } from '../../services/api.service';
   styles: [`
     :host {
       display: block;
-      background-color: #0f172a;
-      color: #e2e8f0;
-      min-height: 100vh;
-      font-family: 'Inter', system-ui, sans-serif;
     }
-
-    .admin-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 40px 20px 120px 20px;
+    .text-mono {
+      font-family: var(--bs-font-monospace), SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
-
-    .admin-header {
-      margin-bottom: 30px;
-      border-bottom: 1px solid #1e293b;
-      padding-bottom: 20px;
+    .last-border-none:last-child {
+      border-bottom: none !important;
     }
-
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: #6366f1;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 15px;
-      transition: color 0.2s ease;
-    }
-
-    .back-link:hover {
-      color: #818cf8;
-    }
-
-    h1 {
-      font-size: 32px;
-      font-weight: 800;
-      letter-spacing: -0.025em;
-      margin: 0 0 8px 0;
-      background: linear-gradient(to right, #e2e8f0, #94a3b8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .subtitle {
-      color: #94a3b8;
-      font-size: 16px;
-      margin: 0;
-    }
-
-    /* Controls */
-    .controls-card {
-      background: rgba(30, 41, 59, 0.4);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-
-    .search-wrapper {
-      position: relative;
-      width: 100%;
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 20px;
-      height: 20px;
-      color: #64748b;
-    }
-
-    .search-input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 14px 16px 14px 48px;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      color: #f1f5f9;
-      font-size: 16px;
-      transition: all 0.2s ease;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    }
-
-    /* Loading / Spinner */
-    .loading-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 80px 20px;
-      color: #94a3b8;
-    }
-
-    .spinner {
-      border: 3px solid rgba(99, 102, 241, 0.1);
-      border-top: 3px solid #6366f1;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 16px;
-    }
-
-    .spinner-sm {
-      display: inline-block;
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-top: 2px solid #ffffff;
-      border-radius: 50%;
-      width: 16px;
-      height: 16px;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Error Card */
-    .error-card {
-      display: flex;
-      gap: 16px;
-      background: rgba(239, 68, 68, 0.05);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      border-radius: 16px;
-      padding: 24px;
-      color: #fca5a5;
-    }
-
-    .error-icon {
-      color: #ef4444;
-      flex-shrink: 0;
-    }
-
-    .error-details h3 {
-      margin: 0 0 6px 0;
-      font-size: 18px;
-    }
-
-    .error-details p {
-      margin: 0 0 16px 0;
-      color: #f87171;
-    }
-
-    .retry-btn {
-      background: #ef4444;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
+    .candidate-row {
       cursor: pointer;
-      font-weight: 500;
-      transition: background 0.2s;
+      transition: background-color 0.15s ease;
     }
-
-    .retry-btn:hover {
-      background: #dc2626;
+    .candidate-row:hover {
+      background-color: var(--bs-gray-100);
     }
-
-    /* Grid & Cards */
-    .org-stats {
-      font-size: 14px;
-      color: #64748b;
-      margin-bottom: 20px;
-      padding-left: 4px;
+    .candidate-row.active {
+      background-color: #e9ecef;
+      border-left: 4px solid var(--bs-primary);
     }
-
-    .org-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 20px;
-    }
-
-    .org-card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 16px;
-      padding: 20px;
-      display: flex;
-      gap: 16px;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-    }
-
-    .org-card:hover {
-      transform: translateY(-2px);
-      border-color: #475569;
-      background: #243249;
-    }
-
-    .org-card.selected {
-      border-color: #6366f1;
-      background: rgba(99, 102, 241, 0.08);
-      box-shadow: 0 0 0 1px #6366f1;
-    }
-
-    .card-selection {
-      display: flex;
-      align-items: flex-start;
-      padding-top: 4px;
-    }
-
-    .checkbox-custom {
-      display: none;
-    }
-
-    .checkbox-label {
-      width: 20px;
-      height: 20px;
-      border: 2px solid #475569;
-      border-radius: 6px;
-      display: inline-block;
-      position: relative;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .org-card.selected .checkbox-label {
-      background: #6366f1;
-      border-color: #6366f1;
-    }
-
-    .org-card.selected .checkbox-label::after {
-      content: '';
-      position: absolute;
-      left: 6px;
-      top: 2px;
-      width: 5px;
-      height: 10px;
-      border: solid white;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-    }
-
-    .card-body {
-      flex: 1;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .org-id {
-      font-size: 13px;
-      font-weight: 600;
-      color: #64748b;
-    }
-
-    .event-badge {
-      font-size: 12px;
-      font-weight: 600;
-      background: rgba(16, 185, 129, 0.1);
-      color: #10b981;
-      padding: 4px 10px;
-      border-radius: 9999px;
-    }
-
-    .event-badge.no-events {
-      background: rgba(148, 163, 184, 0.1);
-      color: #94a3b8;
-    }
-
-    .alias-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .alias-item {
-      font-size: 15px;
-      font-weight: 500;
-      color: #f1f5f9;
-    }
-
-    .empty-alias {
-      color: #64748b;
-      font-style: italic;
-    }
-
-    .empty-search {
-      text-align: center;
-      padding: 60px 20px;
-      color: #64748b;
-      font-size: 16px;
-    }
-
-    /* Floating Action Panel */
-    .action-panel {
-      position: fixed;
-      bottom: -100px;
-      left: 0;
-      right: 0;
-      background: rgba(30, 41, 59, 0.85);
-      backdrop-filter: blur(16px);
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 20px 24px;
-      box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.3);
-      transition: bottom 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 100;
-    }
-
-    .action-panel.active {
-      bottom: 0;
-    }
-
-    .action-content {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .selection-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .selection-info .count {
-      background: #6366f1;
-      color: white;
-      font-weight: 700;
-      font-size: 18px;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-
-    .selection-info .label {
-      font-size: 16px;
-      font-weight: 500;
-      color: #e2e8f0;
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 12px;
-    }
-
-    .cancel-btn {
-      background: transparent;
-      border: 1px solid #475569;
-      color: #94a3b8;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .cancel-btn:hover:not(:disabled) {
-      color: #f1f5f9;
-      border-color: #94a3b8;
-    }
-
-    .merge-btn {
-      background: linear-gradient(to right, #6366f1, #4f46e5);
-      border: none;
-      color: white;
-      padding: 10px 24px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .merge-btn:hover:not(:disabled) {
-      background: linear-gradient(to right, #818cf8, #6366f1);
-      transform: translateY(-1px);
-    }
-
-    .merge-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-
-    /* Modal */
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(4px);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .confirm-modal {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 20px;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      overflow: hidden;
-      animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes modalFadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    .modal-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid #334155;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .modal-header h3 {
-      margin: 0;
-      font-size: 20px;
-      color: #f1f5f9;
-    }
-
-    .close-btn {
-      background: transparent;
-      border: none;
-      color: #64748b;
-      font-size: 24px;
-      cursor: pointer;
-    }
-
-    .close-btn:hover {
-      color: #94a3b8;
-    }
-
-    .modal-body {
-      padding: 24px;
-    }
-
-    .modal-warning {
-      background: rgba(245, 158, 11, 0.08);
-      border: 1px solid rgba(245, 158, 11, 0.2);
-      border-radius: 12px;
-      padding: 14px;
-      color: #fca5a5;
-      display: flex;
-      gap: 12px;
-      font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
-
-    .modal-warning svg {
-      color: #f59e0b;
-      flex-shrink: 0;
-    }
-
-    .selected-summary {
-      max-height: 200px;
-      overflow-y: auto;
-      background: #0f172a;
-      border-radius: 12px;
-      padding: 16px;
-      border: 1px solid #334155;
-    }
-
-    .selected-summary ul {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .selected-summary li {
-      font-size: 14px;
-      color: #e2e8f0;
-    }
-
-    .summary-aliases {
-      color: #64748b;
-      font-size: 12px;
-      margin-top: 4px;
-    }
-
-    .modal-footer {
-      padding: 16px 24px;
-      background: #182235;
-      border-top: 1px solid #334155;
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-    }
-
-    .execute-btn {
-      background: #6366f1;
-      border: none;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .execute-btn:hover:not(:disabled) {
-      background: #4f46e5;
-    }
-
-    .execute-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    @media (min-width: 576px) {
+      .border-start-sm {
+        border-left: 1px solid #dee2e6 !important;
+      }
     }
   `]
 })
@@ -718,15 +313,17 @@ export class AdminOrgsComponent implements OnInit {
   private titleService = inject(Title);
 
   // States
-  organizers = signal<AdminOrganizer[]>([]);
+  organizers = signal<OrganizerWithSuggestions[]>([]);
+  selectedOrg = signal<OrganizerWithSuggestions | null>(null);
   loading = signal<boolean>(true);
   error = signal<string | null>(null);
   searchQuery = signal<string>('');
-  selectedIds = signal<Set<number>>(new Set<number>());
   merging = signal<boolean>(false);
   showConfirmModal = signal<boolean>(false);
+  mergeSource = signal<OrganizerWithSuggestions | null>(null);
+  mergeTarget = signal<MergeSuggestion | null>(null);
 
-  // Computed filtered list
+  // Computed filtered list of organizers with suggestions
   filteredOrganizers = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     if (!query) {
@@ -749,59 +346,79 @@ export class AdminOrgsComponent implements OnInit {
   loadOrganizers() {
     this.loading.set(true);
     this.error.set(null);
-    this.api.getAdminOrganizers().subscribe({
+    this.api.getMergeSuggestions().subscribe({
       next: (data) => {
-        // Sort by number of events descending
-        this.organizers.set(data.sort((a, b) => b.numEvents - a.numEvents));
+        this.organizers.set(data);
         this.loading.set(false);
+        const currentSelected = this.selectedOrg();
+        if (currentSelected) {
+          const fresh = data.find(o => o.id === currentSelected.id);
+          this.selectedOrg.set(fresh || null);
+        } else if (data.length > 0) {
+          this.selectedOrg.set(data[0]);
+        }
       },
       error: (err) => {
-        console.error('Error fetching organizers', err);
-        this.error.set('Failed to retrieve organizers list from server. ' + (err.error?.error || err.message));
+        console.error('Error fetching merge suggestions', err);
+        this.error.set('Failed to retrieve duplicate suggestions from server. ' + (err.error?.error || err.message));
         this.loading.set(false);
       }
     });
   }
 
-  isSelected(id: number): boolean {
-    return this.selectedIds().has(id);
+  selectOrganizer(org: OrganizerWithSuggestions) {
+    this.selectedOrg.set(org);
   }
 
-  toggleSelection(id: number) {
-    const current = new Set(this.selectedIds());
-    if (current.has(id)) {
-      current.delete(id);
-    } else {
-      current.add(id);
-    }
-    this.selectedIds.set(current);
-  }
-
-  clearSelection() {
-    this.selectedIds.set(new Set<number>());
-  }
-
-  getSelectedOrganizers(): AdminOrganizer[] {
-    const ids = this.selectedIds();
-    return this.organizers().filter(org => ids.has(org.id));
-  }
-
-  confirmMerge() {
-    if (this.selectedIds().size < 2) return;
+  initiateMerge(org: OrganizerWithSuggestions, suggestion: MergeSuggestion) {
+    this.mergeSource.set(org);
+    this.mergeTarget.set(suggestion);
     this.showConfirmModal.set(true);
   }
 
+  getMergeWinnerId(): number {
+    const src = this.mergeSource();
+    const tgt = this.mergeTarget();
+    if (!src || !tgt) return 0;
+    return Math.min(src.id, tgt.id);
+  }
+
+  getMergeLoserId(): number {
+    const src = this.mergeSource();
+    const tgt = this.mergeTarget();
+    if (!src || !tgt) return 0;
+    return Math.max(src.id, tgt.id);
+  }
+
+  getMergeWinnerAliases(): string[] {
+    const src = this.mergeSource();
+    const tgt = this.mergeTarget();
+    if (!src || !tgt) return [];
+    return src.id < tgt.id ? src.aliases : tgt.aliases;
+  }
+
+  getMergeLoserAliases(): string[] {
+    const src = this.mergeSource();
+    const tgt = this.mergeTarget();
+    if (!src || !tgt) return [];
+    return src.id > tgt.id ? src.aliases : tgt.aliases;
+  }
+
   executeMerge() {
-    if (this.selectedIds().size < 2) return;
+    const src = this.mergeSource();
+    const tgt = this.mergeTarget();
+    if (!src || !tgt) return;
+
     this.merging.set(true);
-    const ids = Array.from(this.selectedIds());
+    const ids = [src.id, tgt.id];
     
     this.api.mergeAdminOrganizers(ids).subscribe({
       next: () => {
         this.merging.set(false);
         this.showConfirmModal.set(false);
-        this.clearSelection();
-        this.loadOrganizers(); // Reload list to reflect merged state
+        this.mergeSource.set(null);
+        this.mergeTarget.set(null);
+        this.loadOrganizers();
         alert('Organizers merged successfully!');
       },
       error: (err) => {

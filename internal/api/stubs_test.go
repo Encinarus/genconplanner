@@ -56,6 +56,7 @@ type StubRepository struct {
 	IsAdminFn                    func(string) (bool, error)
 	LoadAllOrgsFn                func() ([]*postgres.Organizer, error)
 	MergeOrgsFn                  func([]int64) error
+	LoadEventOrgMetadataFn       func() ([]postgres.EventOrgMetadata, error)
 }
 
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
@@ -285,6 +286,13 @@ func (s *StubRepository) MergeOrgs(orgs []int64) error {
 		return nil
 	}
 	return s.MergeOrgsFn(orgs)
+}
+
+func (s *StubRepository) LoadEventOrgMetadata() ([]postgres.EventOrgMetadata, error) {
+	if s.LoadEventOrgMetadataFn == nil {
+		return nil, nil
+	}
+	return s.LoadEventOrgMetadataFn()
 }
 
 // StubAuthService implements AuthService for testing.

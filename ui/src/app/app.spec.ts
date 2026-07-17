@@ -3,15 +3,27 @@ import { App } from './app';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { AuthService } from './services/auth.service';
+import { signal } from '@angular/core';
 
 describe('App', () => {
   beforeEach(async () => {
+    const mockAuthService = {
+      user: signal<any>(null),
+      displayName: signal<string | null>(null),
+      isAdmin: signal<boolean>(false),
+      authLoaded: signal<boolean>(true),
+      signOut: () => Promise.resolve(),
+      signIn: () => Promise.resolve()
+    };
+
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
         provideRouter([]),
         provideHttpClient(),
-        provideHttpClientTesting()
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: mockAuthService }
       ]
     }).compileComponents();
   }, 30000);

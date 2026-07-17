@@ -367,12 +367,37 @@ export class ApiService {
   mergeAdminOrganizers(ids: number[]): Observable<any> {
     return this.http.post<any>('/api/v1/admin/orgs/merge', { ids });
   }
+
+  getMergeSuggestions(): Observable<OrganizerWithSuggestions[]> {
+    return this.http.get<OrganizerWithSuggestions[]>('/api/v1/admin/orgs/merge-suggestions');
+  }
 }
 
 export interface AdminOrganizer {
   id: number;
   aliases: string[];
   numEvents: number;
+}
+
+export interface EventSample {
+  year: number;
+  titles: string[];
+}
+
+export interface MergeSuggestion {
+  id: number;
+  aliases: string[];
+  numEvents: number;
+  reasons: string[];
+  eventSamples: EventSample[];
+}
+
+export interface OrganizerWithSuggestions {
+  id: number;
+  aliases: string[];
+  numEvents: number;
+  eventSamples: EventSample[];
+  suggestions: MergeSuggestion[];
 }
 
 export interface PartyTicket {

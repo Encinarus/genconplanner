@@ -1,20 +1,43 @@
 import { vi } from 'vitest';
 
-// Polyfill IntersectionObserver for tests since it's missing in Node environment
-// but required by Angular's @defer (on viewport) trigger.
-class MockIntersectionObserver {
-  readonly root: Element | null = null;
-  readonly rootMargin: string = '';
-  readonly thresholds: ReadonlyArray<number> = [];
-  
-  observe = vi.fn();
-  unobserve = vi.fn();
-  disconnect = vi.fn();
-  takeRecords = vi.fn(() => []);
-}
+const mockAuth = {
+  getAuth: () => {
+    if ((globalThis as any).__mockGetAuth) {
+      return (globalThis as any).__mockGetAuth();
+    }
+    return { name: 'mock-auth' };
+  },
+  GoogleAuthProvider: class {
+    constructor() {
+      if ((globalThis as any).__mockGoogleAuthProvider) {
+        return (globalThis as any).__mockGoogleAuthProvider();
+      }
+      return { name: 'google-provider' };
+    }
+  },
+  signInWithPopup: (...args: any[]) => {
+    if ((globalThis as any).__mockSignInWithPopup) {
+      return (globalThis as any).__mockSignInWithPopup(...args);
+    }
+    return Promise.resolve({ user: null });
+  },
+  signOut: (...args: any[]) => {
+    if ((globalThis as any).__mockSignOut) {
+      return (globalThis as any).__mockSignOut(...args);
+    }
+    return Promise.resolve();
+  },
+  onAuthStateChanged: (...args: any[]) => {
+    if ((globalThis as any).__mockOnAuthStateChanged) {
+      return (globalThis as any).__mockOnAuthStateChanged(...args);
+    }
+    return () => {};
+  }
+};
 
-Object.defineProperty(window, 'IntersectionObserver', {
-  writable: true,
-  configurable: true,
-  value: MockIntersectionObserver
-});
+vi.mock('firebase/app', () => ({
+  initializeApp: vi.fn(() => ({ name: 'mock-app' }))
+}));
+
+vi.mock('firebase/auth', () => mockAuth);
+vi.mock('@firebase/auth', () => mockAuth);

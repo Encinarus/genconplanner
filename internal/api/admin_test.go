@@ -101,6 +101,32 @@ func TestAdminRoutes(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
+		{
+			name:   "MergeSuggestions - Success with similar items",
+			method: "GET",
+			url:    "/api/v1/admin/orgs/merge-suggestions",
+			setupStub: func() {
+				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+					return "admin@example.com", nil
+				}
+				stub.IsAdminFn = func(email string) (bool, error) {
+					return true, nil
+				}
+				stub.LoadAllOrgsFn = func() ([]*postgres.Organizer, error) {
+					return []*postgres.Organizer{
+						{Id: 1, Aliases: []string{"Fantasy Flight Games"}, NumEvents: 10},
+						{Id: 2, Aliases: []string{"Fantasy Flight"}, NumEvents: 2},
+					}, nil
+				}
+				stub.LoadEventOrgMetadataFn = func() ([]postgres.EventOrgMetadata, error) {
+					return []postgres.EventOrgMetadata{
+						{OrgGroup: "Fantasy Flight Games", Title: "Twilight Imperium Tournament", Year: 2026, GmNames: "Christian T. Petersen", Email: "contact@fantasyflight.com", Website: "fantasyflight.com"},
+						{OrgGroup: "Fantasy Flight", Title: "Twilight Imperium Tournament", Year: 2026, GmNames: "Christian T. Petersen", Email: "contact@fantasyflight.com", Website: "fantasyflight.com"},
+					}, nil
+				}
+			},
+			expectedStatus: http.StatusOK,
+		},
 	}
 
 	for _, tt := range tests {
