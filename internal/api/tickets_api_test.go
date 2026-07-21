@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Encinarus/genconplanner/internal/postgres"
@@ -117,3 +119,47 @@ func TestTransferTicket_API(t *testing.T) {
 		t.Fatalf("expected status 200, got %d. Body: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestRespondTransfer_API_Authorization(t *testing.T) {
+	server, stub, auth, _, router := setupTestServer()
+	server.RegisterRoutes(router.Group("/api"))
+
+	auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+		return "attacker@example.com", nil
+	}
+
+	stub.LoadOrCreateUserFn = func(email string) (*postgres.User, error) {
+		return &postgres.User{Email: email}, nil
+	}
+
+	stub.LoadPartiesFn = func(user *postgres.User) ([]*postgres.Party, error) {
+		return []*postgres.Party{{Id: 101, Year: 2026}}, nil
+	}
+
+	stub.RespondTicketTransferFn = func(partyId int64, transferId, action, callerEmail string) (*postgres.TicketTransfer, error) {
+		if callerEmail != "attacker@example.com" {
+			return nil, fmt.Errorf("unexpected caller email: %s", callerEmail)
+		}
+		// Return an error to simulate unauthorized rejection/accept check inside DB layer
+		return nil, fmt.Errorf("unauthorized to respond to this transfer")
+	}
+
+	body := RespondTransferRequest{
+		Action: "accept",
+	}
+	jsonBody, _ := json.Marshal(body)
+
+	req, _ := http.NewRequest("POST", "/api/v1/party/2026/transfers/tr1/respond", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Authorization", "Bearer valid-token")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d. Body: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "unauthorized") {
+		t.Fatalf("expected unauthorized error message, got: %s", w.Body.String())
+	}
+}
+

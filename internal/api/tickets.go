@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
@@ -205,10 +206,14 @@ func (s *Server) RespondTransfer(c *gin.Context) {
 		return
 	}
 
-	transfer, errResp := s.Repo.RespondTicketTransfer(party.Id, transferId, req.Action)
+	transfer, errResp := s.Repo.RespondTicketTransfer(party.Id, transferId, req.Action, email)
 	if errResp != nil {
 		log.Printf("RespondTransfer error: %v\n", errResp)
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to respond to transfer"})
+		if strings.Contains(errResp.Error(), "unauthorized") {
+			c.JSON(http.StatusForbidden, ErrorResponse{Error: errResp.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to respond to transfer"})
+		}
 		return
 	}
 

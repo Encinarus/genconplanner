@@ -48,7 +48,7 @@ type EventRepository interface {
 	AddPartyTicket(partyId int64, year int, eventId, purchaserEmail, genconRecipientName, holderEmail, ticketType string) (*postgres.PartyTicket, error)
 	DeletePartyTicket(partyId int64, ticketId string) error
 	InitiateTicketTransfer(partyId int64, ticketId, fromEmail, toEmail, transferType string) (*postgres.TicketTransfer, error)
-	RespondTicketTransfer(partyId int64, transferId, action string) (*postgres.TicketTransfer, error)
+	RespondTicketTransfer(partyId int64, transferId, action, callerEmail string) (*postgres.TicketTransfer, error)
 	ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error)
 
 	// User related
@@ -226,8 +226,8 @@ func (r *PostgresRepository) InitiateTicketTransfer(partyId int64, ticketId, fro
 	return postgres.InitiateTicketTransfer(r.DB, partyId, ticketId, fromEmail, toEmail, transferType)
 }
 
-func (r *PostgresRepository) RespondTicketTransfer(partyId int64, transferId, action string) (*postgres.TicketTransfer, error) {
-	return postgres.RespondTicketTransfer(r.DB, partyId, transferId, action)
+func (r *PostgresRepository) RespondTicketTransfer(partyId int64, transferId, action, callerEmail string) (*postgres.TicketTransfer, error) {
+	return postgres.RespondTicketTransfer(r.DB, partyId, transferId, action, callerEmail)
 }
 
 func (r *PostgresRepository) ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error) {

@@ -313,7 +313,8 @@ RETURNING transfer_id`, ticketId, partyId, fromEmail, toEmail, transferType, sta
 }
 
 // RespondTicketTransfer handles accept/reject/complete actions for pending e-ticket transfers.
-func RespondTicketTransfer(db *sql.DB, partyId int64, transferId, action string) (*TicketTransfer, error) {
+func RespondTicketTransfer(db *sql.DB, partyId int64, transferId, action, callerEmail string) (*TicketTransfer, error) {
+	callerEmail = strings.ToLower(callerEmail)
 	var ticketId, fromEmail, toEmail, status, eventId string
 	err := db.QueryRow(`
 SELECT tt.ticket_id, tt.from_email, tt.to_email, tt.status, pt.event_id 
@@ -331,8 +332,14 @@ WHERE tt.party_id = $1 AND tt.transfer_id = $2`, partyId, transferId).Scan(&tick
 		return nil, fmt.Errorf("transfer is not in pending state")
 	}
 
+	fromEmail = strings.ToLower(fromEmail)
+	toEmail = strings.ToLower(toEmail)
+
 	var newStatus string
 	if action == "accept" || action == "complete" {
+		if callerEmail != toEmail {
+			return nil, fmt.Errorf("unauthorized to respond to this transfer")
+		}
 		newStatus = "completed"
 		_, errUpdate := db.Exec("UPDATE party_tickets SET holder_email = $1, transfer_status = 'completed', last_modified = now() WHERE ticket_id = $2", toEmail, ticketId)
 		if errUpdate != nil {
@@ -340,6 +347,9 @@ WHERE tt.party_id = $1 AND tt.transfer_id = $2`, partyId, transferId).Scan(&tick
 		}
 		_ = SyncTicketHoldersToStarredEvents(db, toEmail, fromEmail, eventId)
 	} else if action == "reject" {
+		if callerEmail != toEmail && callerEmail != fromEmail {
+			return nil, fmt.Errorf("unauthorized to respond to this transfer")
+		}
 		newStatus = "rejected"
 		_, errUpdate := db.Exec("UPDATE party_tickets SET transfer_status = 'none', last_modified = now() WHERE ticket_id = $1", ticketId)
 		if errUpdate != nil {

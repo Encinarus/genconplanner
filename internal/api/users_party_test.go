@@ -621,3 +621,61 @@ func TestPartyStream(t *testing.T) {
 		// If the test finishes, it means the stream successfully terminated on the write error.
 	})
 }
+
+func TestPartyAuthorizationHardening(t *testing.T) {
+	server, stub, auth, _, r := setupTestServer()
+	server.RegisterRoutes(r.Group("/api"))
+
+	t.Run("LeaveParty fails when caller is not a member", func(t *testing.T) {
+		auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+			return "nonmember@example.com", nil
+		}
+		stub.LoadPartyFn = func(id int64) (*postgres.Party, error) {
+			return &postgres.Party{
+				Id:          123,
+				Name:        "Target Party",
+				Year:        2026,
+				LeaderEmail: "leader@example.com",
+				Members: []*postgres.User{
+					{Email: "leader@example.com", DisplayName: "Leader"},
+				},
+			}, nil
+		}
+		
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/v1/party/123/leave", nil)
+		req.Header.Set("Authorization", "Bearer valid-token")
+		r.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected leave party to return 404 for non-member, got %d", w.Code)
+		}
+	})
+
+	t.Run("Querying party by numeric ID fails when caller is not a member", func(t *testing.T) {
+		auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
+			return "nonmember@example.com", nil
+		}
+		stub.LoadPartyFn = func(id int64) (*postgres.Party, error) {
+			return &postgres.Party{
+				Id:          123,
+				Name:        "Secret Party",
+				Year:        2026,
+				LeaderEmail: "leader@example.com",
+				Members: []*postgres.User{
+					{Email: "leader@example.com", DisplayName: "Leader"},
+				},
+			}, nil
+		}
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/api/v1/party/123", nil)
+		req.Header.Set("Authorization", "Bearer valid-token")
+		r.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected querying party by ID to return 404 for non-member, got %d", w.Code)
+		}
+	})
+}
+

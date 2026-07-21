@@ -838,7 +838,18 @@ func (s *Server) getPartyFromParam(idParam string, email string, allowShortCode 
 			return nil, fmt.Errorf("no party found for year %d", id)
 		}
 		// Fallback: it's a numeric party ID
-		return s.Repo.LoadParty(id)
+		party, err := s.Repo.LoadParty(id)
+		if err != nil {
+			return nil, err
+		}
+		if email != "" {
+			for _, m := range party.Members {
+				if strings.EqualFold(m.Email, email) {
+					return party, nil
+				}
+			}
+		}
+		return nil, fmt.Errorf("party not found")
 	}
 	if !allowShortCode {
 		return nil, fmt.Errorf("short code lookup not permitted for this operation")
@@ -1062,6 +1073,18 @@ func (s *Server) LeaveParty(c *gin.Context) {
 
 	dbParty, err := s.getPartyFromParam(c.Param("party_id"), email, false)
 	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
+		return
+	}
+
+	isMember := false
+	for _, m := range dbParty.Members {
+		if strings.EqualFold(m.Email, email) {
+			isMember = true
+			break
+		}
+	}
+	if !isMember {
 		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: "Party not found"})
 		return
 	}

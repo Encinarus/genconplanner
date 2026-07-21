@@ -51,7 +51,7 @@ type StubRepository struct {
 	AddPartyTicketFn             func(int64, int, string, string, string, string, string) (*postgres.PartyTicket, error)
 	DeletePartyTicketFn          func(int64, string) error
 	InitiateTicketTransferFn     func(int64, string, string, string, string) (*postgres.TicketTransfer, error)
-	RespondTicketTransferFn      func(int64, string, string) (*postgres.TicketTransfer, error)
+	RespondTicketTransferFn      func(int64, string, string, string) (*postgres.TicketTransfer, error)
 	ToggleTicketReturnFn         func(int64, string) (*postgres.PartyTicket, error)
 	IsAdminFn                    func(string) (bool, error)
 	LoadAllOrgsFn                func() ([]*postgres.Organizer, error)
@@ -253,11 +253,11 @@ func (s *StubRepository) InitiateTicketTransfer(partyId int64, ticketId, fromEma
 	return s.InitiateTicketTransferFn(partyId, ticketId, fromEmail, toEmail, transferType)
 }
 
-func (s *StubRepository) RespondTicketTransfer(partyId int64, transferId, action string) (*postgres.TicketTransfer, error) {
+func (s *StubRepository) RespondTicketTransfer(partyId int64, transferId, action, callerEmail string) (*postgres.TicketTransfer, error) {
 	if s.RespondTicketTransferFn == nil {
 		return nil, nil
 	}
-	return s.RespondTicketTransferFn(partyId, transferId, action)
+	return s.RespondTicketTransferFn(partyId, transferId, action, callerEmail)
 }
 
 func (s *StubRepository) ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error) {
