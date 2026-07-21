@@ -22,6 +22,7 @@ type EventsSearch struct {
 
 	TextQuery string `form:"search"`
 	OrgId     int    `form:"org_id"`
+	OnlyFree  bool   `form:"free"`
 }
 
 // Used in search results
@@ -30,11 +31,21 @@ type EventSummary struct {
 	Title            string     `json:"title"`
 	ShortDescription string     `json:"shortDescription"`
 	NumEvents        int        `json:"numEvents"`
-	WedTickets       int        `json:"wedTickets"`
-	ThuTickets       int        `json:"thuTickets"`
-	FriTickets       int        `json:"friTickets"`
-	SatTickets       int        `json:"satTickets"`
-	SunTickets       int        `json:"sunTickets"`
+	WedEvents         int        `json:"wedEvents"`
+	WedTotalTickets   int        `json:"wedTotalTickets"`
+	WedTickets        int        `json:"wedTickets"`
+	ThuEvents         int        `json:"thuEvents"`
+	ThuTotalTickets   int        `json:"thuTotalTickets"`
+	ThuTickets        int        `json:"thuTickets"`
+	FriEvents         int        `json:"friEvents"`
+	FriTotalTickets   int        `json:"friTotalTickets"`
+	FriTickets        int        `json:"friTickets"`
+	SatEvents         int        `json:"satEvents"`
+	SatTotalTickets   int        `json:"satTotalTickets"`
+	SatTickets        int        `json:"satTickets"`
+	SunEvents         int        `json:"sunEvents"`
+	SunTotalTickets   int        `json:"sunTotalTickets"`
+	SunTickets        int        `json:"sunTickets"`
 	OrgId            int        `json:"orgId"`
 	CategoryCode     string     `json:"categoryCode"`
 	GameSystem       GameSystem `json:"gameSystem"`
@@ -215,10 +226,20 @@ func convertEventGroup(dbEventGroup *postgres.EventGroup) *EventSummary {
 	apiEventSummary.Title = dbEventGroup.Name
 	apiEventSummary.ShortDescription = dbEventGroup.Description
 	apiEventSummary.NumEvents = dbEventGroup.Count
+	apiEventSummary.WedEvents = dbEventGroup.WedEvents
+	apiEventSummary.WedTotalTickets = dbEventGroup.WedTotalTickets
 	apiEventSummary.WedTickets = dbEventGroup.WedTickets
+	apiEventSummary.ThuEvents = dbEventGroup.ThursEvents
+	apiEventSummary.ThuTotalTickets = dbEventGroup.ThursTotalTickets
 	apiEventSummary.ThuTickets = dbEventGroup.ThursTickets
+	apiEventSummary.FriEvents = dbEventGroup.FriEvents
+	apiEventSummary.FriTotalTickets = dbEventGroup.FriTotalTickets
 	apiEventSummary.FriTickets = dbEventGroup.FriTickets
+	apiEventSummary.SatEvents = dbEventGroup.SatEvents
+	apiEventSummary.SatTotalTickets = dbEventGroup.SatTotalTickets
 	apiEventSummary.SatTickets = dbEventGroup.SatTickets
+	apiEventSummary.SunEvents = dbEventGroup.SunEvents
+	apiEventSummary.SunTotalTickets = dbEventGroup.SunTotalTickets
 	apiEventSummary.SunTickets = dbEventGroup.SunTickets
 	apiEventSummary.OrgId = dbEventGroup.OrgId
 	apiEventSummary.CategoryCode = dbEventGroup.ShortCategory
@@ -250,10 +271,12 @@ func (s *Server) SearchEvents(c *gin.Context) {
 	q.MinSatTickets = search.MinSatTickets
 	q.MinSunTickets = search.MinSunTickets
 	q.OrgId = search.OrgId
+	q.OnlyFree = search.OnlyFree
+	q.UserEmail = GetUserEmail(c)
 
 	var matches []*postgres.EventGroup
 
-	if len(strings.TrimSpace(search.TextQuery)) == 0 && len(search.Category) > 0 {
+	if len(strings.TrimSpace(search.TextQuery)) == 0 && len(search.Category) > 0 && !search.OnlyFree {
 		matches, err = s.Repo.LoadEventGroupsForCategory(search.Category, search.Year)
 	} else {
 		matches, err = s.Repo.SearchEvents(q)
@@ -279,6 +302,6 @@ func (s *Server) SearchEvents(c *gin.Context) {
 
 func (s *Server) registerEventRoutes(group *gin.RouterGroup) {
 	group.GET("/event/:event_id", s.LookupEvent)
-	group.GET("/events", s.SearchEvents)
-	group.POST("/events", s.SearchEvents)
+	group.GET("/events", s.OptionalAuth(), s.SearchEvents)
+	group.POST("/events", s.OptionalAuth(), s.SearchEvents)
 }

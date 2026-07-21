@@ -1,9 +1,11 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, signal, inject, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
+import { combineLatest } from 'rxjs';
 import { ApiService, EventSummary } from '../../services/api.service';
 import { LinkService } from '../../services/link.service';
 import { Title } from '@angular/platform-browser';
+import { AuthService } from '../../services/auth.service';
 
 interface EventSubGroup {
   systemName: string;
@@ -61,7 +63,138 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
   scrolled = signal<boolean>(false);
   collapsedGroups = signal<Set<string>>(new Set());
   groupingMethod = signal<'system' | 'year' | 'rating'>('system');
+  public auth = inject(AuthService);
   private router = inject(Router);
+
+  // Advanced Search Filters
+  filterFree = signal<boolean>(false);
+  minTickets = signal<number | null>(null);
+  minBggRating = signal<number | null>(null);
+  minYearPublished = signal<number | null>(null);
+  selectedDays = signal<Set<string>>(new Set(['wed', 'thu', 'fri', 'sat', 'sun']));
+  showAdvancedFilters = signal<boolean>(false);
+  localSearchQuery = signal<string>('');
+
+  toggleDay(day: string): void {
+    const set = new Set(this.selectedDays());
+    if (set.has(day)) {
+      set.delete(day);
+    } else {
+      set.add(day);
+    }
+    this.selectedDays.set(set);
+    this.updateQueryParams();
+  }
+
+  toggleFilterFree(): void {
+    this.filterFree.set(!this.filterFree());
+    this.updateQueryParams();
+  }
+
+  resetFilters(): void {
+    this.filterFree.set(false);
+    this.minTickets.set(null);
+    this.minBggRating.set(null);
+    this.minYearPublished.set(null);
+    this.selectedDays.set(new Set(['wed', 'thu', 'fri', 'sat', 'sun']));
+    this.hideSoldOut.set(false);
+    localStorage.removeItem('gcp_search_hideSoldOut');
+    this.localSearchQuery.set('');
+    this.updateQueryParams();
+  }
+
+  setMinTickets(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.minTickets.set(val ? +val : null);
+    this.updateQueryParams();
+  }
+
+  setMinBggRating(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.minBggRating.set(val ? +val : null);
+    this.updateQueryParams();
+  }
+
+  setMinYearPublished(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.minYearPublished.set(val ? +val : null);
+    this.updateQueryParams();
+  }
+
+  onSearchQuerySubmit(): void {
+    if (this.localSearchQuery()) {
+      this.router.navigate(['/search', `by_${this.groupingMethod()}`], {
+        queryParams: {
+          year: this.year(),
+          cats: this.categoryCode(),
+          free: this.filterFree() ? 'true' : null,
+          minTickets: this.minTickets() !== null && this.minTickets()! > 0 ? this.minTickets() : null,
+          minBgg: this.minBggRating() !== null && this.minBggRating()! > 0 ? this.minBggRating() : null,
+          minYear: this.minYearPublished() !== null && this.minYearPublished()! > 0 ? this.minYearPublished() : null,
+          days: this.selectedDays().size < 5 ? Array.from(this.selectedDays()).join(',') : null,
+          q: this.localSearchQuery()
+        }
+      });
+    } else {
+      this.updateQueryParams();
+    }
+  }
+
+  activeFiltersCount = computed(() => {
+    let count = 0;
+    if (this.filterFree()) count++;
+    if (this.minTickets() !== null && this.minTickets()! > 0) count++;
+    if (this.minBggRating() !== null && this.minBggRating()! > 0) count++;
+    if (this.minYearPublished() !== null && this.minYearPublished()! > 0) count++;
+    if (this.selectedDays().size < 5) count++;
+    return count;
+  });
+
+  updateQueryParams(): void {
+    // Write to localStorage
+    if (this.filterFree()) {
+      localStorage.setItem('gcp_search_free', 'true');
+    } else {
+      localStorage.removeItem('gcp_search_free');
+    }
+
+    if (this.minTickets() !== null && this.minTickets()! > 0) {
+      localStorage.setItem('gcp_search_minTickets', this.minTickets()!.toString());
+    } else {
+      localStorage.removeItem('gcp_search_minTickets');
+    }
+
+    if (this.minBggRating() !== null && this.minBggRating()! > 0) {
+      localStorage.setItem('gcp_search_minBgg', this.minBggRating()!.toString());
+    } else {
+      localStorage.removeItem('gcp_search_minBgg');
+    }
+
+    if (this.minYearPublished() !== null && this.minYearPublished()! > 0) {
+      localStorage.setItem('gcp_search_minYear', this.minYearPublished()!.toString());
+    } else {
+      localStorage.removeItem('gcp_search_minYear');
+    }
+
+    if (this.selectedDays().size < 5) {
+      localStorage.setItem('gcp_search_days', Array.from(this.selectedDays()).join(','));
+    } else {
+      localStorage.removeItem('gcp_search_days');
+    }
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        free: this.filterFree() ? 'true' : null,
+        minTickets: this.minTickets() !== null && this.minTickets()! > 0 ? this.minTickets() : null,
+        minBgg: this.minBggRating() !== null && this.minBggRating()! > 0 ? this.minBggRating() : null,
+        minYear: this.minYearPublished() !== null && this.minYearPublished()! > 0 ? this.minYearPublished() : null,
+        days: this.selectedDays().size < 5 ? Array.from(this.selectedDays()).join(',') : null,
+        q: this.localSearchQuery() || null
+      },
+      queryParamsHandling: 'merge'
+    });
+  }
 
   setGrouping(method: 'system' | 'year' | 'rating'): void {
     this.router.navigate(['../by_' + method], { relativeTo: this.route, queryParamsHandling: 'preserve' });
@@ -96,7 +229,7 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
     "NMN": "Non-Historical Miniatures",
     "RPG": "Role Playing Games",
     "RPGA": "Role Playing Game Association",
-    "SEM": "Seminiars",
+    "SEM": "Seminars",
     "SPA": "Supplemental Activities",
     "TCG": "Tradeable Card Game",
     "TDA": "True Dungeon",
@@ -109,10 +242,64 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
 
   groupedEvents = computed(() => {
     let allEvents = this.events();
-    if (this.hideSoldOut()) {
-      allEvents = allEvents.filter(e => (e.wedTickets + e.thuTickets + e.friTickets + e.satTickets + e.sunTickets) > 0);
-    }
     
+    // Apply Advanced Search Filters
+    allEvents = allEvents.filter(e => {
+      // 1. Restrict by days and minimum tickets
+      let minT = this.minTickets() || 0;
+      if (this.hideSoldOut() && minT === 0) {
+        minT = 1;
+      }
+      let matchesDayAndTickets = true;
+      if (this.selectedDays().size > 0) {
+        matchesDayAndTickets = Array.from(this.selectedDays()).some(day => {
+          const tickets = day === 'wed' ? e.wedTickets :
+                          day === 'thu' ? e.thuTickets :
+                          day === 'fri' ? e.friTickets :
+                          day === 'sat' ? e.satTickets :
+                          day === 'sun' ? e.sunTickets : 0;
+                          
+          const events = day === 'wed' ? e.wedEvents :
+                         day === 'thu' ? e.thuEvents :
+                         day === 'fri' ? e.friEvents :
+                         day === 'sat' ? e.satEvents :
+                         day === 'sun' ? e.sunEvents : 0;
+                         
+          return events > 0 && tickets >= minT;
+        });
+      } else if (minT > 0) {
+        matchesDayAndTickets = (e.wedEvents > 0 && e.wedTickets >= minT) || 
+                               (e.thuEvents > 0 && e.thuTickets >= minT) || 
+                               (e.friEvents > 0 && e.friTickets >= minT) || 
+                               (e.satEvents > 0 && e.satTickets >= minT) || 
+                               (e.sunEvents > 0 && e.sunTickets >= minT);
+      }
+
+      if (!matchesDayAndTickets) {
+        return false;
+      }
+
+      // 2. Minimum BGG Rating
+      const minBgg = this.minBggRating();
+      if (minBgg !== null && minBgg > 0) {
+        const rating = e.gameSystem.bggRating;
+        if (rating === undefined || rating === null || rating < minBgg) {
+          return false;
+        }
+      }
+
+      // 3. Minimum Game Release Year
+      const minYear = this.minYearPublished();
+      if (minYear !== null && minYear > 0) {
+        const year = e.gameSystem.yearPublished;
+        if (year === undefined || year === null || year < minYear) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
     if (allEvents.length === 0) return [];
 
     const majorGroupsMap = new Map<string, Map<string, Map<string, EventSummary[]>>>();
@@ -278,6 +465,11 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
     });
 
     this.hideSoldOut.set(!this.hideSoldOut());
+    if (this.hideSoldOut()) {
+      localStorage.setItem('gcp_search_hideSoldOut', 'true');
+    } else {
+      localStorage.removeItem('gcp_search_hideSoldOut');
+    }
 
     setTimeout(() => {
       const element = document.getElementById(closestHeadingId);
@@ -291,12 +483,81 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
 
   ngOnInit(): void {
     window.addEventListener('scroll', this.onScroll);
-    this.route.params.subscribe(params => {
+    combineLatest([this.route.params, this.route.queryParams]).subscribe(([params, queryParams]) => {
       const newYear = +params['year'];
       const newCat = params['cat'];
       
+      const queryParamFree = queryParams['free'];
+      const queryParamMinTickets = queryParams['minTickets'];
+      const queryParamMinBgg = queryParams['minBgg'];
+      const queryParamMinYear = queryParams['minYear'];
+      const queryParamDays = queryParams['days'];
+      const queryParamQ = queryParams['q'] || '';
+
+      let needUrlUpdate = false;
+
+      let newFree = false;
+      if (queryParamFree !== undefined) {
+        newFree = queryParamFree === 'true';
+      } else {
+        const savedFree = localStorage.getItem('gcp_search_free');
+        if (savedFree !== null) {
+          newFree = savedFree === 'true';
+          if (newFree) needUrlUpdate = true;
+        }
+      }
+
+      let newMinTickets: number | null = null;
+      if (queryParamMinTickets !== undefined) {
+        newMinTickets = queryParamMinTickets ? +queryParamMinTickets : null;
+      } else {
+        const savedTickets = localStorage.getItem('gcp_search_minTickets');
+        if (savedTickets !== null) {
+          newMinTickets = +savedTickets;
+          needUrlUpdate = true;
+        }
+      }
+
+      let newMinBgg: number | null = null;
+      if (queryParamMinBgg !== undefined) {
+        newMinBgg = queryParamMinBgg ? +queryParamMinBgg : null;
+      } else {
+        const savedBgg = localStorage.getItem('gcp_search_minBgg');
+        if (savedBgg !== null) {
+          newMinBgg = +savedBgg;
+          needUrlUpdate = true;
+        }
+      }
+
+      let newMinYear: number | null = null;
+      if (queryParamMinYear !== undefined) {
+        newMinYear = queryParamMinYear ? +queryParamMinYear : null;
+      } else {
+        const savedYear = localStorage.getItem('gcp_search_minYear');
+        if (savedYear !== null) {
+          newMinYear = +savedYear;
+          needUrlUpdate = true;
+        }
+      }
+
+      let resolvedDays = new Set(['wed', 'thu', 'fri', 'sat', 'sun']);
+      if (queryParamDays !== undefined) {
+        if (queryParamDays) resolvedDays = new Set(queryParamDays.split(','));
+      } else {
+        const savedDays = localStorage.getItem('gcp_search_days');
+        if (savedDays !== null) {
+          resolvedDays = new Set(savedDays.split(','));
+          needUrlUpdate = true;
+        }
+      }
+
+      const savedHideSoldOut = localStorage.getItem('gcp_search_hideSoldOut');
+      if (savedHideSoldOut !== null && savedHideSoldOut === 'true') {
+        this.hideSoldOut.set(true);
+      }
+
       let needsFetch = this.initialLoad;
-      if (this.year() !== newYear || this.categoryCode() !== newCat) {
+      if (this.year() !== newYear || this.categoryCode() !== newCat || this.filterFree() !== newFree || this.localSearchQuery() !== queryParamQ) {
         this.year.set(newYear);
         this.categoryCode.set(newCat);
         needsFetch = true;
@@ -317,6 +578,17 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
         if (!needsFetch) {
           this.scrollToAnchor('top');
         }
+      }
+
+      this.filterFree.set(newFree);
+      this.minTickets.set(newMinTickets);
+      this.minBggRating.set(newMinBgg);
+      this.minYearPublished.set(newMinYear);
+      this.selectedDays.set(resolvedDays);
+      this.localSearchQuery.set(queryParamQ);
+
+      if (needUrlUpdate) {
+        this.updateQueryParams();
       }
 
       if (needsFetch) {
@@ -400,7 +672,12 @@ export class CategoryDetailComponent implements OnInit, AfterViewInit, OnDestroy
 
   fetchEvents(): void {
     this.loading.set(true);
-    this.api.searchEvents({ year: this.year(), cat: this.categoryCode() }).subscribe({
+    this.api.searchEvents({
+      year: this.year(),
+      cat: this.categoryCode(),
+      free: this.filterFree(),
+      search: this.localSearchQuery() || undefined
+    }).subscribe({
       next: (data) => {
         this.events.set(data);
         this.loading.set(false);

@@ -115,3 +115,46 @@ func TestLoadEventGroupsForCategory_Integration(t *testing.T) {
 		t.Fatalf("expected event groups for BGM, got 0")
 	}
 }
+
+func TestSearchEvents_OnlyFree_Integration(t *testing.T) {
+	repo := setupSeededDB(t)
+
+	// Search for RPG events for leader@example.com
+	// RPG has:
+	// - RPG26ND200001 (D&D Epic, Jul 30 13:00-17:00). Overlaps with leader's purchased BGM26ND100002 (Jul 30 14:00-16:00).
+	// - RPG26ND200002 (D&D Intro, Jul 31 13:00-17:00). No overlap.
+	
+	// 1. Without OnlyFree filter: should return both RPG events
+	qNoFree := postgres.SearchQuery{
+		CategoryShortCode: "RPG",
+		Year:              2026,
+		OnlyFree:          false,
+	}
+	groupsNoFree, err := repo.SearchEvents(qNoFree)
+	if err != nil {
+		t.Fatalf("SearchEvents failed: %v", err)
+	}
+	
+	if len(groupsNoFree) != 2 {
+		t.Errorf("expected 2 RPG event groups, got %d", len(groupsNoFree))
+	}
+
+	// 2. With OnlyFree filter for leader@example.com: should filter out RPG26ND200001 and only return RPG26ND200002
+	qFree := postgres.SearchQuery{
+		CategoryShortCode: "RPG",
+		Year:              2026,
+		OnlyFree:          true,
+		UserEmail:         "leader@example.com",
+	}
+	groupsFree, err := repo.SearchEvents(qFree)
+	if err != nil {
+		t.Fatalf("SearchEvents failed: %v", err)
+	}
+
+	// The Catan ticket overlaps with D&D Epic (RPG26ND200001), so only RPG26ND200002 should remain.
+	if len(groupsFree) != 1 {
+		t.Errorf("expected 1 RPG event group (no overlap), got %d", len(groupsFree))
+	} else if groupsFree[0].Name != "Dungeons & Dragons Epic Intro" {
+		t.Errorf("expected Dungeons & Dragons Epic Intro (no overlap), got %s", groupsFree[0].Name)
+	}
+}

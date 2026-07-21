@@ -46,6 +46,9 @@ func TestNormalizeUserStarredEvents_Property1(t *testing.T) {
 	mock.ExpectExec("INSERT INTO starred_events").
 		WithArgs(email, "BGM26ND100001").
 		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("DELETE FROM starred_events").
+		WithArgs(email, "BGM26ND100001").
+		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err = NormalizeUserStarredEvents(q, email, year)
 	if err != nil {

@@ -632,8 +632,13 @@ GROUP BY e.year, e.short_category, e.title, e.short_description
 					_, err := q.Exec(`
 						INSERT INTO starred_events (email, event_id, level, tier)
 						SELECT email, event_id, 'event', tier FROM starred_events WHERE email = $1 AND event_id = $2 AND level = 'group'
-						ON CONFLICT (event_id, email, level) DO NOTHING;
-						DELETE FROM starred_events WHERE email = $1 AND event_id = $2 AND level = 'group';
+						ON CONFLICT (event_id, email, level) DO NOTHING
+					`, email, g.allEventIds[idx])
+					if err != nil {
+						return err
+					}
+					_, err = q.Exec(`
+						DELETE FROM starred_events WHERE email = $1 AND event_id = $2 AND level = 'group'
 					`, email, g.allEventIds[idx])
 					if err != nil {
 						return err

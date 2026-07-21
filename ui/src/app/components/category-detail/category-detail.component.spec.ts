@@ -1,16 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import { CategoryDetailComponent } from './category-detail.component';
 import { ApiService } from '../../services/api.service';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventSummary } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
 
 describe('CategoryDetailComponent', () => {
   let component: CategoryDetailComponent;
   let fixture: ComponentFixture<CategoryDetailComponent>;
   let mockApiService: any;
+  let mockAuthService: any;
 
   const mockEvents: EventSummary[] = [
     {
@@ -47,16 +49,22 @@ describe('CategoryDetailComponent', () => {
       searchEvents: vi.fn().mockReturnValue(of(mockEvents))
     };
 
+    mockAuthService = {
+      user: signal({ email: 'test@example.com' })
+    };
+
     await TestBed.configureTestingModule({
       imports: [CategoryDetailComponent],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
         provideRouter([]),
         { provide: ApiService, useValue: mockApiService },
+        { provide: AuthService, useValue: mockAuthService },
         {
           provide: ActivatedRoute,
           useValue: {
             params: of({ year: '2026', cat: 'BGM', grouping: 'by_system' }),
+            queryParams: of({}),
             snapshot: { params: { year: '2026', cat: 'BGM', grouping: 'by_system' } }
           }
         }
@@ -126,5 +134,36 @@ describe('CategoryDetailComponent', () => {
     expect(grouped[0].minorGroups.length).toBe(2);
     expect(grouped[0].minorGroups[0].minorName).toBe('BGG 7');
     expect(grouped[0].minorGroups[1].minorName).toBe('BGG 6');
+  });
+
+  it('should filter events by days and minimum tickets', () => {
+    component.selectedDays.set(new Set(['wed']));
+    component.minTickets.set(8);
+    fixture.detectChanges();
+
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(1);
+    expect(grouped[0].minorGroups.length).toBe(1);
+    expect(grouped[0].minorGroups[0].minorName).toBe('Acquire');
+  });
+
+  it('should filter events by minimum BGG rating', () => {
+    component.minBggRating.set(7.0);
+    fixture.detectChanges();
+
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(1);
+    expect(grouped[0].minorGroups.length).toBe(1);
+    expect(grouped[0].minorGroups[0].minorName).toBe('Acquire');
+  });
+
+  it('should filter events by minimum release year', () => {
+    component.minYearPublished.set(2000);
+    fixture.detectChanges();
+
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(1);
+    expect(grouped[0].minorGroups.length).toBe(1);
+    expect(grouped[0].minorGroups[0].minorName).toBe('12 Rivers');
   });
 });

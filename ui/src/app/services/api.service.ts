@@ -14,10 +14,20 @@ export interface EventSummary {
   title: string;
   shortDescription: string;
   numEvents: number;
+  wedEvents: number;
+  wedTotalTickets: number;
   wedTickets: number;
+  thuEvents: number;
+  thuTotalTickets: number;
   thuTickets: number;
+  friEvents: number;
+  friTotalTickets: number;
   friTickets: number;
+  satEvents: number;
+  satTotalTickets: number;
   satTickets: number;
+  sunEvents: number;
+  sunTotalTickets: number;
   sunTickets: number;
   orgId: number;
   categoryCode: string;
@@ -35,6 +45,7 @@ export interface SearchParams {
   cat?: string;
   search?: string;
   org_id?: number;
+  free?: boolean;
 }
 
 export interface CalendarEvent {
@@ -217,6 +228,7 @@ export class ApiService {
     if (params.search) httpParams = httpParams.set('search', params.search);
     if (params.cat) httpParams = httpParams.set('cat', params.cat);
     if (params.org_id) httpParams = httpParams.set('org_id', params.org_id.toString());
+    if (params.free) httpParams = httpParams.set('free', 'true');
     
     return this.http.get<EventSummary[]>(`/api/v1/events`, { params: httpParams }).pipe(
       tap(data => this.eventSummariesCache.set(cacheKey, data))

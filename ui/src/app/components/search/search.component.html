@@ -1,10 +1,10 @@
 <div id="top" class="top-anchor"></div>
 <div class="sticky-top bg-white border-bottom shadow-sm transition-all" 
-     [class.py-2]="scrolled()" 
-     [class.py-4]="!scrolled()" 
      [class.no-transition]="isScrollingToAnchor()"
      style="z-index: 1020; top: 50px;">
-    <div class="container d-flex justify-content-between align-items-center">
+    <div class="container d-flex justify-content-between align-items-center transition-all"
+         [class.py-2]="scrolled()" 
+         [class.py-4]="!scrolled()">
         <h1 class="mb-0 transition-all" 
             [class.no-transition]="isScrollingToAnchor()"
             [style.font-size]="scrolled() ? '1.5rem' : '2.5rem'">
@@ -14,6 +14,12 @@
             </small>
         </h1>
         <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm" [class.btn-outline-primary]="!showAdvancedFilters()" [class.btn-primary]="showAdvancedFilters()" (click)="showAdvancedFilters.set(!showAdvancedFilters())">
+                <i class="bi bi-sliders"></i> Filters
+                <span *ngIf="activeFiltersCount() > 0" class="badge rounded-pill bg-primary ms-1">
+                    {{ activeFiltersCount() }}
+                </span>
+            </button>
             <div class="btn-group btn-group-sm" role="group" aria-label="Grouping Method">
                 <input type="radio" class="btn-check" name="groupingMethodSearch" id="groupSystemSearch" autocomplete="off" 
                        [checked]="groupingMethod() === 'system'" (change)="setGrouping('system')">
@@ -27,9 +33,96 @@
                        [checked]="groupingMethod() === 'rating'" (change)="setGrouping('rating')">
                 <label class="btn btn-outline-secondary" for="groupRatingSearch">Rating</label>
             </div>
-            <div class="form-check form-switch mb-0">
-                <input class="form-check-input" type="checkbox" id="hideSoldOut" [checked]="hideSoldOut()" (change)="toggleHideSoldOut()">
-                <label class="form-check-label text-muted text-nowrap" for="hideSoldOut">Hide Sold Out</label>
+        </div>
+    </div>
+
+    <!-- Advanced Filters Drawer -->
+    <div class="bg-light border-top shadow-inner animate-fade-in" *ngIf="showAdvancedFilters()">
+        <div class="container py-3">
+            <div class="row g-3">
+                <!-- Column 1: Keyword Search, Schedule & Min Tickets -->
+                <div class="col-md-3 col-sm-6 col-12">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="keywordSearchInput">Keywords</label>
+                        <div class="input-group input-group-sm">
+                            <input id="keywordSearchInput" type="text" class="form-control" [value]="localSearchQuery()" (input)="localSearchQuery.set($any($event.target).value)" (keyup.enter)="onSearchQuerySubmit()" placeholder="Search terms...">
+                            <button class="btn btn-primary animate-fade-in" type="button" (click)="onSearchQuerySubmit()">Search</button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">Schedule</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="filterFreeGlobal" [checked]="filterFree()" [disabled]="!auth.user()" (change)="toggleFilterFree()">
+                            <label class="form-check-label small" for="filterFreeGlobal" [class.text-muted]="!auth.user()">When I'm free</label>
+                        </div>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.72rem; line-height: 1.1;" *ngIf="!auth.user()">Log in to filter by schedule</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">Availability</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="hideSoldOut" [checked]="hideSoldOut()" (change)="toggleHideSoldOut()">
+                            <label class="form-check-label small" for="hideSoldOut">Hide Sold Out</label>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="minTicketsGlobal">Min Tickets Available</label>
+                        <input type="number" id="minTicketsGlobal" class="form-control form-control-sm" [value]="minTickets() !== null ? minTickets() : ''" (input)="setMinTickets($event)" min="0" placeholder="Any">
+                    </div>
+                </div>
+                
+                <!-- Column 2: Days of Week -->
+                <div class="col-md-3 col-sm-6 col-12">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Days of Week</label>
+                    <div class="vstack gap-1">
+                        <div class="form-check" *ngFor="let day of ['wed', 'thu', 'fri', 'sat', 'sun']">
+                            <input class="form-check-input" type="checkbox" [id]="'day-global-' + day" [checked]="selectedDays().has(day)" (change)="toggleDay(day)">
+                            <label class="form-check-label small text-capitalize" [for]="'day-global-' + day">
+                                {{ day === 'thu' ? 'Thursday' : day === 'wed' ? 'Wednesday' : day === 'fri' ? 'Friday' : day === 'sat' ? 'Saturday' : 'Sunday' }}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Column 3: BGG Rating & Release Year -->
+                <div class="col-md-3 col-sm-6 col-12">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="minBggGlobal">Min BGG Rating</label>
+                        <input type="number" id="minBggGlobal" class="form-control form-control-sm" [value]="minBggRating() !== null ? minBggRating() : ''" (input)="setMinBggRating($event)" min="0" max="10" step="0.5" placeholder="Any">
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="minYearGlobal">Min Release Year</label>
+                        <input type="number" id="minYearGlobal" class="form-control form-control-sm" [value]="minYearPublished() !== null ? minYearPublished() : ''" (input)="setMinYearPublished($event)" min="0" placeholder="Any">
+                    </div>
+                </div>
+                
+                <!-- Column 4: Categories Auto-Complete -->
+                <div class="col-md-3 col-sm-6 col-12 position-relative">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Categories</label>
+                    <div class="d-flex flex-wrap align-items-center gap-1 border rounded p-1 bg-white cursor-text" (click)="focusCategoryInput(catInput)" style="min-height: 38px;">
+                        <!-- Chips -->
+                        <span *ngFor="let catCode of selectedCategories()" class="badge bg-secondary d-flex align-items-center gap-1 py-1 px-2 text-wrap text-start" style="font-size: 0.75rem;">
+                            {{ categoryMap[catCode] || catCode }}
+                            <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem; padding: 2px;" (click)="toggleCategory(catCode); $event.stopPropagation();" aria-label="Remove"></button>
+                        </span>
+                        <!-- Input field -->
+                        <input #catInput type="text" class="border-0 flex-grow-1 p-1 small" style="outline: none; min-width: 80px;" placeholder="Search categories..." [value]="categorySearchQuery()" (input)="onCategorySearchInput($event)" (focus)="showCategoryDropdown.set(true)" (blur)="onCategorySearchBlur()">
+                    </div>
+                    
+                    <!-- Dropdown list -->
+                    <div *ngIf="showCategoryDropdown() && filteredCategories().length > 0" class="position-absolute bg-white border rounded shadow mt-1" style="max-height: 200px; overflow-y: auto; z-index: 1050; left: 12px; right: 12px;">
+                        <button type="button" *ngFor="let cat of filteredCategories()" class="dropdown-item text-start small py-1.5 px-3 text-wrap" (mousedown)="selectCategory(cat.code)">
+                            {{ cat.name }} ({{ cat.code }})
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Reset Button Row -->
+            <div class="row mt-3">
+                <div class="col-12 text-end">
+                    <button class="btn btn-sm btn-outline-secondary animate-fade-in" type="button" (click)="resetFilters()" *ngIf="activeFiltersCount() > 0">
+                        <i class="bi bi-x-circle me-1"></i>Reset Filters
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -129,11 +222,11 @@
                                    </h6>
                                     <p class="mb-2 text-dark small" style="opacity: 0.8">{{ event.shortDescription }}</p>
                                     <ul class="list-inline eventTickets mb-0 small">
-                                        <li class="list-inline-item" [class.noTickets]="event.wedTickets === 0"><strong>Wed</strong> {{ event.wedTickets }}</li>
-                                        <li class="list-inline-item" [class.noTickets]="event.thuTickets === 0"><strong>Thurs</strong> {{ event.thuTickets }}</li>
-                                        <li class="list-inline-item" [class.noTickets]="event.friTickets === 0"><strong>Fri</strong> {{ event.friTickets }}</li>
-                                        <li class="list-inline-item" [class.noTickets]="event.satTickets === 0"><strong>Sat</strong> {{ event.satTickets }}</li>
-                                        <li class="list-inline-item" [class.noTickets]="event.sunTickets === 0"><strong>Sun</strong> {{ event.sunTickets }}</li>
+                                        <li class="list-inline-item" *ngIf="event.wedEvents > 0" [class.noTickets]="event.wedTickets === 0"><strong>Wed</strong> {{ event.wedTickets }}</li>
+                                        <li class="list-inline-item" *ngIf="event.thuEvents > 0" [class.noTickets]="event.thuTickets === 0"><strong>Thurs</strong> {{ event.thuTickets }}</li>
+                                        <li class="list-inline-item" *ngIf="event.friEvents > 0" [class.noTickets]="event.friTickets === 0"><strong>Fri</strong> {{ event.friTickets }}</li>
+                                        <li class="list-inline-item" *ngIf="event.satEvents > 0" [class.noTickets]="event.satTickets === 0"><strong>Sat</strong> {{ event.satTickets }}</li>
+                                        <li class="list-inline-item" *ngIf="event.sunEvents > 0" [class.noTickets]="event.sunTickets === 0"><strong>Sun</strong> {{ event.sunTickets }}</li>
                                     </ul>
                                 </a>
                             </div>

@@ -56,14 +56,24 @@ type EventGroup struct {
 	ShortCategory string
 	GameSystem    string
 	OrgGroup      string
-	OrgId         int
-	Count         int
-	WedTickets    int
-	ThursTickets  int
-	FriTickets    int
-	SatTickets    int
-	SunTickets    int
-	TotalTickets  int
+	OrgId             int
+	Count             int
+	TotalTickets      int
+	WedEvents         int
+	WedTotalTickets   int
+	WedTickets        int
+	ThursEvents       int
+	ThursTotalTickets int
+	ThursTickets      int
+	FriEvents         int
+	FriTotalTickets   int
+	FriTickets        int
+	SatEvents         int
+	SatTotalTickets   int
+	SatTickets        int
+	SunEvents         int
+	SunTotalTickets   int
+	SunTickets        int
 }
 
 type ParsedQuery struct {
@@ -90,6 +100,8 @@ type SearchQuery struct {
 	MinSunTickets     int
 	RawQuery          string
 	OrgId             int
+	OnlyFree          bool
+	UserEmail         string
 }
 
 func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
@@ -107,10 +119,20 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 		// Aggregate fields
 		&group.Count,
 		&group.TotalTickets,
+		&group.WedEvents,
+		&group.WedTotalTickets,
 		&group.WedTickets,
+		&group.ThursEvents,
+		&group.ThursTotalTickets,
 		&group.ThursTickets,
+		&group.FriEvents,
+		&group.FriTotalTickets,
 		&group.FriTickets,
+		&group.SatEvents,
+		&group.SatTotalTickets,
 		&group.SatTickets,
+		&group.SunEvents,
+		&group.SunTotalTickets,
 		&group.SunTickets,
 		&title_rank,
 		&search_rank,
@@ -122,6 +144,11 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 
 func SearchEvents(db *sql.DB, query SearchQuery) ([]*EventGroup, error) {
 	results := make([]*EventGroup, 0)
+
+	onlyFreeVal := 0
+	if query.OnlyFree && len(query.UserEmail) > 0 {
+		onlyFreeVal = 1
+	}
 
 	// Optional search terms should be incorporated into the WHERE clause as
 	// AND (<term was omitted> OR <apply term>)
@@ -136,35 +163,65 @@ SELECT
 	o.id AS org_id,
 	c.num_events,
 	c.tickets_available,
-	c.wednesday_tickets,
-	c.thursday_tickets,
-	c.friday_tickets,
-	c.saturday_tickets,
-	c.sunday_tickets,
+	c.wed_events,
+	c.wed_total_tickets,
+	c.wed_tickets,
+	c.thu_events,
+	c.thu_total_tickets,
+	c.thu_tickets,
+	c.fri_events,
+	c.fri_total_tickets,
+	c.fri_tickets,
+	c.sat_events,
+	c.sat_total_tickets,
+	c.sat_tickets,
+	c.sun_events,
+	c.sun_total_tickets,
+	c.sun_tickets,
 	0 as title_rank,
 	0 as search_rank
 FROM events e
 JOIN (
     SELECT
-        MIN(event_id) AS event_id,
+        MIN(s.event_id) AS event_id,
         COUNT(*) AS num_events,
-        SUM(tickets_available) AS tickets_available,
-        SUM(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-        SUM(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-        SUM(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-        SUM(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-        SUM(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets
-    FROM events
-    WHERE active
-      AND (LENGTH($1) = 0 OR short_category = $1)
-      AND ($2 = 0 OR year = $2)
-      AND ($3 = 0 OR (day_of_week = 3 AND tickets_available >= $3))
-      AND ($4 = 0 OR (day_of_week = 4 AND tickets_available >= $4))
-      AND ($5 = 0 OR (day_of_week = 5 AND tickets_available >= $5))
-      AND ($6 = 0 OR (day_of_week = 6 AND tickets_available >= $6))
-      AND ($7 = 0 OR (day_of_week = 0 AND tickets_available >= $7))
-      AND (LENGTH($8) = 0 OR (search_key @@ websearch_to_tsquery('english', $8)))
-    GROUP BY cluster_id
+        SUM(s.tickets_available) AS tickets_available,
+        COUNT(CASE WHEN s.day_of_week = 3 THEN 1 ELSE NULL END) as wed_events,
+        SUM(CASE WHEN s.day_of_week = 3 THEN s.max_players ELSE 0 END) as wed_total_tickets,
+        SUM(CASE WHEN s.day_of_week = 3 THEN s.tickets_available ELSE 0 END) as wed_tickets,
+        COUNT(CASE WHEN s.day_of_week = 4 THEN 1 ELSE NULL END) as thu_events,
+        SUM(CASE WHEN s.day_of_week = 4 THEN s.max_players ELSE 0 END) as thu_total_tickets,
+        SUM(CASE WHEN s.day_of_week = 4 THEN s.tickets_available ELSE 0 END) as thu_tickets,
+        COUNT(CASE WHEN s.day_of_week = 5 THEN 1 ELSE NULL END) as fri_events,
+        SUM(CASE WHEN s.day_of_week = 5 THEN s.max_players ELSE 0 END) as fri_total_tickets,
+        SUM(CASE WHEN s.day_of_week = 5 THEN s.tickets_available ELSE 0 END) as fri_tickets,
+        COUNT(CASE WHEN s.day_of_week = 6 THEN 1 ELSE NULL END) as sat_events,
+        SUM(CASE WHEN s.day_of_week = 6 THEN s.max_players ELSE 0 END) as sat_total_tickets,
+        SUM(CASE WHEN s.day_of_week = 6 THEN s.tickets_available ELSE 0 END) as sat_tickets,
+        COUNT(CASE WHEN s.day_of_week = 0 THEN 1 ELSE NULL END) as sun_events,
+        SUM(CASE WHEN s.day_of_week = 0 THEN s.max_players ELSE 0 END) as sun_total_tickets,
+        SUM(CASE WHEN s.day_of_week = 0 THEN s.tickets_available ELSE 0 END) as sun_tickets
+    FROM events s
+    WHERE s.active
+      AND (LENGTH($1) = 0 OR s.short_category = $1)
+      AND ($2 = 0 OR s.year = $2)
+      AND ($3 = 0 OR (s.day_of_week = 3 AND s.tickets_available >= $3))
+      AND ($4 = 0 OR (s.day_of_week = 4 AND s.tickets_available >= $4))
+      AND ($5 = 0 OR (s.day_of_week = 5 AND s.tickets_available >= $5))
+      AND ($6 = 0 OR (s.day_of_week = 6 AND s.tickets_available >= $6))
+      AND ($7 = 0 OR (s.day_of_week = 0 AND s.tickets_available >= $7))
+      AND (LENGTH($8) = 0 OR (s.search_key @@ websearch_to_tsquery('english', $8)))
+      AND ($10 = 0 OR NOT EXISTS (
+          SELECT 1 
+          FROM starred_events se
+          JOIN events pe ON se.event_id = pe.event_id
+          WHERE se.email = $11 
+            AND se.tier = 'purchased'
+            AND pe.active
+            AND s.start_time < pe.end_time
+            AND s.end_time > pe.start_time
+      ))
+    GROUP BY s.cluster_id
 ) c ON e.event_id = c.event_id
 JOIN (
     SELECT lower(alias) as alias, MAX(id) as id
@@ -174,7 +231,8 @@ JOIN (
 WHERE ($9 = 0 OR o.id = $9)
 	`, query.CategoryShortCode, query.Year, query.MinWedTickets,
 		query.MinThuTickets, query.MinFriTickets, query.MinSatTickets,
-		query.MinSunTickets, query.RawQuery, query.OrgId)
+		query.MinSunTickets, query.RawQuery, query.OrgId,
+		onlyFreeVal, query.UserEmail)
 
 	if err != nil {
 		return nil, err
@@ -204,11 +262,21 @@ SELECT
 	o.id AS org_id,
 	c.num_events,
 	c.tickets_available,
-	c.wednesday_tickets,
-	c.thursday_tickets,
-	c.friday_tickets,
-	c.saturday_tickets,
-	c.sunday_tickets,
+	c.wed_events,
+	c.wed_total_tickets,
+	c.wed_tickets,
+	c.thu_events,
+	c.thu_total_tickets,
+	c.thu_tickets,
+	c.fri_events,
+	c.fri_total_tickets,
+	c.fri_tickets,
+	c.sat_events,
+	c.sat_total_tickets,
+	c.sat_tickets,
+	c.sun_events,
+	c.sun_total_tickets,
+	c.sun_tickets,
 	0 as title_rank,
 	0 as search_rank
 FROM events e 
@@ -217,11 +285,21 @@ JOIN (
         min(event_id) as event_id,
         count(active or null) as num_events,
         sum(tickets_available) as tickets_available,
-        sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wednesday_tickets,
-        sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thursday_tickets,
-        sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as friday_tickets,
-        sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as saturday_tickets,
-        sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sunday_tickets	   
+        COUNT(CASE WHEN day_of_week = 3 THEN 1 ELSE NULL END) as wed_events,
+        SUM(CASE WHEN day_of_week = 3 THEN max_players ELSE 0 END) as wed_total_tickets,
+        SUM(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wed_tickets,
+        COUNT(CASE WHEN day_of_week = 4 THEN 1 ELSE NULL END) as thu_events,
+        SUM(CASE WHEN day_of_week = 4 THEN max_players ELSE 0 END) as thu_total_tickets,
+        SUM(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thu_tickets,
+        COUNT(CASE WHEN day_of_week = 5 THEN 1 ELSE NULL END) as fri_events,
+        SUM(CASE WHEN day_of_week = 5 THEN max_players ELSE 0 END) as fri_total_tickets,
+        SUM(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as fri_tickets,
+        COUNT(CASE WHEN day_of_week = 6 THEN 1 ELSE NULL END) as sat_events,
+        SUM(CASE WHEN day_of_week = 6 THEN max_players ELSE 0 END) as sat_total_tickets,
+        SUM(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as sat_tickets,
+        COUNT(CASE WHEN day_of_week = 0 THEN 1 ELSE NULL END) as sun_events,
+        SUM(CASE WHEN day_of_week = 0 THEN max_players ELSE 0 END) as sun_total_tickets,
+        SUM(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sun_tickets
     FROM events
     WHERE active and year=$1 and short_category=$2
     GROUP BY cluster_id
@@ -364,10 +442,20 @@ SELECT
 	min(start_time) as start_time,
 	count(active or null) as num_events,
 	sum(tickets_available) as tickets_available,
+	count(CASE WHEN day_of_week = 3 THEN 1 ELSE NULL END) as wed_events,
+	sum(CASE WHEN day_of_week = 3 THEN max_players ELSE 0 END) as wed_total_tickets,
 	sum(CASE WHEN day_of_week = 3 THEN tickets_available ELSE 0 END) as wed_tickets,
+	count(CASE WHEN day_of_week = 4 THEN 1 ELSE NULL END) as thu_events,
+	sum(CASE WHEN day_of_week = 4 THEN max_players ELSE 0 END) as thu_total_tickets,
 	sum(CASE WHEN day_of_week = 4 THEN tickets_available ELSE 0 END) as thu_tickets,
+	count(CASE WHEN day_of_week = 5 THEN 1 ELSE NULL END) as fri_events,
+	sum(CASE WHEN day_of_week = 5 THEN max_players ELSE 0 END) as fri_total_tickets,
 	sum(CASE WHEN day_of_week = 5 THEN tickets_available ELSE 0 END) as fri_tickets,
+	count(CASE WHEN day_of_week = 6 THEN 1 ELSE NULL END) as sat_events,
+	sum(CASE WHEN day_of_week = 6 THEN max_players ELSE 0 END) as sat_total_tickets,
 	sum(CASE WHEN day_of_week = 6 THEN tickets_available ELSE 0 END) as sat_tickets,
+	count(CASE WHEN day_of_week = 0 THEN 1 ELSE NULL END) as sun_events,
+	sum(CASE WHEN day_of_week = 0 THEN max_players ELSE 0 END) as sun_total_tickets,
 	sum(CASE WHEN day_of_week = 0 THEN tickets_available ELSE 0 END) as sun_tickets,
     %s as title_rank,
     %s as search_rank
@@ -407,10 +495,20 @@ SELECT  distinct
 		o.id AS org_id,
 		c.num_events,
 		c.tickets_available,
+		c.wed_events,
+		c.wed_total_tickets,
 		c.wed_tickets,
+		c.thu_events,
+		c.thu_total_tickets,
 		c.thu_tickets,
+		c.fri_events,
+		c.fri_total_tickets,
 		c.fri_tickets,
+		c.sat_events,
+		c.sat_total_tickets,
 		c.sat_tickets,
+		c.sun_events,
+		c.sun_total_tickets,
 		c.sun_tickets,
 		c.title_rank as title_rank,
 		c.search_rank as search_rank		

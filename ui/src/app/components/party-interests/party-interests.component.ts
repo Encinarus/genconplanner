@@ -279,7 +279,7 @@ export class PartyInterestsComponent implements OnInit, OnDestroy {
     "NMN": "Non-Historical Miniatures",
     "RPG": "Role Playing Games",
     "RPGA": "Role Playing Game Association",
-    "SEM": "Seminiars",
+    "SEM": "Seminars",
     "SPA": "Supplemental Activities",
     "TCG": "Tradeable Card Game",
     "TDA": "True Dungeon",

@@ -1,16 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import { SearchComponent } from './search.component';
 import { ApiService } from '../../services/api.service';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventSummary } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
+import { StarredService } from '../../services/starred.service';
 
 describe('SearchComponent', () => {
   let component: SearchComponent;
   let fixture: ComponentFixture<SearchComponent>;
   let mockApiService: any;
+  let mockAuthService: any;
+  let mockStarredService: any;
+  let router: Router;
 
   const mockEvents: EventSummary[] = [
     {
@@ -38,12 +43,22 @@ describe('SearchComponent', () => {
       searchEvents: vi.fn().mockReturnValue(of(mockEvents))
     };
 
+    mockAuthService = {
+      user: signal({ email: 'test@example.com' })
+    };
+
+    mockStarredService = {
+      fetchStarred: vi.fn()
+    };
+
     await TestBed.configureTestingModule({
       imports: [SearchComponent],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
         provideRouter([]),
         { provide: ApiService, useValue: mockApiService },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: StarredService, useValue: mockStarredService },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -59,6 +74,7 @@ describe('SearchComponent', () => {
     })
     .compileComponents();
 
+    router = TestBed.inject(Router);
     fixture = TestBed.createComponent(SearchComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -76,7 +92,6 @@ describe('SearchComponent', () => {
   });
 
   it('should filter sold out events when hideSoldOut is true', () => {
-    // Add a sold out event to mock data
     const eventsWithSoldOut = [
       ...mockEvents,
       {
@@ -89,9 +104,6 @@ describe('SearchComponent', () => {
         numEvents: 1, orgId: 1
       }
     ];
-    mockApiService.searchEvents.mockReturnValue(of(eventsWithSoldOut));
-    
-    // Trigger re-load by re-initializing or manually setting the signal
     component.events.set(eventsWithSoldOut);
     
     expect(component.filteredGroupsCount()).toBe(3);
@@ -116,5 +128,87 @@ describe('SearchComponent', () => {
     const bgmGroup = grouped.find(g => g.name === 'Board Games');
     expect(bgmGroup?.minorGroups.length).toBe(1);
     expect(bgmGroup?.minorGroups[0].minorName).toBe('BGG 7');
+  });
+
+  it('should filter events by category code', () => {
+    component.selectedCategories.set(new Set(['ANI']));
+    fixture.detectChanges();
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(1);
+    expect(grouped[0].name).toBe('Anime Activities');
+  });
+
+  it('should filter events by days and minimum tickets', () => {
+    // Acquire has 5 tickets per day, Anime Movie has 10 tickets per day.
+    // Filter with minTickets = 8 on Wed: Acquire should be excluded, Anime Movie should remain.
+    component.selectedDays.set(new Set(['wed']));
+    component.minTickets.set(8);
+    fixture.detectChanges();
+
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(1);
+    expect(grouped[0].name).toBe('Anime Activities');
+  });
+
+  it('should filter events by minimum BGG rating', () => {
+    // Acquire has BGG rating 7.5, Anime Movie has no rating.
+    component.minBggRating.set(7.0);
+    fixture.detectChanges();
+
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(1);
+    expect(grouped[0].name).toBe('Board Games');
+  });
+
+  it('should filter events by minimum release year', () => {
+    // Acquire has release year 1964, Anime Movie has no release year.
+    component.minYearPublished.set(1980);
+    fixture.detectChanges();
+
+    const grouped = component.groupedEvents();
+    expect(grouped.length).toBe(0);
+  });
+
+  it('should filter categories auto-complete suggestions correctly', () => {
+    // categorySearchQuery is empty, should return all categories except selected
+    component.selectedCategories.set(new Set(['ANI']));
+    expect(component.filteredCategories().length).toBe(20); // 21 total - 1 selected
+
+    // type 'board'
+    component.categorySearchQuery.set('board');
+    const filtered = component.filteredCategories();
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].code).toBe('BGM');
+
+    // selectCategory
+    component.selectCategory('BGM');
+    expect(component.selectedCategories().has('BGM')).toBe(true);
+    expect(component.categorySearchQuery()).toBe('');
+  });
+
+  it('should navigate with correct query params when toggleDay/toggleCategory/toggleFilterFree is called', () => {
+    // Reset signals to default state
+    component.selectedCategories.set(new Set());
+    component.selectedDays.set(new Set(['wed', 'thu', 'fri', 'sat', 'sun']));
+    component.filterFree.set(false);
+
+    const navSpy = vi.spyOn(router, 'navigate');
+
+    component.toggleFilterFree();
+    expect(navSpy).toHaveBeenCalledWith([], expect.objectContaining({
+      queryParams: expect.objectContaining({ free: 'true' })
+    }));
+
+    component.toggleDay('wed'); // Wednesday was in the set, now it gets removed
+    expect(navSpy).toHaveBeenCalledWith([], expect.objectContaining({
+      queryParams: expect.objectContaining({ days: 'thu,fri,sat,sun' })
+    }));
+
+    // Reset categories again to be empty before testing category toggling
+    component.selectedCategories.set(new Set());
+    component.toggleCategory('BGM');
+    expect(navSpy).toHaveBeenCalledWith([], expect.objectContaining({
+      queryParams: expect.objectContaining({ cats: 'BGM' })
+    }));
   });
 });
