@@ -162,4 +162,3 @@ func TestRespondTransfer_API_Authorization(t *testing.T) {
 		t.Fatalf("expected unauthorized error message, got: %s", w.Body.String())
 	}
 }
-

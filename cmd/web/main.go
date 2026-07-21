@@ -105,7 +105,6 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	})
 	r.NoRoute(web.ServeV2(db, cache))
 
-
 	repo := &api.PostgresRepository{DB: db}
 	api.BuildAPIRoutes(r.Group("/api"), repo, cache, app)
 

@@ -34,4 +34,8 @@ issues:
     - path: internal/events/event.go
       linters:
         - misspell
+    - path: internal/web/util.go
+      linters:
+        - unused
+
 

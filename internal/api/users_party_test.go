@@ -641,7 +641,7 @@ func TestPartyAuthorizationHardening(t *testing.T) {
 				},
 			}, nil
 		}
-		
+
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/api/v1/party/123/leave", nil)
 		req.Header.Set("Authorization", "Bearer valid-token")
@@ -678,4 +678,3 @@ func TestPartyAuthorizationHardening(t *testing.T) {
 		}
 	})
 }
-

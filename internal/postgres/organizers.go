@@ -90,4 +90,3 @@ WHERE org_group IS NOT NULL AND org_group <> ''
 	}
 	return results, nil
 }
-

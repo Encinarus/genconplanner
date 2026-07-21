@@ -265,7 +265,7 @@ func (s *Server) GetMergeSuggestions(c *gin.Context) {
 
 	getReasons := func(a, b *orgData) []string {
 		var reasons []string
-		
+
 		for _, aliasA := range a.aliases {
 			for _, aliasB := range b.aliases {
 				nA := normalizeString(aliasA)
