@@ -267,6 +267,10 @@ func (s *StubRepository) ToggleTicketReturn(partyId int64, ticketId string) (*po
 	return s.ToggleTicketReturnFn(partyId, ticketId)
 }
 
+func (s *StubRepository) UpdateTicketPurchaser(partyId int64, ticketId string, newPurchaserEmail string) (*postgres.PartyTicket, error) {
+	return nil, nil
+}
+
 func (s *StubRepository) IsAdmin(email string) (bool, error) {
 	if s.IsAdminFn == nil {
 		return false, nil

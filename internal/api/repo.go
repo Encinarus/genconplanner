@@ -50,6 +50,7 @@ type EventRepository interface {
 	InitiateTicketTransfer(partyId int64, ticketId, fromEmail, toEmail, transferType string) (*postgres.TicketTransfer, error)
 	RespondTicketTransfer(partyId int64, transferId, action, callerEmail string) (*postgres.TicketTransfer, error)
 	ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error)
+	UpdateTicketPurchaser(partyId int64, ticketId string, newPurchaserEmail string) (*postgres.PartyTicket, error)
 
 	// User related
 	UpdateDisplayName(email string, name string) error
@@ -232,6 +233,10 @@ func (r *PostgresRepository) RespondTicketTransfer(partyId int64, transferId, ac
 
 func (r *PostgresRepository) ToggleTicketReturn(partyId int64, ticketId string) (*postgres.PartyTicket, error) {
 	return postgres.ToggleTicketReturn(r.DB, partyId, ticketId)
+}
+
+func (r *PostgresRepository) UpdateTicketPurchaser(partyId int64, ticketId string, newPurchaserEmail string) (*postgres.PartyTicket, error) {
+	return postgres.UpdateTicketPurchaser(r.DB, partyId, ticketId, newPurchaserEmail)
 }
 
 func (r *PostgresRepository) IsAdmin(email string) (bool, error) {

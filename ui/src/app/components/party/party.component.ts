@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { PartyService } from '../../services/party.service';
 import { Title } from '@angular/platform-browser';
 import { PartyInterestsComponent } from '../party-interests/party-interests.component';
+import { forkJoin } from 'rxjs';
 
 export interface PurchaserGroupView {
   purchaserDisplayName: string;
@@ -82,9 +83,10 @@ export class PartyComponent implements OnInit {
   addingTicket = signal<boolean>(false);
   newTicketEventId = '';
   newTicketPurchaserEmail = '';
-  newTicketRecipientName = '';
-  newTicketHolderEmail = '';
   newTicketType = 'physical';
+  
+  newTicketQuantity = 1;
+  newTicketAssignments: { holderEmail: string, genconRecipientName: string }[] = [];
 
   transferringTicket = signal<PartyTicket | null>(null);
   transferToEmail = '';
@@ -585,31 +587,73 @@ export class PartyComponent implements OnInit {
     if (!p || !user || !user.email) return;
     this.newTicketEventId = '';
     this.newTicketPurchaserEmail = user.email;
-    this.newTicketRecipientName = user.displayName || user.email;
-    this.newTicketHolderEmail = user.email;
     this.newTicketType = 'physical';
+    
+    this.newTicketQuantity = 1;
+    this.newTicketAssignments = [{
+      holderEmail: user.email,
+      genconRecipientName: user.displayName || user.email
+    }];
+
     this.addingTicket.set(true);
+  }
+
+  updateTicketQuantity() {
+    const user = this.auth.user();
+    if (!user || !user.email) return;
+    
+    // Ensure it's at least 1
+    if (this.newTicketQuantity < 1) this.newTicketQuantity = 1;
+
+    // Add or remove assignments to match quantity
+    while (this.newTicketAssignments.length < this.newTicketQuantity) {
+      this.newTicketAssignments.push({
+        holderEmail: this.newTicketPurchaserEmail, // default to purchaser
+        genconRecipientName: '' // Will try to guess based on party members in UI, or purchaser
+      });
+    }
+    if (this.newTicketAssignments.length > this.newTicketQuantity) {
+      this.newTicketAssignments = this.newTicketAssignments.slice(0, this.newTicketQuantity);
+    }
+  }
+
+  onAssignmentHolderChange(index: number, email: string) {
+    const p = this.party();
+    if (!p) return;
+    const member = p.members.find(m => m.email === email);
+    if (member) {
+      this.newTicketAssignments[index].genconRecipientName = member.displayName || member.email;
+    }
   }
 
   onSaveNewTicket() {
     const p = this.party();
     if (!p) return;
-    if (!this.newTicketEventId || !this.newTicketPurchaserEmail || !this.newTicketRecipientName || !this.newTicketHolderEmail) {
-      alert('Please fill in all required fields');
+    
+    this.newTicketEventId = this.newTicketEventId.trim();
+    if (!this.newTicketEventId || !this.newTicketPurchaserEmail) {
+      alert('Please fill in Event ID and Purchaser');
       return;
     }
-    this.api.addPartyTicket(p.year, {
-      eventId: this.newTicketEventId.trim(),
-      purchaserEmail: this.newTicketPurchaserEmail.trim(),
-      genconRecipientName: this.newTicketRecipientName.trim(),
-      holderEmail: this.newTicketHolderEmail.trim(),
-      ticketType: this.newTicketType
-    }).subscribe({
+
+    const requests = this.newTicketAssignments.map(assignment => {
+      return this.api.addPartyTicket(p.year, {
+        eventId: this.newTicketEventId,
+        purchaserEmail: this.newTicketPurchaserEmail.trim(),
+        genconRecipientName: assignment.genconRecipientName.trim() || assignment.holderEmail.trim(),
+        holderEmail: assignment.holderEmail.trim(),
+        ticketType: this.newTicketType
+      });
+    });
+
+    if (requests.length === 0) return;
+
+    forkJoin(requests).subscribe({
       next: () => {
         this.addingTicket.set(false);
         this.fetchTickets();
       },
-      error: (err) => alert('Failed to add ticket: ' + (err.error?.error || err.message))
+      error: (err) => alert('Failed to add tickets: ' + (err.error?.error || err.message))
     });
   }
 
@@ -685,6 +729,7 @@ export class PartyComponent implements OnInit {
   }
 
   personalTicketPurchaserEmail = '';
+  updateTicketPurchaserEmail = '';
 
   onConvertToPartyTicket() {
     const p = this.party();
@@ -717,6 +762,21 @@ export class PartyComponent implements OnInit {
         this.fetchTickets();
       },
       error: (err) => alert('Failed to update ticket status: ' + (err.error?.error || err.message))
+    });
+  }
+
+  onUpdateTicketPurchaser() {
+    const p = this.party();
+    const t = this.selectedTicketActions();
+    if (!p || !t || !this.updateTicketPurchaserEmail) return;
+
+    this.api.updateTicketPurchaser(p.year, t.ticketId, this.updateTicketPurchaserEmail).subscribe({
+      next: (res) => {
+        this.selectedTicketActions.set(res.ticket);
+        this.fetchTickets();
+        this.updateTicketPurchaserEmail = '';
+      },
+      error: (err) => alert('Failed to update purchaser: ' + (err.error?.error || err.message))
     });
   }
 

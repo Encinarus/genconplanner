@@ -546,3 +546,36 @@ WHERE pt.party_id = $1 AND pt.ticket_id = $2`, partyId, ticketId).Scan(
 	t.EventEndTime = endTime.Format(time.RFC3339)
 	return &t, nil
 }
+
+func UpdateTicketPurchaser(db *sql.DB, partyId int64, ticketId string, newPurchaserEmail string) (*PartyTicket, error) {
+	_, err := db.Exec("UPDATE party_tickets SET purchaser_email = $1, last_modified = now() WHERE party_id = $2 AND ticket_id = $3", newPurchaserEmail, partyId, ticketId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update ticket purchaser: %w", err)
+	}
+
+	var t PartyTicket
+	var startTime time.Time
+	var endTime time.Time
+	errReload := db.QueryRow(`
+SELECT 
+	pt.ticket_id, pt.party_id, pt.event_id, pt.year, pt.purchaser_email, COALESCE(pt.gencon_purchaser_name, ''), 
+	COALESCE(pt.gencon_ticket_id, ''), pt.gencon_recipient_name, COALESCE(pt.gencon_recipient_id, ''), 
+	pt.holder_email, COALESCE(u.display_name, ''), pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
+	COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.location, ''), COALESCE(e.event_type, '')
+FROM party_tickets pt
+LEFT JOIN users u ON pt.holder_email = u.email
+LEFT JOIN events e ON pt.event_id = e.event_id
+WHERE pt.party_id = $1 AND pt.ticket_id = $2`, partyId, ticketId).Scan(
+		&t.TicketId, &t.PartyId, &t.EventId, &t.Year, &t.PurchaserEmail, &t.GenconPurchaserName,
+		&t.GenconTicketId, &t.GenconRecipientName, &t.GenconRecipientId,
+		&t.HolderEmail, &t.HolderDisplayName, &t.TicketType, &t.TicketStatus, &t.TransferStatus,
+		&t.CreatedAt, &t.LastModified, &t.EventTitle, &startTime, &endTime, &t.EventLocation, &t.EventCategory,
+	)
+	if errReload != nil {
+		return nil, fmt.Errorf("failed to reload ticket: %w", errReload)
+	}
+	t.EventStartTime = startTime.Format(time.RFC3339)
+	t.EventEndTime = endTime.Format(time.RFC3339)
+	return &t, nil
+}
+

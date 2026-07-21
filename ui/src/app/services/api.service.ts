@@ -372,6 +372,10 @@ export class ApiService {
     return this.http.post<{ status: string; ticket: PartyTicket }>(`/api/v1/party/${year}/tickets/${ticketId}/toggle_return`, {});
   }
 
+  updateTicketPurchaser(year: number | string, ticketId: string, purchaserEmail: string): Observable<{ status: string; ticket: PartyTicket }> {
+    return this.http.put<{ status: string; ticket: PartyTicket }>(`/api/v1/party/${year}/tickets/${ticketId}/purchaser`, { purchaserEmail });
+  }
+
   getAdminOrganizers(): Observable<AdminOrganizer[]> {
     return this.http.get<AdminOrganizer[]>('/api/v1/admin/orgs');
   }

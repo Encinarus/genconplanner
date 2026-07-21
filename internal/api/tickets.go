@@ -19,6 +19,7 @@ func (s *Server) registerTicketRoutes(group *gin.RouterGroup) {
 	group.POST("/party/:party_id/tickets/:ticket_id/transfer", s.TransferTicket)
 	group.POST("/party/:party_id/transfers/:transfer_id/respond", s.RespondTransfer)
 	group.POST("/party/:party_id/tickets/:ticket_id/toggle_return", s.ToggleTicketReturn)
+	group.PUT("/party/:party_id/tickets/:ticket_id/purchaser", s.UpdateTicketPurchaser)
 }
 
 func (s *Server) getPartyForYear(yearParam string, email string) (*postgres.Party, int, error) {
@@ -236,6 +237,38 @@ func (s *Server) ToggleTicketReturn(c *gin.Context) {
 	if errToggle != nil {
 		log.Printf("ToggleTicketReturn error: %v\n", errToggle)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to toggle ticket return status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"ticket": ticket,
+	})
+}
+
+type UpdateTicketPurchaserRequest struct {
+	PurchaserEmail string `json:"purchaserEmail" binding:"required"`
+}
+
+func (s *Server) UpdateTicketPurchaser(c *gin.Context) {
+	email := GetUserEmail(c)
+	party, _, err := s.getPartyForYear(c.Param("party_id"), email)
+	if err != nil {
+		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	ticketId := c.Param("ticket_id")
+	var req UpdateTicketPurchaserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request payload"})
+		return
+	}
+
+	ticket, errUpdate := s.Repo.UpdateTicketPurchaser(party.Id, ticketId, req.PurchaserEmail)
+	if errUpdate != nil {
+		log.Printf("UpdateTicketPurchaser error: %v\n", errUpdate)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to update ticket purchaser"})
 		return
 	}
 
