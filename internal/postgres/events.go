@@ -51,12 +51,12 @@ type CategorySummary struct {
 }
 
 type EventGroup struct {
-	Name          string
-	EventId       string
-	Description   string
-	ShortCategory string
-	GameSystem    string
-	OrgGroup      string
+	Name              string
+	EventId           string
+	Description       string
+	ShortCategory     string
+	GameSystem        string
+	OrgGroup          string
 	OrgId             int
 	Count             int
 	TotalTickets      int

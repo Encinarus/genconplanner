@@ -31,21 +31,21 @@ type EventSummary struct {
 	Title            string     `json:"title"`
 	ShortDescription string     `json:"shortDescription"`
 	NumEvents        int        `json:"numEvents"`
-	WedEvents         int        `json:"wedEvents"`
-	WedTotalTickets   int        `json:"wedTotalTickets"`
-	WedTickets        int        `json:"wedTickets"`
-	ThuEvents         int        `json:"thuEvents"`
-	ThuTotalTickets   int        `json:"thuTotalTickets"`
-	ThuTickets        int        `json:"thuTickets"`
-	FriEvents         int        `json:"friEvents"`
-	FriTotalTickets   int        `json:"friTotalTickets"`
-	FriTickets        int        `json:"friTickets"`
-	SatEvents         int        `json:"satEvents"`
-	SatTotalTickets   int        `json:"satTotalTickets"`
-	SatTickets        int        `json:"satTickets"`
-	SunEvents         int        `json:"sunEvents"`
-	SunTotalTickets   int        `json:"sunTotalTickets"`
-	SunTickets        int        `json:"sunTickets"`
+	WedEvents        int        `json:"wedEvents"`
+	WedTotalTickets  int        `json:"wedTotalTickets"`
+	WedTickets       int        `json:"wedTickets"`
+	ThuEvents        int        `json:"thuEvents"`
+	ThuTotalTickets  int        `json:"thuTotalTickets"`
+	ThuTickets       int        `json:"thuTickets"`
+	FriEvents        int        `json:"friEvents"`
+	FriTotalTickets  int        `json:"friTotalTickets"`
+	FriTickets       int        `json:"friTickets"`
+	SatEvents        int        `json:"satEvents"`
+	SatTotalTickets  int        `json:"satTotalTickets"`
+	SatTickets       int        `json:"satTickets"`
+	SunEvents        int        `json:"sunEvents"`
+	SunTotalTickets  int        `json:"sunTotalTickets"`
+	SunTickets       int        `json:"sunTickets"`
 	OrgId            int        `json:"orgId"`
 	CategoryCode     string     `json:"categoryCode"`
 	GameSystem       GameSystem `json:"gameSystem"`

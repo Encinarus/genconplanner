@@ -578,4 +578,3 @@ WHERE pt.party_id = $1 AND pt.ticket_id = $2`, partyId, ticketId).Scan(
 	t.EventEndTime = endTime.Format(time.RFC3339)
 	return &t, nil
 }
-

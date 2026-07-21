@@ -285,7 +285,7 @@ func TestLoadUserEvents(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.GetStarredIdsFn = func(ctx context.Context, email string, year int) (*postgres.UserStarredEvents, error) {
+				stub.GetStarredIdsFn = func(email string, year int) (*postgres.UserStarredEvents, error) {
 					return &postgres.UserStarredEvents{
 						Email: email,
 						StarredEvents: []postgres.StarredEvent{
@@ -359,7 +359,7 @@ func TestGetUser(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.LoadOrCreateUserFn = func(ctx context.Context, email string) (*postgres.User, error) {
+				stub.LoadOrCreateUserFn = func(email string) (*postgres.User, error) {
 					return &postgres.User{Email: email, DisplayName: "Test User"}, nil
 				}
 			},
@@ -378,7 +378,7 @@ func TestGetUser(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.LoadOrCreateUserFn = func(ctx context.Context, email string) (*postgres.User, error) {
+				stub.LoadOrCreateUserFn = func(email string) (*postgres.User, error) {
 					return nil, fmt.Errorf("db error")
 				}
 			},
@@ -459,7 +459,7 @@ func TestStarEvent(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.UpdateStarredEventMinimalFn = func(ctx context.Context, email string, id string, tier string, related bool, add bool) (*postgres.UserStarredEvents, error) {
+				stub.UpdateStarredEventMinimalFn = func(email string, id string, tier string, related bool, add bool) (*postgres.UserStarredEvents, error) {
 					return &postgres.UserStarredEvents{Email: email}, nil
 				}
 			},
@@ -519,7 +519,7 @@ func TestGetStarredEvents(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.LoadStarredEventGroupsFn = func(ctx context.Context, email string, year int) ([]*postgres.EventGroup, error) {
+				stub.LoadStarredEventGroupsFn = func(email string, year int) ([]*postgres.EventGroup, error) {
 					return []*postgres.EventGroup{
 						{EventId: "BGM24123", Name: "Starred Event", ShortCategory: "BGM", GameSystem: "Catan", Count: 1, ThursTickets: 10},
 					}, nil

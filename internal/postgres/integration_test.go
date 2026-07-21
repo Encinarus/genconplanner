@@ -123,7 +123,7 @@ func TestSearchEvents_OnlyFree_Integration(t *testing.T) {
 	// RPG has:
 	// - RPG26ND200001 (D&D Epic, Jul 30 13:00-17:00). Overlaps with leader's purchased BGM26ND100002 (Jul 30 14:00-16:00).
 	// - RPG26ND200002 (D&D Intro, Jul 31 13:00-17:00). No overlap.
-	
+
 	// 1. Without OnlyFree filter: should return both RPG events
 	qNoFree := postgres.SearchQuery{
 		CategoryShortCode: "RPG",
@@ -134,7 +134,7 @@ func TestSearchEvents_OnlyFree_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SearchEvents failed: %v", err)
 	}
-	
+
 	if len(groupsNoFree) != 2 {
 		t.Errorf("expected 2 RPG event groups, got %d", len(groupsNoFree))
 	}

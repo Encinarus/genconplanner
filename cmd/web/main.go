@@ -40,7 +40,9 @@ func main() {
 	if err != nil {
 		log.Printf("Error initializing telemetry: %v", err)
 	} else {
-		defer shutdown(context.Background())
+		defer func() {
+			_ = shutdown(context.Background())
+		}()
 	}
 
 	// Don't care about canceling or errors
