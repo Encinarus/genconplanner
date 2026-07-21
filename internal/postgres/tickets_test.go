@@ -220,3 +220,34 @@ func TestSyncPartyTickets_MatchByPartyMemberOnly(t *testing.T) {
 		t.Errorf("expected holder chris_test@example.com, got %s", foundTicket.HolderEmail)
 	}
 }
+
+func TestLoadPartyTickets_IncludesStarredEvents(t *testing.T) {
+	repo := setupSeededDB(t)
+	db := repo.DB
+
+	// Member1 has a personal starred event RPG26ND200001 as purchased
+	_, err := db.Exec(`
+		INSERT INTO starred_events (email, event_id, level, tier)
+		VALUES ('member1@example.com', 'RPG26ND200001', 'event', 'purchased')
+		ON CONFLICT (event_id, email, level) DO UPDATE SET tier = 'purchased'`)
+	if err != nil {
+		t.Fatalf("failed to insert personal starred event: %v", err)
+	}
+
+	tickets, err := postgres.LoadPartyTickets(db, 101, 2026)
+	if err != nil {
+		t.Fatalf("LoadPartyTickets failed: %v", err)
+	}
+
+	foundPersonal := false
+	for _, pt := range tickets {
+		if pt.EventId == "RPG26ND200001" && pt.HolderEmail == "member1@example.com" && pt.TicketType == "personal" {
+			foundPersonal = true
+			break
+		}
+	}
+
+	if !foundPersonal {
+		t.Errorf("expected to find a personal ticket from starred_events")
+	}
+}

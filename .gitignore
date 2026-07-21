@@ -1,5 +1,6 @@
 .envrc
 latest.dump
+.gemini/
 
 # Go binaries
 /web

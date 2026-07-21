@@ -526,6 +526,7 @@
                             </div>
                         </div>
 
+                        <ng-container *ngIf="selectedTicketActions()?.ticketType !== 'personal'">
                         <!-- Section 1: Toggle Return Status -->
                         <div class="card border-0 bg-light-subtle shadow-sm rounded-2 mb-4 p-4 border border-secondary-subtle">
                             <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
@@ -582,6 +583,33 @@
                         <div *ngIf="selectedTicketActions()?.holderEmail?.toLowerCase() !== auth.user()?.email?.toLowerCase() && selectedTicketActions()?.ticketStatus !== 'returned'" class="alert alert-info mb-0 d-flex align-items-center gap-2 smaller border-0 shadow-sm">
                             <i class="bi bi-info-circle-fill text-info fs-5"></i>
                             Only the current ticket holder ({{ selectedTicketActions()?.holderDisplayName }}) can initiate a transfer for this ticket.
+                        </div>
+                        </ng-container>
+
+                        <!-- Section 3: Convert Personal Ticket to Party Ticket -->
+                        <div *ngIf="selectedTicketActions()?.ticketType === 'personal'" class="card border-0 bg-primary-subtle shadow-sm rounded-2 p-4 border border-primary-subtle mb-4">
+                            <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                                <i class="bi bi-people-fill text-primary"></i>Convert to Party Ticket
+                            </h6>
+                            <p class="smaller text-dark mb-3">
+                                This ticket is currently only marked as purchased on your personal account. Convert it to a Party Ticket to make it available for transfers and allow the rest of the party to manage it!
+                            </p>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-dark text-uppercase smaller mb-1">Purchaser</label>
+                                    <select class="form-select border-0 shadow-sm" [(ngModel)]="personalTicketPurchaserEmail">
+                                        <option value="">Select who bought this...</option>
+                                        <option *ngFor="let m of party()?.members" [value]="m.email">
+                                            {{ m.displayName }} ({{ m.email }})
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-primary px-4 py-2 rounded-2 fw-bold d-flex align-items-center gap-2 hover-scale shadow-sm" (click)="onConvertToPartyTicket()" [disabled]="!personalTicketPurchaserEmail">
+                                    <i class="bi bi-plus-circle-fill"></i>Convert to Party Ticket
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer bg-light border-top p-4">

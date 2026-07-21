@@ -663,6 +663,7 @@ export class PartyComponent implements OnInit {
     this.transferToEmail = '';
     this.transferType = 'name_only';
     this.transferNotes = '';
+    this.personalTicketPurchaserEmail = t.holderEmail || this.auth.user()?.email || '';
   }
 
   onConfirmTransferActions() {
@@ -680,6 +681,28 @@ export class PartyComponent implements OnInit {
         this.fetchTickets();
       },
       error: (err) => alert('Failed to initiate transfer: ' + (err.error?.error || err.message))
+    });
+  }
+
+  personalTicketPurchaserEmail = '';
+
+  onConvertToPartyTicket() {
+    const p = this.party();
+    const t = this.selectedTicketActions();
+    if (!p || !t || !this.personalTicketPurchaserEmail) return;
+
+    this.api.addPartyTicket(p.year, {
+      eventId: t.eventId,
+      purchaserEmail: this.personalTicketPurchaserEmail,
+      genconRecipientName: t.holderDisplayName || t.holderEmail,
+      holderEmail: t.holderEmail,
+      ticketType: 'physical'
+    }).subscribe({
+      next: () => {
+        this.selectedTicketActions.set(null);
+        this.fetchTickets();
+      },
+      error: (err) => alert('Failed to convert ticket: ' + (err.error?.error || err.message))
     });
   }
 

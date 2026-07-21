@@ -185,16 +185,57 @@ LIMIT 1`, partyId, year, t.EventId, strings.ToLower(t.RecipientName), strings.To
 // LoadPartyTickets retrieves all tickets for a party in a given year.
 func LoadPartyTickets(db *sql.DB, partyId int64, year int) ([]*PartyTicket, error) {
 	query := `
-SELECT 
-	pt.ticket_id, pt.party_id, pt.event_id, pt.year, pt.purchaser_email, COALESCE(pt.gencon_purchaser_name, ''), 
-	COALESCE(pt.gencon_ticket_id, ''), pt.gencon_recipient_name, COALESCE(pt.gencon_recipient_id, ''), 
-	pt.holder_email, COALESCE(u.display_name, ''), pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
-	COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.location, ''), COALESCE(e.event_type, '')
-FROM party_tickets pt
-LEFT JOIN users u ON pt.holder_email = u.email
-LEFT JOIN events e ON pt.event_id = e.event_id
-WHERE pt.party_id = $1 AND pt.year = $2
-ORDER BY e.start_time, pt.created_at`
+WITH base_tickets AS (
+	SELECT 
+		pt.ticket_id::text as ticket_id, pt.party_id, pt.event_id, pt.year, pt.purchaser_email, COALESCE(pt.gencon_purchaser_name, ''), 
+		COALESCE(pt.gencon_ticket_id, ''), pt.gencon_recipient_name, COALESCE(pt.gencon_recipient_id, ''), 
+		pt.holder_email, COALESCE(u.display_name, ''), pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
+		COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz) AS event_start_time, COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz) AS event_end_time, COALESCE(e.location, ''), COALESCE(e.event_type, '')
+	FROM party_tickets pt
+	LEFT JOIN users u ON pt.holder_email = u.email
+	LEFT JOIN events e ON pt.event_id = e.event_id
+	WHERE pt.party_id = $1 AND pt.year = $2
+
+	UNION ALL
+
+	SELECT 
+		'personal-' || se.event_id || '-' || se.email as ticket_id,
+		$1 as party_id,
+		se.event_id,
+		e.year,
+		se.email as purchaser_email,
+		'' as gencon_purchaser_name,
+		'' as gencon_ticket_id,
+		'' as gencon_recipient_name,
+		'' as gencon_recipient_id,
+		se.email as holder_email,
+		COALESCE(u.display_name, '') as display_name,
+		'personal' as ticket_type,
+		'active' as ticket_status,
+		'none' as transfer_status,
+		now() as created_at,
+		now() as last_modified,
+		COALESCE(e.title, '') as title,
+		COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz) as event_start_time,
+		COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz) as event_end_time,
+		COALESCE(e.location, '') as location,
+		COALESCE(e.event_type, '') as event_type
+	FROM starred_events se
+	JOIN party_members pm ON se.email = pm.email AND pm.party_id = $1
+	LEFT JOIN users u ON se.email = u.email
+	JOIN events e ON se.event_id = e.event_id
+	WHERE e.year = $2 AND se.tier = 'purchased'
+	AND NOT EXISTS (
+		SELECT 1 FROM party_tickets pt2 
+		WHERE pt2.party_id = $1 
+		  AND pt2.year = $2 
+		  AND pt2.event_id = se.event_id 
+		  AND pt2.holder_email = se.email 
+		  AND pt2.ticket_status = 'active'
+	)
+)
+SELECT * FROM base_tickets
+ORDER BY event_start_time, created_at`
 
 	rows, err := db.Query(query, partyId, year)
 	if err != nil {
