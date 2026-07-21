@@ -24,6 +24,8 @@ services:
     depends_on:
       - update
     environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4318
+      - OTEL_EXPORTER_OTLP_HEADERS=
       - DATABASE_URL=postgres://postgres:g3nc0n@db:5432/genconplanner?sslmode=disable
       - FIREBASE_CONFIG=${FIREBASE_CONFIG}
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}

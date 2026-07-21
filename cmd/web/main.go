@@ -12,9 +12,11 @@ import (
 	"github.com/Encinarus/genconplanner/internal/bgg"
 	"github.com/Encinarus/genconplanner/internal/logging"
 	"github.com/Encinarus/genconplanner/internal/postgres"
+	"github.com/Encinarus/genconplanner/internal/telemetry"
 	"github.com/Encinarus/genconplanner/internal/web"
 	"github.com/gin-gonic/gin"
 	"github.com/heroku/x/hmetrics"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"log"
 	"net/http"
@@ -33,6 +35,13 @@ func main() {
 	flag.Parse()
 
 	logging.PrintEnv()
+
+	shutdown, err := telemetry.InitTracer(context.Background(), "genconplanner")
+	if err != nil {
+		log.Printf("Error initializing telemetry: %v", err)
+	} else {
+		defer shutdown(context.Background())
+	}
 
 	// Don't care about canceling or errors
 	go func() {
@@ -91,6 +100,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 
 	r := gin.Default()
 	r.Use(logging.ErrorStackTrace())
+	r.Use(otelgin.Middleware("genconplanner"))
 	r.Use(web.BootstrapContext(app, db, cache))
 
 	r.SetFuncMap(web.GetTemplateFunctions(cache))
