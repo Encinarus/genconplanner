@@ -24,12 +24,7 @@ const mockOnAuthStateChanged = vi.fn().mockImplementation((auth, callback) => {
 (globalThis as any).__mockSignOut = mockSignOut;
 (globalThis as any).__mockOnAuthStateChanged = mockOnAuthStateChanged;
 
-vi.mock('js-cookie', () => ({
-  default: {
-    set: vi.fn(),
-    remove: vi.fn()
-  }
-}));
+
 
 describe('AuthService (Firebase Interaction)', () => {
   let service: AuthService;
@@ -41,6 +36,10 @@ describe('AuthService (Firebase Interaction)', () => {
     mockSignInWithPopup.mockClear();
     mockSignOut.mockClear();
     mockOnAuthStateChanged.mockClear();
+    if ((globalThis as any).__mockCookies) {
+      (globalThis as any).__mockCookies.set.mockClear();
+      (globalThis as any).__mockCookies.remove.mockClear();
+    }
     
     mockSignInWithPopup.mockResolvedValue({ user: { email: 'test@example.com', displayName: 'Test User' } });
     mockOnAuthStateChanged.mockImplementation((auth, callback) => {
@@ -83,7 +82,7 @@ describe('AuthService (Firebase Interaction)', () => {
     await service.signIn();
 
     expect(mockSignInWithPopup).toHaveBeenCalled();
-    expect(Cookies.set).toHaveBeenCalledWith(
+    expect((globalThis as any).__mockCookies.set).toHaveBeenCalledWith(
       'signinToken',
       expect.any(String),
       expect.objectContaining({ path: '/' })
@@ -98,7 +97,7 @@ describe('AuthService (Firebase Interaction)', () => {
     await service.signOut();
 
     expect(mockSignOut).toHaveBeenCalled();
-    expect(Cookies.remove).toHaveBeenCalledWith('signinToken', { path: '/' });
+    expect((globalThis as any).__mockCookies.remove).toHaveBeenCalledWith('signinToken', { path: '/' });
     expect(service.user()).toBeNull();
   });
 });

@@ -43,3 +43,102 @@ h4 {
     padding-left: 0;
     margin-bottom: 0;
 }
+
+.party-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #198754;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.15rem;
+    border: 1px solid rgba(40, 167, 69, 0.2);
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.party-badge i {
+    font-size: 0.75rem;
+}
+
+.party-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ffffff;
+    color: #212529;
+    padding: 0.6rem 0.85rem;
+    border-radius: 6px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08), 0 4px 10px rgba(0, 0, 0, 0.04);
+    font-family: inherit;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* Arrow shadow/border fallback */
+.party-tooltip::before {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.12) transparent transparent transparent;
+    z-index: -1;
+}
+
+/* Arrow color */
+.party-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #ffffff transparent transparent transparent;
+}
+
+.party-badge:hover .party-tooltip {
+    display: block;
+    opacity: 1;
+}
+
+.filtered-out-session {
+    opacity: 0.65;
+    filter: grayscale(15%);
+    transition: opacity 0.2s ease-in-out, filter 0.2s ease-in-out;
+}
+
+.filtered-out-session:hover {
+    opacity: 0.95;
+    filter: none;
+}
+
+.filtered-out-session .tier-btn {
+    opacity: 0.85;
+}
+
+.matched-section {
+    background-color: #f9f9fa;
+    border-left: 3px solid #dee2e6;
+    border-radius: 4px;
+    padding: 1rem;
+    padding-left: calc(1rem - 3px);
+    padding-right: 1rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
+}
+

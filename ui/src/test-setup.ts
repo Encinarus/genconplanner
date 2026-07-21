@@ -41,3 +41,15 @@ vi.mock('firebase/app', () => ({
 
 vi.mock('firebase/auth', () => mockAuth);
 vi.mock('@firebase/auth', () => mockAuth);
+
+vi.mock('js-cookie', () => {
+  const mock = {
+    set: vi.fn(),
+    remove: vi.fn(),
+    get: vi.fn()
+  };
+  (globalThis as any).__mockCookies = mock;
+  return {
+    default: mock
+  };
+});

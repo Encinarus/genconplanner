@@ -419,6 +419,7 @@ export interface PartyTicket {
   lastModified: string;
   eventTitle?: string;
   eventStartTime?: string;
+  eventEndTime?: string;
   eventLocation?: string;
   eventCategory?: string;
   isMapped?: boolean;
