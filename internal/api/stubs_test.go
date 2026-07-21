@@ -12,9 +12,9 @@ import (
 // StubRepository implements EventRepository for testing.
 type StubRepository struct {
 	LoadCategorySummaryFn        func(int) ([]*postgres.CategorySummary, error)
-	LoadEventGroupsForCategoryFn func(string, int) ([]*postgres.EventGroup, error)
-	SearchEventsFn               func(postgres.SearchQuery) ([]*postgres.EventGroup, error)
-	LoadSimilarEventsFn          func(string, string) ([]*events.GenconEvent, error)
+	LoadEventGroupsForCategoryFn func(context.Context, string, int) ([]*postgres.EventGroup, error)
+	SearchEventsFn               func(context.Context, postgres.SearchQuery) ([]*postgres.EventGroup, error)
+	LoadSimilarEventsFn          func(context.Context, string, string) ([]*events.GenconEvent, error)
 	LoadOrCreateUserFn           func(string) (*postgres.User, error)
 	GetStarredIdsFn              func(string, int) (*postgres.UserStarredEvents, error)
 	GetAllStarredIdsFn           func(string) (*postgres.UserStarredEvents, error)
@@ -53,6 +53,7 @@ type StubRepository struct {
 	InitiateTicketTransferFn     func(int64, string, string, string, string) (*postgres.TicketTransfer, error)
 	RespondTicketTransferFn      func(int64, string, string, string) (*postgres.TicketTransfer, error)
 	ToggleTicketReturnFn         func(int64, string) (*postgres.PartyTicket, error)
+	UpdateTicketPurchaserFn      func(int64, string, string) (*postgres.PartyTicket, error)
 	IsAdminFn                    func(string) (bool, error)
 	LoadAllOrgsFn                func() ([]*postgres.Organizer, error)
 	MergeOrgsFn                  func([]int64) error
@@ -62,14 +63,14 @@ type StubRepository struct {
 func (s *StubRepository) LoadCategorySummary(year int) ([]*postgres.CategorySummary, error) {
 	return s.LoadCategorySummaryFn(year)
 }
-func (s *StubRepository) LoadEventGroupsForCategory(category string, year int) ([]*postgres.EventGroup, error) {
-	return s.LoadEventGroupsForCategoryFn(category, year)
+func (s *StubRepository) LoadEventGroupsForCategory(ctx context.Context, category string, year int) ([]*postgres.EventGroup, error) {
+	return s.LoadEventGroupsForCategoryFn(ctx, category, year)
 }
-func (s *StubRepository) SearchEvents(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
-	return s.SearchEventsFn(q)
+func (s *StubRepository) SearchEvents(ctx context.Context, q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
+	return s.SearchEventsFn(ctx, q)
 }
-func (s *StubRepository) LoadSimilarEvents(eventId string, userEmail string) ([]*events.GenconEvent, error) {
-	return s.LoadSimilarEventsFn(eventId, userEmail)
+func (s *StubRepository) LoadSimilarEvents(ctx context.Context, eventId string, userEmail string) ([]*events.GenconEvent, error) {
+	return s.LoadSimilarEventsFn(ctx, eventId, userEmail)
 }
 func (s *StubRepository) LoadOrCreateUser(email string) (*postgres.User, error) {
 	return s.LoadOrCreateUserFn(email)

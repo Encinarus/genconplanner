@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -106,7 +107,7 @@ func getV2Index() ([]byte, error) {
 func serveV2WithMeta(c *gin.Context, db *sql.DB, cache *background.GameCache, eid string) {
 	// 1. Fetch event details
 	appContext := c.MustGet("context").(*Context)
-	result, err := lookupEvent(db, eid, appContext.Email)
+	result, err := lookupEvent(c.Request.Context(), db, eid, appContext.Email)
 	if err != nil || result == nil || result.MainEvent == nil {
 		// If event not found, just serve the static SPA
 		serveV2Static(c)
@@ -184,8 +185,8 @@ type LookupResult struct {
 	TotalTickets int
 }
 
-func lookupEvent(db *sql.DB, eventId string, userEmail string) (*LookupResult, error) {
-	foundEvents, err := postgres.LoadSimilarEvents(db, eventId, userEmail)
+func lookupEvent(ctx context.Context, db *sql.DB, eventId string, userEmail string) (*LookupResult, error) {
+	foundEvents, err := postgres.LoadSimilarEvents(ctx, db, eventId, userEmail)
 	if err != nil {
 		return nil, err
 	}

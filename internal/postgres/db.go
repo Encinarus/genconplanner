@@ -5,6 +5,9 @@ import (
 	"flag"
 	"os"
 	"time"
+
+	"github.com/uptrace/opentelemetry-go-extra/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 )
 
 var dbConnectString = flag.String("db", "", "postgres connect string")
@@ -20,5 +23,7 @@ func GetConnStr() string {
 }
 
 func OpenDb() (*sql.DB, error) {
-	return sql.Open("postgres", GetConnStr())
+	return otelsql.Open("postgres", GetConnStr(),
+		otelsql.WithAttributes(semconv.DBSystemPostgreSQL),
+	)
 }

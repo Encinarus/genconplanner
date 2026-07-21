@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -142,7 +143,7 @@ func rowToGroup(rows *sql.Rows) (*EventGroup, error) {
 	return &group, nil
 }
 
-func SearchEvents(db *sql.DB, query SearchQuery) ([]*EventGroup, error) {
+func SearchEvents(ctx context.Context, db *sql.DB, query SearchQuery) ([]*EventGroup, error) {
 	results := make([]*EventGroup, 0)
 
 	onlyFreeVal := 0
@@ -152,7 +153,7 @@ func SearchEvents(db *sql.DB, query SearchQuery) ([]*EventGroup, error) {
 
 	// Optional search terms should be incorporated into the WHERE clause as
 	// AND (<term was omitted> OR <apply term>)
-	rows, err := db.Query(`
+	rows, err := db.QueryContext(ctx, `
 SELECT
 	e.event_id,
 	e.title, 
@@ -250,8 +251,8 @@ WHERE ($9 = 0 OR o.id = $9)
 	return results, nil
 }
 
-func LoadEventGroupsForCategory(db *sql.DB, short_category string, year int) ([]*EventGroup, error) {
-	rows, err := db.Query(`
+func LoadEventGroupsForCategory(ctx context.Context, db *sql.DB, short_category string, year int) ([]*EventGroup, error) {
+	rows, err := db.QueryContext(ctx, `
 SELECT 
 	e.event_id,
 	e.title,
@@ -354,7 +355,7 @@ ORDER BY event_type ASC`, year)
 	return countsPerCategory, nil
 }
 
-func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.GenconEvent, error) {
+func LoadSimilarEvents(ctx context.Context, db *sql.DB, eventId string, userEmail string) ([]*events.GenconEvent, error) {
 	// Might be slight overkill ensuring that the year matches, but
 	// folks could submit the same event two years in a row with the same
 	// description, making it cluster the same.
@@ -371,7 +372,7 @@ func LoadSimilarEvents(db *sql.DB, eventId string, userEmail string) ([]*events.
 	WHERE e2.event_id = $1
 	  AND e1.year = $2
 	ORDER BY e1.start_time`, fields)
-	rows, err := db.Query(raw_query, eventId, year, userEmail)
+	rows, err := db.QueryContext(ctx, raw_query, eventId, year, userEmail)
 
 	if err != nil {
 		return nil, err

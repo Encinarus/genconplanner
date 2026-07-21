@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -10,9 +11,9 @@ import (
 
 type EventRepository interface {
 	LoadCategorySummary(year int) ([]*postgres.CategorySummary, error)
-	LoadEventGroupsForCategory(category string, year int) ([]*postgres.EventGroup, error)
-	SearchEvents(q postgres.SearchQuery) ([]*postgres.EventGroup, error)
-	LoadSimilarEvents(eventId string, userEmail string) ([]*events.GenconEvent, error)
+	LoadEventGroupsForCategory(ctx context.Context, category string, year int) ([]*postgres.EventGroup, error)
+	SearchEvents(ctx context.Context, q postgres.SearchQuery) ([]*postgres.EventGroup, error)
+	LoadSimilarEvents(ctx context.Context, eventId string, userEmail string) ([]*events.GenconEvent, error)
 	LoadOrCreateUser(email string) (*postgres.User, error)
 	GetStarredIds(email string, year int) (*postgres.UserStarredEvents, error)
 	GetAllStarredIds(email string) (*postgres.UserStarredEvents, error)
@@ -72,16 +73,16 @@ func (r *PostgresRepository) LoadCategorySummary(year int) ([]*postgres.Category
 	return postgres.LoadCategorySummary(r.DB, year)
 }
 
-func (r *PostgresRepository) LoadEventGroupsForCategory(category string, year int) ([]*postgres.EventGroup, error) {
-	return postgres.LoadEventGroupsForCategory(r.DB, category, year)
+func (r *PostgresRepository) LoadEventGroupsForCategory(ctx context.Context, category string, year int) ([]*postgres.EventGroup, error) {
+	return postgres.LoadEventGroupsForCategory(ctx, r.DB, category, year)
 }
 
-func (r *PostgresRepository) SearchEvents(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
-	return postgres.SearchEvents(r.DB, q)
+func (r *PostgresRepository) SearchEvents(ctx context.Context, q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
+	return postgres.SearchEvents(ctx, r.DB, q)
 }
 
-func (r *PostgresRepository) LoadSimilarEvents(eventId string, userEmail string) ([]*events.GenconEvent, error) {
-	return postgres.LoadSimilarEvents(r.DB, eventId, userEmail)
+func (r *PostgresRepository) LoadSimilarEvents(ctx context.Context, eventId string, userEmail string) ([]*events.GenconEvent, error) {
+	return postgres.LoadSimilarEvents(ctx, r.DB, eventId, userEmail)
 }
 
 func (r *PostgresRepository) LoadOrCreateUser(email string) (*postgres.User, error) {

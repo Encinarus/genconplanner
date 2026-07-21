@@ -186,7 +186,7 @@ func (s *Server) LookupEvent(c *gin.Context) {
 	}
 
 	var apiEvent Event
-	dbEvents, err := s.Repo.LoadSimilarEvents(eventId, "")
+	dbEvents, err := s.Repo.LoadSimilarEvents(c.Request.Context(), eventId, "")
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
@@ -277,9 +277,9 @@ func (s *Server) SearchEvents(c *gin.Context) {
 	var matches []*postgres.EventGroup
 
 	if len(strings.TrimSpace(search.TextQuery)) == 0 && len(search.Category) > 0 && !search.OnlyFree {
-		matches, err = s.Repo.LoadEventGroupsForCategory(search.Category, search.Year)
+		matches, err = s.Repo.LoadEventGroupsForCategory(c.Request.Context(), search.Category, search.Year)
 	} else {
-		matches, err = s.Repo.SearchEvents(q)
+		matches, err = s.Repo.SearchEvents(c.Request.Context(), q)
 	}
 
 	if err != nil {

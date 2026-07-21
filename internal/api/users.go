@@ -1273,7 +1273,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 		results = make([]WishlistItem, 0, len(cache))
 		partyMembersMap := s.getEventPartyMembers(email, year)
 		for _, item := range cache {
-			dbEvents, _ := s.Repo.LoadSimilarEvents(item.EventId, "")
+			dbEvents, _ := s.Repo.LoadSimilarEvents(c.Request.Context(), item.EventId, "")
 			var entry *events.GenconEvent
 			for i := range dbEvents {
 				if dbEvents[i].EventId == item.EventId {

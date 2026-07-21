@@ -77,7 +77,7 @@ func TestEventLookup(t *testing.T) {
 			name:    "Success path",
 			eventId: "BGM2412345",
 			setupStub: func() {
-				stub.LoadSimilarEventsFn = func(id string, email string) ([]*events.GenconEvent, error) {
+				stub.LoadSimilarEventsFn = func(ctx context.Context, id string, email string) ([]*events.GenconEvent, error) {
 					return []*events.GenconEvent{
 						{EventId: id, Title: "Test Event", ShortCategory: "BGM", GameSystem: "Catan"},
 					}, nil
@@ -92,7 +92,7 @@ func TestEventLookup(t *testing.T) {
 			name:    "Not found",
 			eventId: "MISSING123",
 			setupStub: func() {
-				stub.LoadSimilarEventsFn = func(id string, email string) ([]*events.GenconEvent, error) {
+				stub.LoadSimilarEventsFn = func(ctx context.Context, id string, email string) ([]*events.GenconEvent, error) {
 					return []*events.GenconEvent{}, nil
 				}
 			},
@@ -102,7 +102,7 @@ func TestEventLookup(t *testing.T) {
 			name:    "Database error",
 			eventId: "ERROR500",
 			setupStub: func() {
-				stub.LoadSimilarEventsFn = func(id string, email string) ([]*events.GenconEvent, error) {
+				stub.LoadSimilarEventsFn = func(ctx context.Context, id string, email string) ([]*events.GenconEvent, error) {
 					return nil, fmt.Errorf("db error")
 				}
 			},
@@ -140,7 +140,7 @@ func TestEventSearch(t *testing.T) {
 			name:  "Search by category",
 			query: "?cat=BGM&year=2024",
 			setupStub: func() {
-				stub.LoadEventGroupsForCategoryFn = func(cat string, year int) ([]*postgres.EventGroup, error) {
+				stub.LoadEventGroupsForCategoryFn = func(ctx context.Context, cat string, year int) ([]*postgres.EventGroup, error) {
 					return []*postgres.EventGroup{
 						{Name: "Board Game Group", EventId: "BGM24123", Count: 1, GameSystem: "Catan"},
 					}, nil
@@ -155,7 +155,7 @@ func TestEventSearch(t *testing.T) {
 			name:  "Empty results",
 			query: "?cat=NONE",
 			setupStub: func() {
-				stub.LoadEventGroupsForCategoryFn = func(cat string, year int) ([]*postgres.EventGroup, error) {
+				stub.LoadEventGroupsForCategoryFn = func(ctx context.Context, cat string, year int) ([]*postgres.EventGroup, error) {
 					return []*postgres.EventGroup{}, nil
 				}
 			},
@@ -165,7 +165,7 @@ func TestEventSearch(t *testing.T) {
 			name:  "Search by text",
 			query: "?q=catan&year=2024",
 			setupStub: func() {
-				stub.SearchEventsFn = func(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
+				stub.SearchEventsFn = func(ctx context.Context, q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
 					if q.RawQuery == "catan" {
 						return []*postgres.EventGroup{
 							{Name: "Catan Event", EventId: "BGM24123", Count: 1, GameSystem: "Catan"},
@@ -285,7 +285,7 @@ func TestLoadUserEvents(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.GetStarredIdsFn = func(email string, year int) (*postgres.UserStarredEvents, error) {
+				stub.GetStarredIdsFn = func(ctx context.Context, email string, year int) (*postgres.UserStarredEvents, error) {
 					return &postgres.UserStarredEvents{
 						Email: email,
 						StarredEvents: []postgres.StarredEvent{
@@ -359,7 +359,7 @@ func TestGetUser(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.LoadOrCreateUserFn = func(email string) (*postgres.User, error) {
+				stub.LoadOrCreateUserFn = func(ctx context.Context, email string) (*postgres.User, error) {
 					return &postgres.User{Email: email, DisplayName: "Test User"}, nil
 				}
 			},
@@ -378,7 +378,7 @@ func TestGetUser(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.LoadOrCreateUserFn = func(email string) (*postgres.User, error) {
+				stub.LoadOrCreateUserFn = func(ctx context.Context, email string) (*postgres.User, error) {
 					return nil, fmt.Errorf("db error")
 				}
 			},
@@ -413,13 +413,13 @@ func TestEventSearchPost(t *testing.T) {
 	server, stub, _, games, r := setupTestServer()
 	server.RegisterRoutes(r.Group("/api"))
 
-	stub.SearchEventsFn = func(q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
+	stub.SearchEventsFn = func(ctx context.Context, q postgres.SearchQuery) ([]*postgres.EventGroup, error) {
 		if q.CategoryShortCode == "BGM" && q.Year == 2024 {
 			return []*postgres.EventGroup{{Name: "Board Game", EventId: "BGM123", Count: 1, GameSystem: "Catan"}}, nil
 		}
 		return []*postgres.EventGroup{}, nil
 	}
-	stub.LoadEventGroupsForCategoryFn = func(cat string, year int) ([]*postgres.EventGroup, error) {
+	stub.LoadEventGroupsForCategoryFn = func(ctx context.Context, cat string, year int) ([]*postgres.EventGroup, error) {
 		if cat == "BGM" && year == 2024 {
 			return []*postgres.EventGroup{{Name: "Board Game", EventId: "BGM123", Count: 1, GameSystem: "Catan"}}, nil
 		}
@@ -459,7 +459,7 @@ func TestStarEvent(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.UpdateStarredEventMinimalFn = func(email string, id string, tier string, related bool, add bool) (*postgres.UserStarredEvents, error) {
+				stub.UpdateStarredEventMinimalFn = func(ctx context.Context, email string, id string, tier string, related bool, add bool) (*postgres.UserStarredEvents, error) {
 					return &postgres.UserStarredEvents{Email: email}, nil
 				}
 			},
@@ -519,7 +519,7 @@ func TestGetStarredEvents(t *testing.T) {
 				auth.VerifyIDTokenFn = func(ctx context.Context, token string) (string, error) {
 					return "test@example.com", nil
 				}
-				stub.LoadStarredEventGroupsFn = func(email string, year int) ([]*postgres.EventGroup, error) {
+				stub.LoadStarredEventGroupsFn = func(ctx context.Context, email string, year int) ([]*postgres.EventGroup, error) {
 					return []*postgres.EventGroup{
 						{EventId: "BGM24123", Name: "Starred Event", ShortCategory: "BGM", GameSystem: "Catan", Count: 1, ThursTickets: 10},
 					}, nil
