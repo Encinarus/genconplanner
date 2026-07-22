@@ -100,8 +100,15 @@ export class NavbarComponent implements OnInit {
     }
   }
 
-  popupSignIn() {
-    this.authService.signIn();
+  async popupSignIn() {
+    await this.authService.signIn();
+    if (this.authService.user()) {
+      const urlTree = this.router.parseUrl(this.router.url);
+      const returnUrl = urlTree.queryParams['returnUrl'];
+      if (returnUrl) {
+        this.router.navigateByUrl(returnUrl);
+      }
+    }
   }
 
   async signOut() {
