@@ -67,3 +67,8 @@
     letter-spacing: 0.05rem;
     margin-top: 1rem;
 }
+
+.deferred-catalog-group {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 120px;
+}

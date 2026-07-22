@@ -12,46 +12,15 @@
                 </button>
             </div>
             
-            <div *ngIf="editingName()" class="d-flex flex-column gap-3 my-2" style="max-width: 400px;">
-                <div>
-                    <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Display Name</label>
-                    <input type="text" 
-                           class="form-control fw-bold border-primary" 
-                           [(ngModel)]="tempDisplayName" 
-                           (keyup.enter)="onSaveName()" 
-                           (keyup.esc)="onCancelEdit()">
-                </div>
-                <div>
-                    <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Gen Con Name</label>
-                    <input type="text" 
-                           class="form-control border-primary" 
-                           [(ngModel)]="tempGenconName" 
-                           (keyup.enter)="onSaveName()" 
-                           (keyup.esc)="onCancelEdit()"
-                           placeholder="Name on gencon.com">
-                </div>
-                <div>
-                    <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Gen Con ID</label>
-                    <input type="text" 
-                           class="form-control border-primary" 
-                           [(ngModel)]="tempGenconId" 
-                           (keyup.enter)="onSaveName()" 
-                           (keyup.esc)="onCancelEdit()"
-                           placeholder="e.g. 123456">
-                </div>
-                <div>
-                    <label class="form-label small text-muted mb-1 fw-bold text-uppercase">Gen Con Email</label>
-                    <input type="email" 
-                           class="form-control border-primary" 
-                           [(ngModel)]="tempGenconEmail" 
-                           (keyup.enter)="onSaveName()" 
-                           (keyup.esc)="onCancelEdit()"
-                           placeholder="e.g. user@example.com">
-                </div>
-                <div class="d-flex gap-2 mt-1">
-                    <button (click)="onSaveName()" class="btn btn-primary px-4">Save</button>
-                    <button (click)="onCancelEdit()" class="btn btn-light px-4">Cancel</button>
-                </div>
+            <div *ngIf="editingName()" style="max-width: 400px;">
+                <app-gencon-identity-form 
+                    [(displayName)]="tempDisplayName"
+                    [(genconName)]="tempGenconName"
+                    [(genconId)]="tempGenconId"
+                    [(genconEmail)]="tempGenconEmail"
+                    (save)="onSaveName()"
+                    (cancel)="onCancelEdit()">
+                </app-gencon-identity-form>
             </div>
             
             <div *ngIf="!editingName()" class="mt-2">

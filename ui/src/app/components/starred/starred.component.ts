@@ -17,12 +17,14 @@ import listPlugin from '@fullcalendar/list';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
+import { TierSelectorComponent } from '../tier-selector/tier-selector.component';
+
 declare var bootstrap: any;
 
 @Component({
   selector: 'app-starred',
   standalone: true,
-  imports: [CommonModule, RouterModule, FullCalendarModule, FormsModule],
+  imports: [CommonModule, RouterModule, FullCalendarModule, FormsModule, TierSelectorComponent],
   templateUrl: './starred.component.html',
   styleUrl: './starred.component.css'
 })
@@ -301,7 +303,7 @@ export class StarredComponent implements OnInit {
   };
 
   constructor() {
-    this.titleService.setTitle('Saved Events');
+    this.titleService.setTitle('My Events');
     
     // React to data changes from the service (cache or API)
     effect(() => {

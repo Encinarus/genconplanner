@@ -20,7 +20,7 @@
         <button class="rail-tab"
                 [class.active]="activeTab() === 'events'"
                 (click)="setTab('events')"
-                title="Shared Interests (Events)">
+                title="Shared Events">
             <i class="bi bi-calendar-heart fs-4"></i>
         </button>
 
@@ -185,27 +185,15 @@
                                         </div>
                                     </div>
 
-                                    <div *ngIf="editingMemberEmail() === member.email" class="d-flex flex-column gap-3 py-1">
-                                        <div>
-                                            <label class="form-label small text-muted mb-1 fw-bold text-uppercase smaller">Display Name</label>
-                                            <input type="text" class="form-control form-control-sm fw-bold border-primary shadow-sm" [(ngModel)]="tempMemberDisplayName" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()">
-                                        </div>
-                                        <div>
-                                            <label class="form-label small text-muted mb-1 fw-bold text-uppercase smaller">Gen Con Name</label>
-                                            <input type="text" class="form-control form-control-sm border-primary shadow-sm" [(ngModel)]="tempMemberGenconName" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="Name on gencon.com">
-                                        </div>
-                                        <div>
-                                            <label class="form-label small text-muted mb-1 fw-bold text-uppercase smaller">Gen Con ID</label>
-                                            <input type="text" class="form-control form-control-sm border-primary shadow-sm" [(ngModel)]="tempMemberGenconId" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="e.g. 123456">
-                                        </div>
-                                        <div>
-                                            <label class="form-label small text-muted mb-1 fw-bold text-uppercase smaller">Gen Con Email</label>
-                                            <input type="email" class="form-control form-control-sm border-primary shadow-sm" [(ngModel)]="tempMemberGenconEmail" (keyup.enter)="onSaveMember(member)" (keyup.esc)="onCancelEditMember()" placeholder="e.g. user@example.com">
-                                        </div>
-                                        <div class="d-flex gap-2 mt-2 pt-2 border-top">
-                                            <button (click)="onSaveMember(member)" class="btn btn-primary btn-sm px-3 shadow-sm flex-grow-1 fw-medium">Save</button>
-                                            <button (click)="onCancelEditMember()" class="btn btn-light btn-sm px-3 shadow-sm flex-grow-1 fw-medium">Cancel</button>
-                                        </div>
+                                    <div *ngIf="editingMemberEmail() === member.email">
+                                        <app-gencon-identity-form
+                                            [(displayName)]="tempMemberDisplayName"
+                                            [(genconName)]="tempMemberGenconName"
+                                            [(genconId)]="tempMemberGenconId"
+                                            [(genconEmail)]="tempMemberGenconEmail"
+                                            (save)="onSaveMember(member)"
+                                            (cancel)="onCancelEditMember()">
+                                        </app-gencon-identity-form>
                                     </div>
                                 </div>
                             </div>

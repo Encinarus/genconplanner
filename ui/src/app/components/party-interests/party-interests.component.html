@@ -187,37 +187,7 @@
                         <!-- Square Radio Button Group (Right Aligned, Solid Fill) -->
                         <div class="d-flex align-items-center gap-2 flex-shrink-0 mt-1">
                             <span class="text-muted small fw-bold px-2">My Interest:</span>
-                            <div class="btn-group btn-group-sm shadow-sm" role="group">
-                                <input type="radio" class="btn-check" [name]="'tier-' + g.clusterId" [id]="'purchased-' + g.clusterId" 
-                                       autocomplete="off" [checked]="getUserTier(g) === 'purchased'" (change)="onStar(g, 'purchased')">
-                                <label class="btn btn-outline-warning tier-btn" [for]="'purchased-' + g.clusterId" title="Purchased">
-                                    <i class="bi" [class.bi-ticket-perforated-fill]="getUserTier(g) === 'purchased'" [class.bi-ticket-perforated]="getUserTier(g) !== 'purchased'"></i>
-                                </label>
-
-                                <input type="radio" class="btn-check" [name]="'tier-' + g.clusterId" [id]="'must-' + g.clusterId" 
-                                       autocomplete="off" [checked]="getUserTier(g) === 'must_have'" (change)="onStar(g, 'must_have')">
-                                <label class="btn btn-outline-danger tier-btn" [for]="'must-' + g.clusterId" title="Must Have">
-                                    <i class="bi" [class.bi-heart-fill]="getUserTier(g) === 'must_have'" [class.bi-heart]="getUserTier(g) !== 'must_have'"></i>
-                                </label>
-
-                                <input type="radio" class="btn-check" [name]="'tier-' + g.clusterId" [id]="'very-' + g.clusterId" 
-                                       autocomplete="off" [checked]="getUserTier(g) === 'very_interested'" (change)="onStar(g, 'very_interested')">
-                                <label class="btn btn-outline-primary tier-btn" [for]="'very-' + g.clusterId" title="Very Interested">
-                                    <i class="bi" [class.bi-star-fill]="getUserTier(g) === 'very_interested'" [class.bi-star]="getUserTier(g) !== 'very_interested'"></i>
-                                </label>
-
-                                <input type="radio" class="btn-check" [name]="'tier-' + g.clusterId" [id]="'some-' + g.clusterId" 
-                                       autocomplete="off" [checked]="getUserTier(g) === 'somewhat_interested'" (change)="onStar(g, 'somewhat_interested')">
-                                <label class="btn btn-outline-secondary tier-btn" [for]="'some-' + g.clusterId" title="Somewhat Interested">
-                                    <i class="bi" [class.bi-hand-thumbs-up-fill]="getUserTier(g) === 'somewhat_interested'" [class.bi-hand-thumbs-up]="getUserTier(g) !== 'somewhat_interested'"></i>
-                                </label>
-
-                                <input type="radio" class="btn-check" [name]="'tier-' + g.clusterId" [id]="'not-' + g.clusterId" 
-                                       autocomplete="off" [checked]="getUserTier(g) === 'not_interested'" (change)="onStar(g, 'not_interested')">
-                                <label class="btn btn-outline-dark tier-btn" [for]="'not-' + g.clusterId" title="Not Interested">
-                                    <i class="bi bi-slash-circle"></i>
-                                </label>
-                            </div>
+                            <app-tier-selector [id]="g.clusterId" [namePrefix]="'tier'" [tier]="getUserTier(g)" [isGroup]="false" (tierChange)="onStar(g, $event)"></app-tier-selector>
                         </div>
                     </div>
 
@@ -232,13 +202,7 @@
                         <!-- Game System with BGG Link -->
                         <div class="mb-2 small">
                             <strong class="text-muted">Game System:</strong>
-                            <ng-container *ngIf="details.gameSystem.bggId; else noBgg">
-                                <span class="text-dark fw-medium ms-1">{{ details.gameSystem.name }}</span>
-                                <a [href]="'https://boardgamegeek.com/boardgame/' + details.gameSystem.bggId" target="_blank" class="text-decoration-none ms-2">
-                                    <i class="bi bi-link-45deg"></i> BGG<ng-container *ngIf="details.gameSystem.numBggRatings && details.gameSystem.numBggRatings >= 100"> {{ details.gameSystem.bggRating | number:'1.1-1' }}, {{ details.gameSystem.numBggRatings }} ratings</ng-container><ng-container *ngIf="details.gameSystem.yearPublished"> ({{ details.gameSystem.yearPublished }})</ng-container>
-                                </a>
-                            </ng-container>
-                            <ng-template #noBgg><span class="text-dark fw-medium ms-1">{{ details.gameSystem.name }}</span></ng-template>
+                            <app-bgg-link [gameSystem]="details.gameSystem" [smallFontSize]="'0.85rem'"></app-bgg-link>
                         </div>
 
                         <!-- Website -->

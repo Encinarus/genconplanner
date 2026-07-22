@@ -4,31 +4,7 @@
         <div>{{ e.title }}</div>
         <div class="d-flex align-items-center mt-2 flex-wrap gap-3">
             <div class="d-flex align-items-center gap-2">
-                <div class="btn-group btn-group-sm" role="group">
-                    <input type="radio" class="btn-check" [name]="'group-tier-' + e.eventId" [id]="'group-must-' + e.eventId" 
-                           autocomplete="off" [checked]="getGroupTier(e.eventId) === 'must_have'" (change)="setGroupTier(e.eventId, e.year, 'must_have')">
-                    <label class="btn btn-outline-danger tier-btn" [for]="'group-must-' + e.eventId" (click)="handleGroupTierClick(e.eventId, e.year, 'must_have')" title="Group Must Have">
-                        <i class="bi" [class.bi-heart-fill]="getGroupTier(e.eventId) === 'must_have'" [class.bi-heart]="getGroupTier(e.eventId) !== 'must_have'"></i>
-                    </label>
-            
-                    <input type="radio" class="btn-check" [name]="'group-tier-' + e.eventId" [id]="'group-very-' + e.eventId" 
-                           autocomplete="off" [checked]="getGroupTier(e.eventId) === 'very_interested'" (change)="setGroupTier(e.eventId, e.year, 'very_interested')">
-                    <label class="btn btn-outline-primary tier-btn" [for]="'group-very-' + e.eventId" (click)="handleGroupTierClick(e.eventId, e.year, 'very_interested')" title="Group Very Interested">
-                        <i class="bi" [class.bi-star-fill]="getGroupTier(e.eventId) === 'very_interested'" [class.bi-star]="getGroupTier(e.eventId) !== 'very_interested'"></i>
-                    </label>
-            
-                    <input type="radio" class="btn-check" [name]="'group-tier-' + e.eventId" [id]="'group-some-' + e.eventId" 
-                           autocomplete="off" [checked]="getGroupTier(e.eventId) === 'somewhat_interested'" (change)="setGroupTier(e.eventId, e.year, 'somewhat_interested')">
-                    <label class="btn btn-outline-secondary tier-btn" [for]="'group-some-' + e.eventId" (click)="handleGroupTierClick(e.eventId, e.year, 'somewhat_interested')" title="Group Somewhat Interested">
-                        <i class="bi" [class.bi-hand-thumbs-up-fill]="getGroupTier(e.eventId) === 'somewhat_interested'" [class.bi-hand-thumbs-up]="getGroupTier(e.eventId) !== 'somewhat_interested'"></i>
-                    </label>
-
-                    <input type="radio" class="btn-check" [name]="'group-tier-' + e.eventId" [id]="'group-not-' + e.eventId" 
-                           autocomplete="off" [checked]="getGroupTier(e.eventId) === 'not_interested'" (change)="setGroupTier(e.eventId, e.year, 'not_interested')">
-                    <label class="btn btn-outline-dark tier-btn" [for]="'group-not-' + e.eventId" (click)="handleGroupTierClick(e.eventId, e.year, 'not_interested')" title="Group Not Interested">
-                        <i class="bi bi-slash-circle"></i>
-                    </label>
-                </div>
+                <app-tier-selector [id]="e.eventId" [namePrefix]="'group-tier'" [tier]="getGroupTier(e.eventId)" [isGroup]="true" (tierChange)="setGroupTier(e.eventId, e.year, $event)" (labelClick)="handleGroupTierClick(e.eventId, e.year, $event)"></app-tier-selector>
             </div>
             <small class="text-muted" style="font-size: 1.2rem; font-weight: normal; line-height: 1.2">
                 {{ e.startTime | date:'EEE h:mm a' }} - {{ e.endTime | date:'EEE h:mm a' }}: {{ e.ticketsAvailable }} tickets, ${{ e.cost }} each
@@ -92,13 +68,7 @@
                 <div class="row">
                     <div class="col-md-2"><strong>Game System:</strong></div>
                     <div class="col-md-10">
-                        <ng-container *ngIf="e.gameSystem.bggId; else noBgg">
-                            {{ e.gameSystem.name }}
-                            <a [href]="'https://boardgamegeek.com/boardgame/' + e.gameSystem.bggId" target="_blank" class="text-decoration-none ms-2">
-                                <i class="bi bi-link-45deg"></i> BGG<ng-container *ngIf="e.gameSystem.numBggRatings && e.gameSystem.numBggRatings >= 100"> {{ e.gameSystem.bggRating | number:'1.1-1' }}, {{ e.gameSystem.numBggRatings }} ratings</ng-container><ng-container *ngIf="e.gameSystem.yearPublished"> ({{ e.gameSystem.yearPublished }})</ng-container>
-                            </a>
-                        </ng-container>
-                        <ng-template #noBgg>{{ e.gameSystem.name }}</ng-template>
+                        <app-bgg-link [gameSystem]="e.gameSystem"></app-bgg-link>
                     </div>
                 </div>
                 <div class="row">
@@ -166,7 +136,7 @@
                                     <div class="btn-group btn-group-sm" role="group">
                                         <input type="radio" class="btn-check" [name]="'session-tier-' + session.eventId" [id]="'session-purchased-' + session.eventId" 
                                                autocomplete="off" [checked]="getEventTier(session.eventId) === 'purchased'" (change)="setTier(session.eventId, e.year, 'purchased')">
-                                        <label class="btn btn-outline-warning tier-btn py-0 px-1" [for]="'session-purchased-' + session.eventId" (click)="handleTierClick(session.eventId, e.year, 'purchased')" title="Purchased Ticket" style="font-size: 0.75rem;">
+                                        <label class="btn btn-outline-warning tier-btn py-0 px-1" [for]="'session-purchased-' + session.eventId" (click)="handleTierClick(session.eventId, e.year, 'purchased')" title="Purchased" style="font-size: 0.75rem;">
                                             <i class="bi" [class.bi-ticket-perforated-fill]="getEventTier(session.eventId) === 'purchased'" [class.bi-ticket-perforated]="getEventTier(session.eventId) !== 'purchased'"></i>
                                         </label>
                                     </div>
@@ -225,7 +195,7 @@
                                     <div class="btn-group btn-group-sm" role="group">
                                         <input type="radio" class="btn-check" [name]="'session-tier-' + session.eventId" [id]="'session-purchased-' + session.eventId" 
                                                autocomplete="off" [checked]="getEventTier(session.eventId) === 'purchased'" (change)="setTier(session.eventId, e.year, 'purchased')">
-                                        <label class="btn btn-outline-warning tier-btn py-0 px-1" [for]="'session-purchased-' + session.eventId" (click)="handleTierClick(session.eventId, e.year, 'purchased')" title="Purchased Ticket" style="font-size: 0.75rem;">
+                                        <label class="btn btn-outline-warning tier-btn py-0 px-1" [for]="'session-purchased-' + session.eventId" (click)="handleTierClick(session.eventId, e.year, 'purchased')" title="Purchased" style="font-size: 0.75rem;">
                                             <i class="bi" [class.bi-ticket-perforated-fill]="getEventTier(session.eventId) === 'purchased'" [class.bi-ticket-perforated]="getEventTier(session.eventId) !== 'purchased'"></i>
                                         </label>
                                     </div>

@@ -8,10 +8,13 @@ import { LinkService } from '../../services/link.service';
 import { PartyService } from '../../services/party.service';
 import { Title } from '@angular/platform-browser';
 
+import { TierSelectorComponent } from '../tier-selector/tier-selector.component';
+import { BggLinkComponent } from '../bgg-link/bgg-link.component';
+
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TierSelectorComponent, BggLinkComponent],
   templateUrl: './event-detail.component.html',
   styleUrl: './event-detail.component.css'
 })

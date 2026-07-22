@@ -8,10 +8,12 @@ import { PartyService } from '../../services/party.service';
 import { Title } from '@angular/platform-browser';
 import { AgendaComponent } from '../agenda/agenda.component';
 
+import { GenconIdentityFormComponent } from '../gencon-identity-form/gencon-identity-form.component';
+
 @Component({
   selector: 'app-user',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, AgendaComponent],
+  imports: [CommonModule, FormsModule, RouterModule, AgendaComponent, GenconIdentityFormComponent],
   templateUrl: './user.component.html',
   styleUrl: './user.component.css'
 })

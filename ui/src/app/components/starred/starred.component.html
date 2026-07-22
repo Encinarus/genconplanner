@@ -1,7 +1,7 @@
 <div class="container">
     <h1 class="pb-2 pt-4 mt-4 mb-3 border-bottom d-flex justify-content-between align-items-center">
         <div>
-            My Saved Events
+            My Events
             <small class="text-muted" style="font-size: 1.4rem; font-weight: normal">
                 {{ year() }} - {{ starredList().length }} events <span *ngIf="email()">({{ email() }})</span>
             </small>
@@ -14,7 +14,7 @@
                 <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'calendar'" (click)="setViewMode('calendar')">Calendar</a>
             </li>
             <li class="nav-item">
-                <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'list'" (click)="setViewMode('list')">By Type</a>
+                <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'list'" (click)="setViewMode('list')">Category</a>
             </li>
             <li class="nav-item">
                 <a href="javascript:void(0)" class="nav-link" [class.active]="viewMode() === 'wishlist'" (click)="setViewMode('wishlist')">Wishlist</a>
@@ -93,31 +93,7 @@
                                     <i *ngIf="evGroup.events.length > 1" class="bi text-muted" [style.cursor]="'pointer'" (click)="toggleEventGroup(evGroup.key)" [class.bi-plus-square]="isEventGroupCollapsed(evGroup.key)" [class.bi-dash-square]="!isEventGroupCollapsed(evGroup.key)"></i>
                                     <div *ngIf="evGroup.events.length === 1" style="width: 16px;"></div>
                                     
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <input type="radio" class="btn-check" [name]="'group-tier-' + evGroup.repEventId" [id]="'group-must-' + evGroup.repEventId" 
-                                               autocomplete="off" [checked]="evGroup.groupTier === 'must_have'" (change)="updateGroupTier(evGroup.repEventId, 'must_have')">
-                                        <label class="btn btn-outline-danger tier-btn" [for]="'group-must-' + evGroup.repEventId" (click)="handleGroupTierClick(evGroup, 'must_have')" title="Group Must Have">
-                                            <i class="bi" [class.bi-heart-fill]="evGroup.groupTier === 'must_have'" [class.bi-heart]="evGroup.groupTier !== 'must_have'"></i>
-                                        </label>
-                                
-                                        <input type="radio" class="btn-check" [name]="'group-tier-' + evGroup.repEventId" [id]="'group-very-' + evGroup.repEventId" 
-                                               autocomplete="off" [checked]="evGroup.groupTier === 'very_interested'" (change)="updateGroupTier(evGroup.repEventId, 'very_interested')">
-                                        <label class="btn btn-outline-primary tier-btn" [for]="'group-very-' + evGroup.repEventId" (click)="handleGroupTierClick(evGroup, 'very_interested')" title="Group Very Interested">
-                                            <i class="bi" [class.bi-star-fill]="evGroup.groupTier === 'very_interested'" [class.bi-star]="evGroup.groupTier !== 'very_interested'"></i>
-                                        </label>
-                                
-                                        <input type="radio" class="btn-check" [name]="'group-tier-' + evGroup.repEventId" [id]="'group-some-' + evGroup.repEventId" 
-                                               autocomplete="off" [checked]="evGroup.groupTier === 'somewhat_interested'" (change)="updateGroupTier(evGroup.repEventId, 'somewhat_interested')">
-                                        <label class="btn btn-outline-secondary tier-btn" [for]="'group-some-' + evGroup.repEventId" (click)="handleGroupTierClick(evGroup, 'somewhat_interested')" title="Group Somewhat Interested">
-                                            <i class="bi" [class.bi-hand-thumbs-up-fill]="evGroup.groupTier === 'somewhat_interested'" [class.bi-hand-thumbs-up]="evGroup.groupTier !== 'somewhat_interested'"></i>
-                                        </label>
-
-                                        <input type="radio" class="btn-check" [name]="'group-tier-' + evGroup.repEventId" [id]="'group-not-' + evGroup.repEventId" 
-                                               autocomplete="off" [checked]="evGroup.groupTier === 'not_interested'" (change)="updateGroupTier(evGroup.repEventId, 'not_interested')">
-                                        <label class="btn btn-outline-dark tier-btn" [for]="'group-not-' + evGroup.repEventId" (click)="handleGroupTierClick(evGroup, 'not_interested')" title="Group Not Interested">
-                                            <i class="bi bi-slash-circle"></i>
-                                        </label>
-                                    </div>
+                                    <app-tier-selector [id]="evGroup.repEventId" [namePrefix]="'group-tier'" [tier]="evGroup.groupTier" [isGroup]="true" (tierChange)="updateGroupTier(evGroup.repEventId, $event)" (labelClick)="handleGroupTierClick(evGroup, $event)"></app-tier-selector>
                                 </div>
 
                                 <div class="d-flex align-items-center"
@@ -138,37 +114,7 @@
                                 <div *ngFor="let event of evGroup.events" class="event-row mb-2 py-2 border-bottom-dashed d-flex align-items-center justify-content-between flex-wrap gap-2">
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="tier-selector" [style.opacity]="event.isOverride ? '1' : '0.5'">
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'purchased-' + event.eventId" 
-                                                       autocomplete="off" [checked]="event.tier === 'purchased'" (change)="updateTier(event.eventId, 'purchased')">
-                                                <label class="btn btn-outline-warning tier-btn" [for]="'purchased-' + event.eventId" (click)="handleTierClick(event, 'purchased')" title="Purchased Ticket">
-                                                    <i class="bi" [class.bi-ticket-perforated-fill]="event.tier === 'purchased'" [class.bi-ticket-perforated]="event.tier !== 'purchased'"></i>
-                                                </label>
-
-                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'must-' + event.eventId" 
-                                                       autocomplete="off" [checked]="event.tier === 'must_have'" (change)="updateTier(event.eventId, 'must_have')">
-                                                <label class="btn btn-outline-danger tier-btn" [for]="'must-' + event.eventId" (click)="handleTierClick(event, 'must_have')" title="Must Have">
-                                                    <i class="bi" [class.bi-heart-fill]="event.tier === 'must_have'" [class.bi-heart]="event.tier !== 'must_have'"></i>
-                                                </label>
-                                        
-                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'very-' + event.eventId" 
-                                                       autocomplete="off" [checked]="event.tier === 'very_interested'" (change)="updateTier(event.eventId, 'very_interested')">
-                                                <label class="btn btn-outline-primary tier-btn" [for]="'very-' + event.eventId" (click)="handleTierClick(event, 'very_interested')" title="Very Interested">
-                                                    <i class="bi" [class.bi-star-fill]="event.tier === 'very_interested'" [class.bi-star]="event.tier !== 'very_interested'"></i>
-                                                </label>
-                                        
-                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'some-' + event.eventId" 
-                                                       autocomplete="off" [checked]="event.tier === 'somewhat_interested'" (change)="updateTier(event.eventId, 'somewhat_interested')">
-                                                <label class="btn btn-outline-secondary tier-btn" [for]="'some-' + event.eventId" (click)="handleTierClick(event, 'somewhat_interested')" title="Somewhat Interested">
-                                                    <i class="bi" [class.bi-hand-thumbs-up-fill]="event.tier === 'somewhat_interested'" [class.bi-hand-thumbs-up]="event.tier !== 'somewhat_interested'"></i>
-                                                </label>
-
-                                                <input type="radio" class="btn-check" [name]="'tier-' + event.eventId" [id]="'not-' + event.eventId" 
-                                                       autocomplete="off" [checked]="event.tier === 'not_interested'" (change)="updateTier(event.eventId, 'not_interested')">
-                                                <label class="btn btn-outline-dark tier-btn" [for]="'not-' + event.eventId" (click)="handleTierClick(event, 'not_interested')" title="Not Interested">
-                                                    <i class="bi bi-slash-circle"></i>
-                                                </label>
-                                            </div>
+                                            <app-tier-selector [id]="event.eventId" [namePrefix]="'tier'" [tier]="event.tier" [isGroup]="false" (tierChange)="updateTier(event.eventId, $event)" (labelClick)="handleTierClick(event, $event)"></app-tier-selector>
                                         </div>
 
                                         <a [href]="event.genconUrl" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 flex-shrink-0" style="font-size: 0.75rem;">
@@ -445,7 +391,7 @@
                                 </div>
                             </div>
                             <button class="btn btn-outline-danger w-100 py-2 mt-3 fw-semibold" (click)="onClearAll()">
-                                <i class="bi bi-x-circle me-2"></i> Clear {{ year() }} Saved Events
+                                <i class="bi bi-x-circle me-2"></i> Clear {{ year() }} Events
                             </button>
                         </div>
                     </div>
@@ -460,7 +406,7 @@
                                 </div>
                                 <h2 class="h5 mb-0 fw-bold">Bulk Update</h2>
                             </div>
-                            <p class="text-muted small">Paste event IDs or URLs to update your {{ year() }} saved events.</p>
+                            <p class="text-muted small">Paste event IDs or URLs to update your {{ year() }} events.</p>
                         </div>
                         <div class="card-body px-4 pb-4">
                             <div class="form-group mb-3">

@@ -7,10 +7,13 @@ import { PartyStreamService } from '../../services/party-stream.service';
 import { AuthService } from '../../services/auth.service';
 import { LinkService } from '../../services/link.service';
 
+import { TierSelectorComponent } from '../tier-selector/tier-selector.component';
+import { BggLinkComponent } from '../bgg-link/bgg-link.component';
+
 @Component({
   selector: 'app-party-interests',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, TierSelectorComponent, BggLinkComponent],
   templateUrl: './party-interests.component.html',
   styleUrl: './party-interests.component.css'
 })

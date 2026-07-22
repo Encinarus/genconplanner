@@ -19,7 +19,7 @@
                         </li>
                     </ul>
                 </li>
-                <li *ngIf="displayName()" class="nav-item"><a [routerLink]="linkService.getStarredRouterLink(year())" class="nav-link">My Saved Events</a></li>
+                <li *ngIf="displayName()" class="nav-item"><a [routerLink]="linkService.getStarredRouterLink(year())" class="nav-link">My Events</a></li>
                 <li *ngIf="displayName()" class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="javascript:void(0)" id="userInfoDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         My Info
@@ -29,10 +29,10 @@
                         <li *ngIf="partyForCurrentYear() as p"><a class="dropdown-item" [routerLink]="['/party', p.year]">Party: {{ p.name }}</a></li>
                         <li *ngIf="isAdmin()"><a class="dropdown-item" [routerLink]="['/admin/orgs']">Merge Organizers</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="javascript:void(0)" (click)="signOut()">Sign out</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" (click)="signOut()">Log out</a></li>
                     </ul>
                 </li>
-                <li *ngIf="!displayName()" class="nav-link"><a href="javascript:void(0)" (click)="popupSignIn()">Signin</a></li>
+                <li *ngIf="!displayName()" class="nav-link"><a href="javascript:void(0)" (click)="popupSignIn()">Log in</a></li>
                 <li class="nav-item"><a [routerLink]="linkService.getAboutRouterLink()" class="nav-link">About</a></li>
             </ul>
             <form class="form-inline ms-auto d-flex" (submit)="onSearch($event)">

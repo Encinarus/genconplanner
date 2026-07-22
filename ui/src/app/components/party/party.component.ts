@@ -39,10 +39,12 @@ export interface GroupContainer {
   events: EventGroupView[];
 }
 
+import { GenconIdentityFormComponent } from '../gencon-identity-form/gencon-identity-form.component';
+
 @Component({
   selector: 'app-party',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PartyInterestsComponent],
+  imports: [CommonModule, FormsModule, RouterModule, PartyInterestsComponent, GenconIdentityFormComponent],
   templateUrl: './party.component.html',
   styleUrl: './party.component.css'
 })
