@@ -72,3 +72,45 @@
     content-visibility: auto;
     contain-intrinsic-size: auto 120px;
 }
+
+/* Expandable Filter Drawer CSS */
+.filter-drawer-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.filter-drawer-wrapper.open {
+    grid-template-rows: 1fr;
+}
+
+.filter-drawer-inner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Angled Bottom Tab Close Button */
+.filter-drawer-tab-btn {
+    width: 65%;
+    max-width: 550px;
+    height: 24px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-bottom: none;
+    clip-path: polygon(16px 0%, calc(100% - 16px) 0%, 100% 100%, 0% 100%);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    color: #495057;
+    padding: 0;
+    line-height: 1;
+}
+
+.filter-drawer-tab-btn:hover {
+    background-color: #dee2e6;
+    color: #212529;
+}

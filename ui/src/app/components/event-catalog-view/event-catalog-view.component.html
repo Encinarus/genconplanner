@@ -2,19 +2,15 @@
 <div class="sticky-top bg-white border-bottom shadow-sm transition-all" 
      [class.no-transition]="isScrollingToAnchor()"
      style="z-index: 1020; top: 50px;">
-    <div class="container d-flex justify-content-between align-items-center transition-all"
-         [class.py-2]="scrolled()" 
-         [class.py-4]="!scrolled()">
-        <h1 class="mb-0 transition-all" 
-            [class.no-transition]="isScrollingToAnchor()"
-            [style.font-size]="scrolled() ? '1.5rem' : '2.5rem'">
+    <div class="container d-flex justify-content-between align-items-center py-2">
+        <h1 class="mb-0" style="font-size: 1.5rem;">
             <ng-container *ngIf="mode() === 'category'; else searchTitle">
                 {{ categoryCode() }}: {{ categoryName() }}
             </ng-container>
             <ng-template #searchTitle>
                 Search Results
             </ng-template>
-            <small class="text-muted d-none d-sm-inline" [style.font-size]="scrolled() ? '1rem' : '1.4rem'">
+            <small class="text-muted d-none d-sm-inline" style="font-size: 1rem;">
                 <ng-container *ngIf="mode() === 'search'">"{{ searchQuery() }}" - </ng-container>{{ totalSessionsCount() }} events / {{ filteredGroupsCount() }} groups
             </small>
         </h1>
@@ -41,89 +37,98 @@
         </div>
     </div>
 
-    <!-- Advanced Filters Drawer -->
-    <div class="bg-light border-top shadow-inner animate-fade-in" *ngIf="showAdvancedFilters()">
-        <div class="container py-3">
-            <div class="row g-3">
-                <!-- Column 1: Keyword Search, Schedule & Min Tickets -->
-                <div [class]="showCategoryFilter() ? 'col-md-3 col-sm-6 col-12' : 'col-md-4 col-sm-6 col-12'">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="keywordSearchInput">Keywords</label>
-                        <div class="input-group input-group-sm">
-                            <input id="keywordSearchInput" type="text" class="form-control" [value]="localSearchQuery()" (input)="localSearchQuery.set($any($event.target).value)" (keyup.enter)="onSearchQuerySubmit()" placeholder="Search terms...">
-                            <button class="btn btn-primary animate-fade-in" type="button" (click)="onSearchQuerySubmit()">Search</button>
+    <!-- Advanced Filters Expandable Drawer -->
+    <div class="filter-drawer-wrapper bg-light border-top shadow-inner" [class.open]="showAdvancedFilters()">
+        <div class="filter-drawer-inner">
+            <div class="container pt-3 pb-0">
+                <div class="row g-3">
+                    <!-- Column 1: Keyword Search, Schedule & Min Tickets -->
+                    <div [class]="showCategoryFilter() ? 'col-md-3 col-sm-6 col-12' : 'col-md-4 col-sm-6 col-12'">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="keywordSearchInput">Keywords</label>
+                            <div class="input-group input-group-sm">
+                                <input id="keywordSearchInput" type="text" class="form-control" [value]="localSearchQuery()" (input)="localSearchQuery.set($any($event.target).value)" (keyup.enter)="onSearchQuerySubmit()" placeholder="Search terms...">
+                                <button class="btn btn-primary animate-fade-in" type="button" (click)="onSearchQuerySubmit()">Search</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1">Schedule</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="filterFreeGlobal" [checked]="filterFree()" [disabled]="!auth.user()" (change)="toggleFilterFree()">
+                                <label class="form-check-label small" for="filterFreeGlobal" [class.text-muted]="!auth.user()">When I'm free</label>
+                            </div>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.72rem; line-height: 1.1;" *ngIf="!auth.user()">Log in to filter by schedule</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1">Availability</label>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="hideSoldOut" [checked]="hideSoldOut()" (change)="toggleHideSoldOut()">
+                                <label class="form-check-label small" for="hideSoldOut">Hide Sold Out</label>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="minTicketsGlobal">Min Tickets Available</label>
+                            <input type="number" id="minTicketsGlobal" class="form-control form-control-sm" [value]="minTickets() !== null ? minTickets() : ''" (input)="setMinTickets($event)" min="0" placeholder="Any">
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">Schedule</label>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="filterFreeGlobal" [checked]="filterFree()" [disabled]="!auth.user()" (change)="toggleFilterFree()">
-                            <label class="form-check-label small" for="filterFreeGlobal" [class.text-muted]="!auth.user()">When I'm free</label>
-                        </div>
-                        <small class="text-muted d-block mt-1" style="font-size: 0.72rem; line-height: 1.1;" *ngIf="!auth.user()">Log in to filter by schedule</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">Availability</label>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="hideSoldOut" [checked]="hideSoldOut()" (change)="toggleHideSoldOut()">
-                            <label class="form-check-label small" for="hideSoldOut">Hide Sold Out</label>
+                    
+                    <!-- Column 2: Days of Week -->
+                    <div [class]="showCategoryFilter() ? 'col-md-3 col-sm-6 col-12' : 'col-md-4 col-sm-6 col-12'">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">Days of Week</label>
+                        <div class="vstack gap-1">
+                            <div class="form-check" *ngFor="let day of ['wed', 'thu', 'fri', 'sat', 'sun']">
+                                <input class="form-check-input" type="checkbox" [id]="'day-global-' + day" [checked]="selectedDays().has(day)" (change)="toggleDay(day)">
+                                <label class="form-check-label small text-capitalize" [for]="'day-global-' + day">
+                                    {{ day === 'thu' ? 'Thursday' : day === 'wed' ? 'Wednesday' : day === 'fri' ? 'Friday' : day === 'sat' ? 'Saturday' : 'Sunday' }}
+                                </label>
+                            </div>
                         </div>
                     </div>
-                    <div class="mb-0">
-                        <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="minTicketsGlobal">Min Tickets Available</label>
-                        <input type="number" id="minTicketsGlobal" class="form-control form-control-sm" [value]="minTickets() !== null ? minTickets() : ''" (input)="setMinTickets($event)" min="0" placeholder="Any">
+
+                    <!-- Column 3: BGG Rating & Release Year -->
+                    <div [class]="showCategoryFilter() ? 'col-md-3 col-sm-6 col-12' : 'col-md-4 col-12'">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="minBggRatingGlobal">Min BGG Rating</label>
+                            <input type="number" id="minBggRatingGlobal" class="form-control form-control-sm" [value]="minBggRating() !== null ? minBggRating() : ''" (input)="setMinBggRating($event)" min="0" max="10" step="0.5" placeholder="Any">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="minYearPublishedGlobal">Min Release Year</label>
+                            <input type="number" id="minYearPublishedGlobal" class="form-control form-control-sm" [value]="minYearPublished() !== null ? minYearPublished() : ''" (input)="setMinYearPublished($event)" min="1900" max="2030" placeholder="Any">
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Column 2: Days of Week -->
-                <div [class]="showCategoryFilter() ? 'col-md-3 col-sm-6 col-12' : 'col-md-4 col-sm-6 col-12'">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Days of Week</label>
-                    <div class="vstack gap-1">
-                        <div class="form-check" *ngFor="let day of ['wed', 'thu', 'fri', 'sat', 'sun']">
-                            <input class="form-check-input" type="checkbox" [id]="'day-global-' + day" [checked]="selectedDays().has(day)" (change)="toggleDay(day)">
-                            <label class="form-check-label small text-capitalize" [for]="'day-global-' + day">
-                                {{ day === 'thu' ? 'Thursday' : day === 'wed' ? 'Wednesday' : day === 'fri' ? 'Friday' : day === 'sat' ? 'Saturday' : 'Sunday' }}
-                            </label>
+
+                    <!-- Column 4: Categories Auto-Complete (Optional for Search) -->
+                    <div *ngIf="showCategoryFilter()" class="col-md-3 col-sm-6 col-12 position-relative">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">Categories</label>
+                        <div class="d-flex flex-wrap align-items-center gap-1 border rounded p-1 bg-white cursor-text" (click)="focusCategoryInput(catInput)" style="min-height: 38px;">
+                            <span *ngFor="let catCode of selectedCategories()" class="badge bg-secondary d-flex align-items-center gap-1 py-1 px-2 text-wrap text-start" style="font-size: 0.75rem;">
+                                {{ categoryMap[catCode] || catCode }}
+                                <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem; padding: 2px;" (click)="toggleCategory(catCode); $event.stopPropagation();" aria-label="Remove"></button>
+                            </span>
+                            <input #catInput type="text" class="border-0 flex-grow-1 p-1 small" style="outline: none; min-width: 80px;" placeholder="Search categories..." [value]="categorySearchQuery()" (input)="onCategorySearchInput($event)" (focus)="showCategoryDropdown.set(true)" (blur)="onCategorySearchBlur()">
+                        </div>
+                        <div *ngIf="showCategoryDropdown() && filteredCategories().length > 0" class="position-absolute bg-white border rounded shadow mt-1" style="max-height: 200px; overflow-y: auto; z-index: 1050; left: 12px; right: 12px;">
+                            <button type="button" *ngFor="let cat of filteredCategories()" class="dropdown-item text-start small py-1.5 px-3 text-wrap" (mousedown)="selectCategory(cat.code)">
+                                {{ cat.name }} ({{ cat.code }})
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Column 3: BGG Rating & Release Year -->
-                <div [class]="showCategoryFilter() ? 'col-md-3 col-sm-6 col-12' : 'col-md-4 col-12'">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="minBggRatingGlobal">Min BGG Rating</label>
-                        <input type="number" id="minBggRatingGlobal" class="form-control form-control-sm" [value]="minBggRating() !== null ? minBggRating() : ''" (input)="setMinBggRating($event)" min="0" max="10" step="0.5" placeholder="Any">
-                    </div>
-                    <div class="mb-0">
-                        <label class="form-label fw-bold small text-muted text-uppercase mb-1" for="minYearPublishedGlobal">Min Release Year</label>
-                        <input type="number" id="minYearPublishedGlobal" class="form-control form-control-sm" [value]="minYearPublished() !== null ? minYearPublished() : ''" (input)="setMinYearPublished($event)" min="1900" max="2030" placeholder="Any">
-                    </div>
-                </div>
-
-                <!-- Column 4: Categories Auto-Complete (Optional for Search) -->
-                <div *ngIf="showCategoryFilter()" class="col-md-3 col-sm-6 col-12 position-relative">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Categories</label>
-                    <div class="d-flex flex-wrap align-items-center gap-1 border rounded p-1 bg-white cursor-text" (click)="focusCategoryInput(catInput)" style="min-height: 38px;">
-                        <span *ngFor="let catCode of selectedCategories()" class="badge bg-secondary d-flex align-items-center gap-1 py-1 px-2 text-wrap text-start" style="font-size: 0.75rem;">
-                            {{ categoryMap[catCode] || catCode }}
-                            <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem; padding: 2px;" (click)="toggleCategory(catCode); $event.stopPropagation();" aria-label="Remove"></button>
-                        </span>
-                        <input #catInput type="text" class="border-0 flex-grow-1 p-1 small" style="outline: none; min-width: 80px;" placeholder="Search categories..." [value]="categorySearchQuery()" (input)="onCategorySearchInput($event)" (focus)="showCategoryDropdown.set(true)" (blur)="onCategorySearchBlur()">
-                    </div>
-                    <div *ngIf="showCategoryDropdown() && filteredCategories().length > 0" class="position-absolute bg-white border rounded shadow mt-1" style="max-height: 200px; overflow-y: auto; z-index: 1050; left: 12px; right: 12px;">
-                        <button type="button" *ngFor="let cat of filteredCategories()" class="dropdown-item text-start small py-1.5 px-3 text-wrap" (mousedown)="selectCategory(cat.code)">
-                            {{ cat.name }} ({{ cat.code }})
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Reset Button Row -->
-            <div class="row mt-3">
-                <div class="col-12 text-end">
-                    <button class="btn btn-sm btn-outline-secondary animate-fade-in" type="button" (click)="resetFilters()" *ngIf="activeFiltersCount() > 0">
+                <!-- Optional Reset Filters Row -->
+                <div class="d-flex justify-content-end mt-2 mb-1" *ngIf="activeFiltersCount() > 0">
+                    <button class="btn btn-sm btn-outline-secondary animate-fade-in py-0.5 px-2" style="font-size: 0.78rem;" type="button" (click)="resetFilters()">
                         <i class="bi bi-x-circle me-1"></i>Reset Filters
                     </button>
+                </div>
+
+                <!-- Flush Angled Close Tab Row -->
+                <div class="row mt-1 mb-0">
+                    <div class="col-12 text-center p-0">
+                        <button type="button" class="btn filter-drawer-tab-btn" (click)="showAdvancedFilters.set(false)" title="Close Filters">
+                            <i class="bi bi-chevron-double-up fs-6"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
