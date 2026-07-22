@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, ViewChild, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -8,6 +8,7 @@ import { PartyService } from '../../services/party.service';
 import { Title } from '@angular/platform-browser';
 import { PartyInterestsComponent } from '../party-interests/party-interests.component';
 import { forkJoin } from 'rxjs';
+import { GenconCalendarComponent, GenconCalendarEventItem } from '../gencon-calendar/gencon-calendar.component';
 
 export interface PurchaserGroupView {
   purchaserDisplayName: string;
@@ -44,7 +45,7 @@ import { GenconIdentityFormComponent } from '../gencon-identity-form/gencon-iden
 @Component({
   selector: 'app-party',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PartyInterestsComponent, GenconIdentityFormComponent],
+  imports: [CommonModule, FormsModule, RouterModule, GenconCalendarComponent, PartyInterestsComponent, GenconIdentityFormComponent],
   templateUrl: './party.component.html',
   styleUrl: './party.component.css'
 })
@@ -70,6 +71,11 @@ export class PartyComponent implements OnInit {
   newLeaderEmail = signal<string>('');
   
   activeTab = signal<'events' | 'members' | 'calendar' | 'tickets' | 'settings'>('events');
+
+  // Merged Party Calendar State & Controls
+  calendarDisplayMode = signal<'all' | 'highlight_mine' | 'only_mine' | 'exclude_mine'>('all');
+  calendarMemberFilter = signal<string>('all');
+  genconCalendarEvents = signal<GenconCalendarEventItem[]>([]);
 
   // Member editing state
   editingMemberEmail = signal<string | null>(null);
@@ -356,6 +362,104 @@ export class PartyComponent implements OnInit {
 
   @ViewChild(PartyInterestsComponent) partyInterests?: PartyInterestsComponent;
 
+  constructor() {
+    this.titleService.setTitle('Party');
+    effect(() => {
+      this.tickets();
+      this.calendarDisplayMode();
+      this.calendarMemberFilter();
+      this.party();
+      this.auth.user();
+      this.updatePartyCalendarEvents();
+    });
+  }
+
+  updatePartyCalendarEvents(): void {
+    const rawTickets = this.tickets() || [];
+    const activePurchasedTickets = rawTickets.filter(t => t.ticketStatus !== 'returned');
+    const userEmail = this.auth.user()?.email?.toLowerCase();
+    const mode = this.calendarDisplayMode();
+    const memberFilter = this.calendarMemberFilter();
+
+    const eventMap = new Map<string, PartyTicket[]>();
+    for (const t of activePurchasedTickets) {
+      const eid = t.eventId || t.eventTitle || 'Unknown';
+      if (!eventMap.has(eid)) {
+        eventMap.set(eid, []);
+      }
+      eventMap.get(eid)!.push(t);
+    }
+
+    const calendarEvents: any[] = [];
+
+    for (const [eid, ticketsForEvent] of eventMap.entries()) {
+      const first = ticketsForEvent[0];
+      const title = first.eventTitle || eid;
+      const location = first.eventLocation || '';
+      const catCode = first.categoryCode || first.eventCategory || (eid && eid.length >= 3 ? eid.substring(0, 3).toUpperCase() : '');
+      const startTime = first.eventStartTime;
+
+      const holderMap = new Map<string, string>();
+      const purchaserSet = new Set<string>();
+
+      for (const t of ticketsForEvent) {
+        const hEmail = t.holderEmail?.toLowerCase() || '';
+        const hName = t.holderDisplayName || t.holderEmail || 'Unknown Holder';
+        if (hEmail) holderMap.set(hEmail, hName);
+        else if (hName) holderMap.set(hName, hName);
+
+        const pName = t.genconPurchaserName || t.purchaserEmail || 'Unknown Purchaser';
+        purchaserSet.add(pName);
+      }
+
+      const holderEmails = Array.from(holderMap.keys());
+      const holderNames = Array.from(holderMap.values());
+      const purchaserNames = Array.from(purchaserSet);
+
+      const isMine = !!(userEmail && holderEmails.includes(userEmail));
+
+      if (memberFilter !== 'all') {
+        const filterLower = memberFilter.toLowerCase();
+        const matchesMember = holderEmails.some(e => e === filterLower) ||
+          ticketsForEvent.some(t => t.purchaserEmail?.toLowerCase() === filterLower);
+        if (!matchesMember) continue;
+      }
+
+      if (mode === 'only_mine' && !isMine) continue;
+      if (mode === 'exclude_mine' && isMine) continue;
+
+      if (!startTime) continue;
+      const startDate = new Date(startTime);
+      if (isNaN(startDate.getTime())) continue;
+      if (startDate.getFullYear() < 2000) continue; // Ignore 1970 placeholders
+
+      let endDate: Date;
+      if (first.eventEndTime) {
+        const d = new Date(first.eventEndTime);
+        endDate = !isNaN(d.getTime()) ? d : new Date(startDate.getTime() + 2 * 3600 * 1000);
+      } else if (first.eventDuration) {
+        endDate = new Date(startDate.getTime() + first.eventDuration * 3600 * 1000);
+      } else {
+        endDate = new Date(startDate.getTime() + 2 * 3600 * 1000);
+      }
+
+      calendarEvents.push({
+        id: eid,
+        title: title,
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
+        url: `/event/${eid}`,
+        categoryCode: catCode,
+        location: location,
+        isMine: isMine,
+        holderNames: holderNames,
+        purchaserNames: purchaserNames
+      });
+    }
+
+    this.genconCalendarEvents.set(calendarEvents);
+  }
+
   ngOnInit() {
     this.route.params.subscribe(params => {
       const id = params['id'];
@@ -370,7 +474,7 @@ export class PartyComponent implements OnInit {
         if (oldTab !== tab && this.party()) {
           if (tab === 'events' && this.partyInterests) {
             this.partyInterests.loadInterests(true);
-          } else if (tab === 'tickets') {
+          } else if (tab === 'tickets' || tab === 'calendar') {
             this.fetchTickets();
           } else if (tab === 'members' || tab === 'settings') {
             this.loadParty(this.party()!.id, true);
@@ -382,6 +486,9 @@ export class PartyComponent implements OnInit {
 
   setTab(tab: 'events' | 'members' | 'calendar' | 'tickets' | 'settings') {
     const p = this.party();
+    if (tab === 'tickets' || tab === 'calendar') {
+      this.fetchTickets();
+    }
     if (p) {
       const fragment = tab === 'events' ? this.route.snapshot.fragment : undefined;
       this.router.navigate(['/party', p.year, tab], { fragment: fragment || undefined });
@@ -402,9 +509,8 @@ export class PartyComponent implements OnInit {
         this.updateRoles();
         if (!background) this.loading.set(false);
 
-        if (this.activeTab() === 'tickets') {
-          this.fetchTickets();
-        }
+        // Always fetch party tickets to ensure calendar & ticket views stay hydrated
+        this.fetchTickets();
 
         const currentParam = this.route.snapshot.params['id'];
         if (this.isMember() && currentParam !== party.year.toString()) {

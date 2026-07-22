@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
-import Cookies from 'js-cookie';
 import { AuthService } from './auth.service';
 
 const mockGetAuth = vi.fn(() => ({ name: 'mock-auth' }));

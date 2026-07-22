@@ -34,7 +34,7 @@
         <button class="rail-tab"
                 [class.active]="activeTab() === 'calendar'"
                 (click)="setTab('calendar')"
-                title="War Room Calendar">
+                title="Party Calendar">
             <i class="bi bi-calendar-week fs-4"></i>
         </button>
 
@@ -202,10 +202,54 @@
                 </div>
 
                 <!-- Tab 3: Calendar / War Room -->
-                <div [hidden]="activeTab() !== 'calendar'" class="card p-5 shadow-sm bg-white border text-center animate-fade-in">
-                    <i class="bi bi-calendar2-week text-muted fs-1 mb-3 d-block"></i>
-                    <h2 class="h4 fw-bold text-dark mb-2">War Room Calendar</h2>
-                    <p class="text-muted small mb-0">The full real-time coordination calendar and event booking dashboard will be available in Phase 7!</p>
+                <!-- Tab 3: Merged Party Calendar -->
+                <div [hidden]="activeTab() !== 'calendar'" class="card p-4 shadow-sm bg-white border animate-fade-in">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 pb-3 border-bottom">
+                        <div>
+                            <h2 class="h4 mb-0 fw-bold d-flex align-items-center">
+                                <i class="bi bi-calendar-week text-primary me-2"></i>
+                                Party Merged Calendar
+                            </h2>
+                            <small class="text-muted">Showing all purchased events across party members</small>
+                        </div>
+
+                        <!-- Calendar Controls: Display Mode & Member Filter -->
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <!-- Party Member Filter Selector -->
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="small text-muted text-uppercase fw-bold mb-0">Member:</label>
+                                <select class="form-select form-select-sm border-secondary-subtle" [value]="calendarMemberFilter()" (change)="calendarMemberFilter.set($any($event.target).value)">
+                                    <option value="all">All Party Members</option>
+                                    <option *ngFor="let m of p.members" [value]="m.email">
+                                        {{ m.displayName }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Display Mode Buttons -->
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="small text-muted text-uppercase fw-bold me-1">Display:</span>
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Calendar Display Mode">
+                                    <input type="radio" class="btn-check" name="partyCalMode" id="pCalAll" [checked]="calendarDisplayMode() === 'all'" (change)="calendarDisplayMode.set('all')">
+                                    <label class="btn btn-outline-secondary" for="pCalAll" title="Show All Events">All</label>
+
+                                    <input type="radio" class="btn-check" name="partyCalMode" id="pCalHighlight" [checked]="calendarDisplayMode() === 'highlight_mine'" (change)="calendarDisplayMode.set('highlight_mine')">
+                                    <label class="btn btn-outline-warning" for="pCalHighlight" title="Highlight events I'm in"><i class="bi bi-star-fill text-warning me-1"></i>Highlight Mine</label>
+
+                                    <input type="radio" class="btn-check" name="partyCalMode" id="pCalOnlyMine" [checked]="calendarDisplayMode() === 'only_mine'" (change)="calendarDisplayMode.set('only_mine')">
+                                    <label class="btn btn-outline-primary" for="pCalOnlyMine" title="Hide events I'm not in"><i class="bi bi-person-check-fill me-1"></i>Only Mine</label>
+
+                                    <input type="radio" class="btn-check" name="partyCalMode" id="pCalExcludeMine" [checked]="calendarDisplayMode() === 'exclude_mine'" (change)="calendarDisplayMode.set('exclude_mine')">
+                                    <label class="btn btn-outline-info" for="pCalExcludeMine" title="Hide events I'm in"><i class="bi bi-people me-1"></i>Others Only</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FullCalendar Render -->
+                    <div class="party-calendar-wrapper">
+                        <app-gencon-calendar [events]="genconCalendarEvents()" [year]="p.year" [displayMode]="calendarDisplayMode()"></app-gencon-calendar>
+                    </div>
                 </div>
 
                 <!-- Tab 3.5: Party Tickets -->

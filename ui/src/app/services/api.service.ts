@@ -439,6 +439,8 @@ export interface PartyTicket {
   eventEndTime?: string;
   eventLocation?: string;
   eventCategory?: string;
+  categoryCode?: string;
+  eventDuration?: number;
   isMapped?: boolean;
 }
 

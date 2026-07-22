@@ -252,3 +252,10 @@
 .highlight-flash {
     animation: flashBackground 2s ease-out;
 }
+
+/* Highlighted My Event in Party Calendar */
+.highlighted-my-event {
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.8) !important;
+    border-width: 2px !important;
+    border-color: #ffc107 !important;
+}

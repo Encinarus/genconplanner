@@ -32,6 +32,7 @@ describe('PartyComponent', () => {
   beforeEach(async () => {
     mockApiService = {
       getParty: () => of(mockParty),
+      getPartyTickets: () => of({ status: 'success', tickets: [] }),
       joinParty: () => of({ success: true }),
       leaveParty: () => of({ success: true }),
       deleteParty: () => of({ success: true }),
@@ -103,5 +104,87 @@ describe('PartyComponent', () => {
     component.onSaveName();
     expect(mockApiService.renameParty).toHaveBeenCalledWith(1, 'New Alpha Party');
     expect(component.editingName()).toBe(false);
+  });
+
+  it('should process purchased party tickets into merged calendar events', () => {
+    component.tickets.set([
+      {
+        ticketId: '101',
+        eventId: 'BGM26ND1001',
+        eventTitle: 'Catan Championship',
+        eventLocation: 'ICC : Hall B',
+        eventStartTime: '2026-07-30T10:00:00Z',
+        holderEmail: 'leader@example.com',
+        holderDisplayName: 'Leader',
+        purchaserEmail: 'leader@example.com',
+        ticketStatus: 'active'
+      } as any,
+      {
+        ticketId: '102',
+        eventId: 'BGM26ND1001',
+        eventTitle: 'Catan Championship',
+        eventLocation: 'ICC : Hall B',
+        eventStartTime: '2026-07-30T10:00:00Z',
+        holderEmail: 'member2@example.com',
+        holderDisplayName: 'Member 2',
+        purchaserEmail: 'leader@example.com',
+        ticketStatus: 'active'
+      } as any
+    ]);
+    fixture.detectChanges();
+
+    const events = (component.genconCalendarEvents() as any[]) || [];
+    expect(events.length).toBe(1);
+    expect(events[0].id).toBe('BGM26ND1001');
+    expect(events[0].title).toBe('Catan Championship');
+    expect(events[0].holderNames).toContain('Leader');
+    expect(events[0].holderNames).toContain('Member 2');
+    expect(events[0].isMine).toBe(true);
+  });
+
+  it('should filter calendar events by display mode and party member', () => {
+    component.tickets.set([
+      {
+        ticketId: '101',
+        eventId: 'BGM26ND1001',
+        eventTitle: 'My Game',
+        eventStartTime: '2026-07-30T10:00:00Z',
+        holderEmail: 'leader@example.com',
+        holderDisplayName: 'Leader',
+        ticketStatus: 'active'
+      } as any,
+      {
+        ticketId: '102',
+        eventId: 'RPG26ND2002',
+        eventTitle: 'Other Game',
+        eventStartTime: '2026-07-30T14:00:00Z',
+        holderEmail: 'member2@example.com',
+        holderDisplayName: 'Member 2',
+        ticketStatus: 'active'
+      } as any
+    ]);
+    fixture.detectChanges();
+
+    // Test only_mine
+    component.calendarDisplayMode.set('only_mine');
+    fixture.detectChanges();
+    let events = (component.genconCalendarEvents() as any[]) || [];
+    expect(events.length).toBe(1);
+    expect(events[0].id).toBe('BGM26ND1001');
+
+    // Test exclude_mine
+    component.calendarDisplayMode.set('exclude_mine');
+    fixture.detectChanges();
+    events = (component.genconCalendarEvents() as any[]) || [];
+    expect(events.length).toBe(1);
+    expect(events[0].id).toBe('RPG26ND2002');
+
+    // Test member filter
+    component.calendarDisplayMode.set('all');
+    component.calendarMemberFilter.set('member2@example.com');
+    fixture.detectChanges();
+    events = (component.genconCalendarEvents() as any[]) || [];
+    expect(events.length).toBe(1);
+    expect(events[0].id).toBe('RPG26ND2002');
   });
 });

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { AdminOrgsComponent } from './admin-orgs.component';
-import { ApiService, OrganizerWithSuggestions, MergeSuggestion } from '../../services/api.service';
+import { ApiService, OrganizerWithSuggestions } from '../../services/api.service';
 import { of } from 'rxjs';
 import { provideRouter } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';

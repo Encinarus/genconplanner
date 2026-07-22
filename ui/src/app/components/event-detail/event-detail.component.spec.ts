@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { EventDetailComponent } from './event-detail.component';
-import { ApiService, Event, PartyTicket } from '../../services/api.service';
+import { ApiService, Event } from '../../services/api.service';
 import { StarredService } from '../../services/starred.service';
 import { LinkService } from '../../services/link.service';
 import { Title } from '@angular/platform-browser';

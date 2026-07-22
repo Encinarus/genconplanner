@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, computed, effect, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
@@ -7,30 +7,21 @@ import { AuthService } from '../../services/auth.service';
 import { StarredService } from '../../services/starred.service';
 import { LinkService } from '../../services/link.service';
 import { Title } from '@angular/platform-browser';
-import { FullCalendarModule, FullCalendarComponent } from '@fullcalendar/angular';
-import { CalendarOptions } from '@fullcalendar/core';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import bootstrap5Plugin from '@fullcalendar/bootstrap5';
-import interactionPlugin from '@fullcalendar/interaction';
-import listPlugin from '@fullcalendar/list';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
 import { TierSelectorComponent } from '../tier-selector/tier-selector.component';
-
-declare var bootstrap: any;
+import { GenconCalendarComponent, GenconCalendarEventItem } from '../gencon-calendar/gencon-calendar.component';
+import { getGenconDates } from '../../constants/gencon-dates';
 
 @Component({
   selector: 'app-starred',
   standalone: true,
-  imports: [CommonModule, RouterModule, FullCalendarModule, FormsModule, TierSelectorComponent],
+  imports: [CommonModule, RouterModule, FormsModule, TierSelectorComponent, GenconCalendarComponent],
   templateUrl: './starred.component.html',
   styleUrl: './starred.component.css'
 })
 export class StarredComponent implements OnInit {
-  @ViewChild('calendar') calendarComponent!: FullCalendarComponent;
-
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private api = inject(ApiService);
@@ -44,6 +35,7 @@ export class StarredComponent implements OnInit {
   loading = signal<boolean>(true);
   viewMode = signal<'list' | 'calendar' | 'bulk' | 'wishlist' | 'wishlist_calendar'>('calendar');
   tierFilter = signal<string>('all');
+  genconCalendarEvents = signal<GenconCalendarEventItem[]>([]);
   bulkInput = signal<string>('');
   importMode = signal<'groups' | 'events' | 'purchased'>('events');
   wishlistItems = signal<any[]>([]);
@@ -121,163 +113,6 @@ export class StarredComponent implements OnInit {
   private hasWednesday: boolean = false;
   private initialFilterSet: boolean = false;
 
-  calendarOptions = signal<CalendarOptions>({
-    plugins: [dayGridPlugin, timeGridPlugin, bootstrap5Plugin, interactionPlugin, listPlugin],
-    initialView: 'genconWeek',
-    headerToolbar: {
-      left: 'prev,next',
-      center: 'title',
-      right: 'timeGridDay,genconWeek,genconAgenda'
-    },
-    customButtons: {
-      hideBackups: {
-        text: 'Hide Backups',
-        click: () => {
-          this.toggleHideBackups();
-        }
-      }
-    },
-    views: {
-      genconWeek: {
-        type: 'timeGrid',
-        duration: { days: 5 },
-        buttonText: 'week',
-      },
-      genconAgenda: {
-        type: 'list',
-        duration: { days: 5 },
-        buttonText: 'agenda',
-        eventContent: (arg) => {
-          const props = arg.event.extendedProps;
-          const cleanTitle = props['cleanTitle'] || arg.event.title;
-          const location = props['location'];
-          const tier = props['tier'] || 'very_interested';
-          const partyMembers: { email: string; displayName: string; tier: string }[] = props['partyMembers'] || [];
-
-          let myInterestLabel = 'Very Interested';
-          let badgeClass = 'bg-primary';
-          if (tier === 'purchased') { myInterestLabel = 'Purchased'; badgeClass = 'bg-warning text-dark'; }
-          else if (tier === 'must_have') { myInterestLabel = 'Must Have'; badgeClass = 'bg-danger'; }
-          else if (tier === 'somewhat_interested') { myInterestLabel = 'Somewhat Interested'; badgeClass = 'bg-secondary'; }
-          else if (tier === 'wishlist') { myInterestLabel = 'Wishlist'; badgeClass = 'bg-info text-dark'; }
-
-          let interestedMembers = partyMembers.filter(m => m.tier !== 'not_interested');
-          if (tier === 'purchased') {
-            interestedMembers = interestedMembers.filter(m => m.tier === 'purchased');
-          }
-          const membersNames = interestedMembers.map(m => m.displayName).join(', ');
-
-          let html = `
-            <div class="d-flex flex-column gap-1 py-1 fc-agenda-item">
-              <div class="fw-bold fs-6"><a href="${arg.event.url || 'javascript:void(0)'}" target="_blank" class="text-dark text-decoration-none">${cleanTitle}</a></div>
-              ${location ? `<div class="small text-muted"><i class="bi bi-geo-alt-fill me-1"></i>${location}</div>` : ''}
-              <div class="small"><strong>My Interest:</strong> <span class="badge ${badgeClass}">${myInterestLabel}</span></div>
-              ${interestedMembers.length > 0 ? `<div class="small text-muted"><i class="bi bi-people-fill me-1"></i><strong>Interested Party Members:</strong> ${membersNames}</div>` : ''}
-            </div>
-          `;
-
-          return { html };
-        }
-      }
-    },
-    scrollTime: '06:00:00',
-    scrollTimeReset: false,
-    height: 850,
-    allDaySlot: false,
-    editable: false,
-    navLinks: false,
-    nowIndicator: true,
-    eventOrder: '-rank',
-    timeZone: 'America/Indiana/Indianapolis',
-    eventClick: (info) => {
-      if (info.event.url) {
-        info.jsEvent.preventDefault();
-        window.open(info.event.url, '_blank');
-      }
-    },
-    eventDidMount: (info) => {
-      if (info.view.type === 'genconAgenda') return;
-      const props = info.event.extendedProps;
-      const description = props['description'];
-      const location = props['location'];
-      const cleanTitle = props['cleanTitle'] || info.event.title;
-      const partyMembersRaw: any[] = props['partyMembers'] || [];
-      const partyNames = partyMembersRaw
-        .map(m => typeof m === 'string' ? m : (m.displayName || m.email))
-        .filter(Boolean);
-      const partyHtml = partyNames.length > 0 ? `<div class="mb-1"><strong>Party:</strong> ${partyNames.join(', ')}</div>` : '';
-      
-      let content = description || '';
-      let title = cleanTitle;
-
-      if (props['isWishlist']) {
-        info.el.style.setProperty('--event-bg-color', info.event.backgroundColor);
-        const rank = props['rank'];
-        const status = props['status'];
-        const eventId = props['eventId'];
-        const reasoning = (props['reasoning'] || []).join(', ');
-
-        title = `#${rank}: ${cleanTitle}`;
-        content = `
-          <div class="small">
-            <div class="mb-1"><strong>ID:</strong> ${eventId}</div>
-            <div class="mb-1"><strong>Status:</strong> <span class="badge ${status === 'Primary' ? 'bg-success' : 'bg-secondary'}">${status}</span></div>
-            <div class="mb-1"><strong>Reasoning:</strong> ${reasoning}</div>
-            ${location ? `<div class="mb-1"><strong>Location:</strong> ${location}</div>` : ''}
-            ${partyHtml}
-            <hr class="my-1">
-            <div>${description}</div>
-          </div>
-        `;
-      } else if (location || partyNames.length > 0) {
-        content = `
-          <div class="small">
-            ${location ? `<div class="mb-1"><strong>Location:</strong> ${location}</div>` : ''}
-            ${partyHtml}
-            <hr class="my-1">
-            <div>${description || ''}</div>
-          </div>
-        `;
-      }
-
-      if (content) {
-        info.el.setAttribute('data-bs-toggle', 'popover');
-        info.el.setAttribute('data-bs-trigger', 'hover focus');
-        info.el.setAttribute('title', title);
-        info.el.setAttribute('data-bs-content', content);
-        
-        if (typeof bootstrap !== 'undefined' && bootstrap.Popover) {
-          new bootstrap.Popover(info.el, {
-            html: true,
-            container: 'body',
-            trigger: 'hover focus',
-            placement: 'auto'
-          });
-        }
-      }
-    },
-    eventWillUnmount: (info) => {
-      if (typeof bootstrap !== 'undefined' && bootstrap.Popover) {
-        const popover = bootstrap.Popover.getInstance(info.el);
-        if (popover) {
-          popover.dispose();
-        }
-      }
-    },
-    datesSet: (info) => {
-      if (info.view.type === 'genconWeek' && this.metadata) {
-        const expectedStart = this.getDesiredWeekStart();
-        if (info.startStr.split('T')[0] !== expectedStart) {
-          setTimeout(() => {
-            if (this.calendarComponent) {
-              this.calendarComponent.getApi().gotoDate(expectedStart);
-            }
-          });
-        }
-      }
-    }
-  });
-
   private categoryColors: Record<string, string> = {
     'ANI': '#A9177E',
     'BGM': '#0073AA',
@@ -330,11 +165,6 @@ export class StarredComponent implements OnInit {
 
     effect(() => {
       const year = this.year();
-      const fallbackDate = `${year}-07-29`;
-      this.calendarOptions.update(options => ({
-        ...options,
-        initialDate: fallbackDate
-      }));
       
       if (this.auth.authLoaded()) {
         this.starredService.fetchStarred(year);
@@ -438,74 +268,33 @@ export class StarredComponent implements OnInit {
       return d.getDay() === 3;
     });
 
-    const hiddenDays = this.hasWednesday ? [] : [3];
-    let initialDate = this.getDesiredWeekStart();
-    let duration = this.hasWednesday ? 5 : 4;
+    const calendarEvents: GenconCalendarEventItem[] = allClusters.map(item => {
+      const props = item.extendedProps || {};
+      const partyMembers = props.partyMembers || [];
+      const holderNames = partyMembers
+        .map((m: any) => typeof m === 'string' ? m : (m.displayName || m.email))
+        .filter(Boolean);
 
-    const end = new Date(data.metadata.endDate);
-    end.setDate(end.getDate() + 1);
-    const inclusiveEndDate = end.toISOString().split('T')[0];
-    
-    const blockedEvents = this.generateBlockedEvents();
-    const allEvents = [...allClusters, ...blockedEvents];
-    
-    // Determine scroll time based on real events only
-    let scrollTime = '06:00:00';
-    if (allClusters.length > 0) {
-      let earliestMinutes = 24 * 60;
-      allClusters.forEach(e => {
-        const d = new Date(e.start);
-        const mins = d.getHours() * 60 + d.getMinutes();
-        if (mins < earliestMinutes) earliestMinutes = mins;
-      });
-      const scrollMinutes = Math.max(0, earliestMinutes - 60);
-      scrollTime = `${this.pad(Math.floor(scrollMinutes / 60))}:${this.pad(scrollMinutes % 60)}:00`;
-    }
-
-    this.calendarOptions.update(options => {
-      const expectedLeft = isWishlistMode ? 'prev,next hideBackups' : 'prev,next';
-      const currentToolbar = options.headerToolbar as any;
-      const hasStructureChanged = 
-        options.initialDate !== initialDate ||
-        options.hiddenDays?.length !== hiddenDays.length ||
-        options.scrollTime !== scrollTime ||
-        currentToolbar?.left !== expectedLeft;
-
-      if (hasStructureChanged) {
-        return {
-          ...options,
-          initialDate: initialDate,
-          scrollTime: scrollTime,
-          headerToolbar: {
-            ...currentToolbar,
-            left: expectedLeft,
-            right: 'timeGridDay,genconWeek,genconAgenda'
-          },
-          validRange: {
-            start: data.metadata.startDate,
-            end: inclusiveEndDate
-          },
-          hiddenDays: hiddenDays,
-          views: {
-            ...options.views,
-            genconWeek: {
-              ...options.views?.['genconWeek'],
-              duration: { days: duration }
-            },
-            genconAgenda: {
-              ...options.views?.['genconAgenda'],
-              duration: { days: duration }
-            }
-          },
-          events: allEvents
-        };
-      } else {
-        return {
-          ...options,
-          events: allEvents
-        };
-      }
+      return {
+        id: props.eventId || item.id || '',
+        title: props.cleanTitle || item.title || '',
+        start: item.start,
+        end: item.end,
+        url: item.url,
+        categoryCode: props.categoryCode || props.category || item.categoryCode || (props.eventId ? props.eventId.substring(0, 3) : ''),
+        location: props.location,
+        tier: props.tier,
+        isMine: props.tier === 'purchased',
+        rank: props.rank || item.rank || 0,
+        status: props.status,
+        reasoning: props.reasoning,
+        holderNames: holderNames,
+        description: props.description,
+        partyMembers: partyMembers
+      };
     });
+
+    this.genconCalendarEvents.set(calendarEvents);
   }
 
   private generateBlockedEvents(): any[] {
@@ -603,14 +392,8 @@ export class StarredComponent implements OnInit {
   }
 
   private getDesiredWeekStart(): string {
-    if (!this.metadata) return '';
-    if (this.hasWednesday) {
-      return this.metadata.startDate;
-    } else {
-      const start = new Date(this.metadata.startDate);
-      start.setDate(start.getDate() + 1);
-      return start.toISOString().split('T')[0];
-    }
+    if (this.metadata?.startDate) return this.metadata.startDate;
+    return getGenconDates(this.year()).startDate;
   }
 
   setViewMode(mode: 'list' | 'calendar' | 'bulk' | 'wishlist'): void {
@@ -886,6 +669,8 @@ export class StarredComponent implements OnInit {
             tier: event.tier || 'very_interested',
             location: locationStr,
             cleanTitle: event.title,
+            categoryCode: event.categoryCode,
+            eventId: event.eventId,
             partyMembers: event.partyMembers || []
           }
         };

@@ -60,7 +60,7 @@ export class TierSelectorComponent {
     this.tierChange.emit(newTier);
   }
 
-  onLabelClick(clickedTier: string, event: Event): void {
+  onLabelClick(clickedTier: string, _event?: Event): void {
     this.labelClick.emit(clickedTier);
   }
 }

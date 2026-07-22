@@ -1,0 +1,42 @@
+.gencon-calendar-container {
+    width: 100%;
+}
+
+.fc-event-main-frame {
+    line-height: 1.15;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-event {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    border-radius: 4px !important;
+    transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.fc-event-main {
+    color: #ffffff !important;
+    padding: 1px 3px !important;
+}
+
+.fc-timegrid-event {
+    border-radius: 4px !important;
+}
+
+.dimmed-event {
+    opacity: 0.35 !important;
+    filter: grayscale(60%) !important;
+}
+
+.highlighted-my-event {
+    opacity: 1 !important;
+    border: 2.5px solid #ffc107 !important;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.7) !important;
+    z-index: 10 !important;
+}
+
+.fc-agenda-item {
+    font-size: 0.9rem;
+}

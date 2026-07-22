@@ -58,5 +58,6 @@ export class GenconIdentityFormComponent {
   showDisplayName = input<boolean>(true);
 
   save = output<void>();
+  // eslint-disable-next-line @angular-eslint/no-output-native
   cancel = output<void>();
 }
