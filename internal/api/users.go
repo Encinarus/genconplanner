@@ -290,8 +290,19 @@ func (s *Server) GetStarredCalendarEvents(c *gin.Context) {
 		return
 	}
 
+	partyMembersMap := s.getEventPartyMembers(email, year)
+
 	apiClusters := make([]CalendarEventCluster, 0, len(clusters))
 	for _, cluster := range clusters {
+		var partyMembers []string
+		if pm, found := partyMembersMap[cluster.EventId]; found {
+			for _, member := range pm {
+				partyMembers = append(partyMembers, member.DisplayName)
+			}
+		} else {
+			partyMembers = make([]string, 0)
+		}
+
 		apiClusters = append(apiClusters, CalendarEventCluster{
 			EventId:          cluster.EventId,
 			Title:            cluster.Title,
@@ -305,6 +316,7 @@ func (s *Server) GetStarredCalendarEvents(c *gin.Context) {
 			Location:         cluster.Location,
 			RoomName:         cluster.RoomName,
 			TableNumber:      cluster.TableNumber,
+			PartyMembers:     partyMembers,
 		})
 	}
 

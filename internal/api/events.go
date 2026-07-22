@@ -79,6 +79,7 @@ type CalendarEventCluster struct {
 	Location         string    `json:"location"`
 	RoomName         string    `json:"roomName"`
 	TableNumber      string    `json:"tableNumber"`
+	PartyMembers     []string  `json:"partyMembers"`
 }
 
 type CalendarMetadata struct {

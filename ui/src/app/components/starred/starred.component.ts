@@ -199,6 +199,11 @@ export class StarredComponent implements OnInit {
       const description = props['description'];
       const location = props['location'];
       const cleanTitle = props['cleanTitle'] || info.event.title;
+      const partyMembersRaw: any[] = props['partyMembers'] || [];
+      const partyNames = partyMembersRaw
+        .map(m => typeof m === 'string' ? m : (m.displayName || m.email))
+        .filter(Boolean);
+      const partyHtml = partyNames.length > 0 ? `<div class="mb-1"><strong>Party:</strong> ${partyNames.join(', ')}</div>` : '';
       
       let content = description || '';
       let title = cleanTitle;
@@ -217,14 +222,16 @@ export class StarredComponent implements OnInit {
             <div class="mb-1"><strong>Status:</strong> <span class="badge ${status === 'Primary' ? 'bg-success' : 'bg-secondary'}">${status}</span></div>
             <div class="mb-1"><strong>Reasoning:</strong> ${reasoning}</div>
             ${location ? `<div class="mb-1"><strong>Location:</strong> ${location}</div>` : ''}
+            ${partyHtml}
             <hr class="my-1">
             <div>${description}</div>
           </div>
         `;
-      } else if (location) {
+      } else if (location || partyNames.length > 0) {
         content = `
           <div class="small">
-            <div class="mb-1"><strong>Location:</strong> ${location}</div>
+            ${location ? `<div class="mb-1"><strong>Location:</strong> ${location}</div>` : ''}
+            ${partyHtml}
             <hr class="my-1">
             <div>${description || ''}</div>
           </div>

@@ -60,6 +60,7 @@ export interface CalendarEvent {
   location?: string;
   roomName?: string;
   tableNumber?: string;
+  partyMembers?: string[];
 }
 
 export interface StarredEventDetail {
