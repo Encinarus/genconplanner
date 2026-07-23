@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, ViewChild, signal, ViewEncapsulation } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ViewChild, signal, ViewEncapsulation, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FullCalendarModule, FullCalendarComponent } from '@fullcalendar/angular';
 import { CalendarOptions } from '@fullcalendar/core';
@@ -40,6 +40,7 @@ export interface GenconCalendarEventItem {
 })
 export class GenconCalendarComponent implements OnChanges {
   @ViewChild('calendar') calendarComponent!: FullCalendarComponent;
+  @ViewChild('calendar', { read: ElementRef }) calendarElement!: ElementRef;
 
   @Input() events: GenconCalendarEventItem[] = [];
   @Input() year: number = new Date().getFullYear();
@@ -158,8 +159,27 @@ export class GenconCalendarComponent implements OnChanges {
         window.open(info.event.url, '_blank');
       }
     },
+    datesSet: (arg) => {
+      if (arg.view.type === 'genconAgenda') {
+        setTimeout(() => {
+          this.scrollToCurrentOrNextAgendaEvent();
+        }, 100);
+      }
+    },
     eventDidMount: (info) => {
-      if (info.view.type === 'genconAgenda') return;
+      if (info.view.type === 'genconAgenda') {
+        const now = new Date();
+        const nowMs = now.getTime();
+        const startMs = info.event.start ? info.event.start.getTime() : 0;
+        const endMs = info.event.end ? info.event.end.getTime() : startMs;
+
+        if (endMs < nowMs) {
+          info.el.classList.add('gencon-agenda-past');
+        } else if ((startMs <= nowMs && nowMs <= endMs) || (startMs >= nowMs && startMs <= nowMs + 15 * 60 * 1000)) {
+          info.el.classList.add('gencon-agenda-current');
+        }
+        return;
+      }
       const props = info.event.extendedProps;
       const location = props['location'];
       const cleanTitle = props['cleanTitle'] || info.event.title;
@@ -207,6 +227,24 @@ export class GenconCalendarComponent implements OnChanges {
       }
     }
   });
+
+  scrollToCurrentOrNextAgendaEvent(): void {
+    if (!this.calendarElement) return;
+    const container = this.calendarElement.nativeElement;
+    
+    // First try: current or starting within 15 min
+    let target: HTMLElement | null = container.querySelector('tr.fc-list-event.gencon-agenda-current');
+    
+    // Second try: next upcoming event (not past)
+    if (!target) {
+      const allEvents = Array.from(container.querySelectorAll('tr.fc-list-event')) as HTMLElement[];
+      target = allEvents.find(el => !el.classList.contains('gencon-agenda-past')) || null;
+    }
+    
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['events'] || changes['year'] || changes['displayMode'] || changes['startDate']) {
@@ -277,7 +315,7 @@ export class GenconCalendarComponent implements OnChanges {
         end: item.end,
         url: item.url || `/event/${item.id}`,
         backgroundColor: baseColor,
-        borderColor: '#000000',
+        borderColor: baseColor,
         classNames: classNames,
         extendedProps: {
           cleanTitle: item.title,
