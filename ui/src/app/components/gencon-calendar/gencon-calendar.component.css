@@ -1,5 +1,11 @@
 .gencon-calendar-container {
     width: 100%;
+    max-height: 525px;
+}
+
+.gencon-calendar-container .fc-scroller {
+    max-height: 455px !important;
+    overflow-y: auto !important;
 }
 
 .fc-v-event,

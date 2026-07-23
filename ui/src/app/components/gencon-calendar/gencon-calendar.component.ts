@@ -51,6 +51,7 @@ export class GenconCalendarComponent implements OnChanges {
   @Input() endDate?: string;
   @Input() displayMode: string = 'all';
   @Input() initialView: string = 'week';
+  @Input() height: number | string = 525;
   @Output() viewChange = new EventEmitter<string>();
 
   private categoryColors: Record<string, string> = {
@@ -166,7 +167,7 @@ export class GenconCalendarComponent implements OnChanges {
     },
     scrollTime: '06:00:00',
     scrollTimeReset: false,
-    height: 850,
+    height: 525,
     allDaySlot: false,
     editable: false,
     navLinks: false,
@@ -372,6 +373,7 @@ export class GenconCalendarComponent implements OnChanges {
 
     this.calendarOptions.update(opts => ({
       ...opts,
+      height: this.height || 525,
       initialView: fcInitialView,
       initialDate: initialDate,
       validRange: {
