@@ -60,6 +60,7 @@ export interface CalendarEvent {
   location?: string;
   roomName?: string;
   tableNumber?: string;
+  mapLink?: string;
   partyMembers?: string[];
 }
 
@@ -78,6 +79,7 @@ export interface StarredEventDetail {
   location?: string;
   roomName?: string;
   tableNumber?: string;
+  mapLink?: string;
   partyMembers?: { email: string; displayName: string; tier: string }[];
 }
 
@@ -189,6 +191,7 @@ export interface Event {
   location: string;
   roomName: string;
   tableNumber: string;
+  mapLink?: string;
   ticketsAvailable: number;
   lastModified: string;
   genconUrl: string;
@@ -197,6 +200,7 @@ export interface Event {
     ticketsAvailable: number;
     startTime: string;
     endTime: string;
+    mapLink?: string;
   }[];
 }
 
@@ -439,6 +443,8 @@ export interface PartyTicket {
   eventEndTime?: string;
   eventLocation?: string;
   eventCategory?: string;
+  eventMapLink?: string;
+  mapLink?: string;
   categoryCode?: string;
   eventDuration?: number;
   isMapped?: boolean;

@@ -19,6 +19,7 @@ export interface PurchaserGroupView {
 export interface EventInstanceView {
   eventId: string;
   location: string;
+  mapLink?: string;
   startTime: Date | null;
   startTimeFormatted: string;
   dayOfWeekShort: string;
@@ -220,6 +221,7 @@ export class PartyComponent implements OnInit {
       return {
         eventId: instId,
         location: location,
+        mapLink: instTickets[0].mapLink || instTickets[0].eventMapLink,
         startTime: startTime,
         startTimeFormatted: startTimeFormatted,
         dayOfWeekShort: dayOfWeekShort,
@@ -451,6 +453,7 @@ export class PartyComponent implements OnInit {
         url: `/event/${eid}`,
         categoryCode: catCode,
         location: location,
+        mapLink: first.mapLink || first.eventMapLink,
         isMine: isMine,
         holderNames: holderNames,
         purchaserNames: purchaserNames

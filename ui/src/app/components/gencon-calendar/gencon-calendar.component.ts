@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, ViewChild, signal, ViewEncapsulation, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild, signal, ViewEncapsulation, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FullCalendarModule, FullCalendarComponent } from '@fullcalendar/angular';
 import { CalendarOptions } from '@fullcalendar/core';
@@ -19,6 +19,8 @@ export interface GenconCalendarEventItem {
   url?: string;
   categoryCode?: string;
   location?: string;
+  mapLink?: string;
+  eventMapLink?: string;
   tier?: string;
   isMine?: boolean;
   rank?: number;
@@ -48,6 +50,8 @@ export class GenconCalendarComponent implements OnChanges {
   @Input() startDate?: string;
   @Input() endDate?: string;
   @Input() displayMode: string = 'all';
+  @Input() initialView: string = 'week';
+  @Output() viewChange = new EventEmitter<string>();
 
   private categoryColors: Record<string, string> = {
     'ANI': '#A9177E',
@@ -108,14 +112,16 @@ export class GenconCalendarComponent implements OnChanges {
           const props = arg.event.extendedProps;
           const cleanTitle = props['cleanTitle'] || arg.event.title;
           const location = props['location'];
+          const mapLink = props['mapLink'];
           const holders: string[] = props['holderNames'] || [];
           const purchaserNames: string[] = props['purchaserNames'] || [];
           const startTimeStr = props['startTimeFormatted'] || '';
 
+          const targetUrl = mapLink || arg.event.url || 'javascript:void(0)';
           let html = `
             <div class="d-flex flex-column gap-1 py-1 fc-agenda-item">
               <div class="fw-bold fs-6">
-                <a href="${arg.event.url || 'javascript:void(0)'}" target="_blank" class="text-dark text-decoration-none">${cleanTitle}</a>
+                <a href="${targetUrl}" target="_blank" class="text-dark text-decoration-none">${cleanTitle}</a>
               </div>
               ${startTimeStr ? `<div class="small text-muted"><i class="bi bi-clock-fill me-1"></i>${startTimeStr}</div>` : ''}
               ${location ? `<div class="small text-muted"><i class="bi bi-geo-alt-fill me-1"></i>${location}</div>` : ''}
@@ -133,12 +139,13 @@ export class GenconCalendarComponent implements OnChanges {
       const props = arg.event.extendedProps;
       const cleanTitle = props['cleanTitle'] || arg.event.title;
       const location = props['location'];
+      const mapLink = props['mapLink'];
       const holders: string[] = props['holderNames'] || [];
 
       let html = `
         <div class="fc-event-main-frame" style="display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; overflow: hidden; height: 100%; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;">
           <div class="fc-event-title-line fw-bold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 0; font-size: 0.82rem; line-height: 1.3; box-sizing: border-box;">${cleanTitle}</div>
-          ${location ? `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 1; font-size: 0.72rem; line-height: 1.25; opacity: 0.75; box-sizing: border-box;"><i class="bi bi-geo-alt-fill me-1"></i>${location}</div>` : ''}
+          ${location ? (mapLink ? `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 1; font-size: 0.72rem; line-height: 1.25; opacity: 0.75; box-sizing: border-box;"><a href="${mapLink}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;" onclick="event.stopPropagation()"><i class="bi bi-geo-alt-fill me-1"></i>${location}</a></div>` : `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 1; font-size: 0.72rem; line-height: 1.25; opacity: 0.75; box-sizing: border-box;"><i class="bi bi-geo-alt-fill me-1"></i>${location}</div>`) : ''}
           ${holders.length > 0 ? `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 1; font-size: 0.72rem; line-height: 1.25; opacity: 0.75; box-sizing: border-box;"><i class="bi bi-people-fill me-1"></i>${holders.join(', ')}</div>` : ''}
         </div>
       `;
@@ -154,13 +161,19 @@ export class GenconCalendarComponent implements OnChanges {
     eventOrder: '-isMine,-rank',
     timeZone: 'America/Indiana/Indianapolis',
     eventClick: (info) => {
-      if (info.event.url) {
+      const mapLink = info.event.extendedProps['mapLink'];
+      const targetUrl = (info.view.type === 'genconAgenda' && mapLink) ? mapLink : info.event.url;
+      if (targetUrl) {
         info.jsEvent.preventDefault();
-        window.open(info.event.url, '_blank');
+        window.open(targetUrl, '_blank');
       }
     },
     datesSet: (arg) => {
-      if (arg.view.type === 'genconAgenda') {
+      const viewType = arg.view.type;
+      const subView = viewType === 'genconAgenda' ? 'agenda' : viewType === 'timeGridDay' ? 'day' : 'week';
+      this.viewChange.emit(subView);
+
+      if (viewType === 'genconAgenda') {
         setTimeout(() => {
           this.scrollToCurrentOrNextAgendaEvent();
         }, 100);
@@ -182,6 +195,7 @@ export class GenconCalendarComponent implements OnChanges {
       }
       const props = info.event.extendedProps;
       const location = props['location'];
+      const mapLink = props['mapLink'];
       const cleanTitle = props['cleanTitle'] || info.event.title;
       const eventId = props['eventId'];
       const holders: string[] = props['holderNames'] || [];
@@ -197,7 +211,7 @@ export class GenconCalendarComponent implements OnChanges {
           ${eventId ? `<div class="mb-1"><strong>Event ID:</strong> ${eventId}</div>` : ''}
           ${status ? `<div class="mb-1"><strong>Status:</strong> <span class="badge ${status === 'Primary' ? 'bg-success' : 'bg-secondary'}">${status}</span></div>` : ''}
           ${reasoning ? `<div class="mb-1"><strong>Reasoning:</strong> ${reasoning}</div>` : ''}
-          ${location ? `<div class="mb-1"><strong>Location:</strong> ${location}</div>` : ''}
+          ${location ? (mapLink ? `<div class="mb-1"><strong>Location:</strong> <a href="${mapLink}" target="_blank" rel="noopener noreferrer">${location}</a></div>` : `<div class="mb-1"><strong>Location:</strong> ${location}</div>`) : ''}
           ${holders.length > 0 ? `<div class="mb-1"><strong>Ticket Holders:</strong> ${holders.join(', ')}</div>` : ''}
           ${purchaserNames.length > 0 ? `<div class="mb-1"><strong>Purchasers:</strong> ${purchaserNames.join(', ')}</div>` : ''}
           ${description ? `<hr class="my-1"><div>${description}</div>` : ''}
@@ -321,6 +335,7 @@ export class GenconCalendarComponent implements OnChanges {
           cleanTitle: item.title,
           eventId: item.id,
           location: item.location || '',
+          mapLink: item.mapLink || item.eventMapLink || '',
           categoryCode: catCode,
           tier: item.tier || 'very_interested',
           isMine: isMineValue,
@@ -335,8 +350,11 @@ export class GenconCalendarComponent implements OnChanges {
       };
     });
 
+    const fcInitialView = this.initialView === 'agenda' || this.initialView === 'genconAgenda' ? 'genconAgenda' : this.initialView === 'day' || this.initialView === 'timeGridDay' ? 'timeGridDay' : 'genconWeek';
+
     this.calendarOptions.update(opts => ({
       ...opts,
+      initialView: fcInitialView,
       initialDate: initialDate,
       validRange: {
         start: wednesdayStart,

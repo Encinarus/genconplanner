@@ -6,9 +6,11 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/background"
+	"github.com/Encinarus/genconplanner/internal/locations"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 )
@@ -16,16 +18,29 @@ import (
 const userEmailKey = "userEmail"
 
 type Server struct {
-	Repo  EventRepository
-	Auth  AuthService
-	Games GameService
+	Repo            EventRepository
+	Auth            AuthService
+	Games           GameService
+	LocationMatcher *locations.Matcher
 }
 
 func NewServer(repo EventRepository, auth AuthService, games GameService) *Server {
+	matcher := locations.NewMatcher()
+
+	// Load location pins directly from PostgreSQL table public.gencon_locations
+	if pgRepo, ok := repo.(*PostgresRepository); ok && pgRepo != nil && pgRepo.DB != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := matcher.LoadFromDB(ctx, pgRepo.DB); err != nil {
+			log.Printf("Error loading locations from database: %v", err)
+		}
+	}
+
 	return &Server{
-		Repo:  repo,
-		Auth:  auth,
-		Games: games,
+		Repo:            repo,
+		Auth:            auth,
+		Games:           games,
+		LocationMatcher: matcher,
 	}
 }
 
@@ -172,6 +187,13 @@ func (s *Server) RegisterRoutes(group *gin.RouterGroup) {
 			admin.GET("/orgs/merge-suggestions", s.GetMergeSuggestions)
 		}
 	}
+}
+
+func (s *Server) MatchLocation(location, roomName, tableNumber string) string {
+	if s == nil || s.LocationMatcher == nil {
+		return ""
+	}
+	return s.LocationMatcher.MatchLocation(location, roomName, tableNumber)
 }
 
 func (s *Server) GetUpdateStatus(c *gin.Context) {

@@ -12,7 +12,11 @@
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div class="d-flex align-items-center">
                             <i class="bi me-2 tier-icon" [ngClass]="getTierIconClass(item.tier)"></i>
-                            <h4 class="h6 mb-0 fw-bold">{{ item.title }}</h4>
+                            <h4 class="h6 mb-0 fw-bold">
+                                <a [href]="item.mapLink || item.genconUrl" target="_blank" class="text-dark text-decoration-none">
+                                    {{ item.title }}
+                                </a>
+                            </h4>
                         </div>
                         <span class="timing-badge small px-2 py-1 bg-light rounded text-muted">
                             {{ formatTiming(item.startTime, item.endTime) }}

@@ -51,6 +51,7 @@ type StarredEventDetail struct {
 	Location         string                    `json:"location"`
 	RoomName         string                    `json:"roomName"`
 	TableNumber      string                    `json:"tableNumber"`
+	MapLink          string                    `json:"mapLink,omitempty"`
 	PartyMembers     []postgres.MemberInterest `json:"partyMembers"`
 }
 
@@ -316,6 +317,7 @@ func (s *Server) GetStarredCalendarEvents(c *gin.Context) {
 			Location:         cluster.Location,
 			RoomName:         cluster.RoomName,
 			TableNumber:      cluster.TableNumber,
+			MapLink:          s.MatchLocation(cluster.Location, cluster.RoomName, cluster.TableNumber),
 			PartyMembers:     partyMembers,
 		})
 	}
@@ -432,6 +434,7 @@ func (s *Server) GetStarredIndividualEvents(c *gin.Context) {
 			Location:         e.Location,
 			RoomName:         e.RoomName,
 			TableNumber:      e.TableNumber,
+			MapLink:          s.MatchLocation(e.Location, e.RoomName, e.TableNumber),
 			PartyMembers:     pm,
 		})
 	}
@@ -524,6 +527,7 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 			Location:         e.Location,
 			RoomName:         e.RoomName,
 			TableNumber:      e.TableNumber,
+			MapLink:          s.MatchLocation(e.Location, e.RoomName, e.TableNumber),
 			PartyMembers:     pm,
 		})
 	}
@@ -542,6 +546,7 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 			Location:         cluster.Location,
 			RoomName:         cluster.RoomName,
 			TableNumber:      cluster.TableNumber,
+			MapLink:          s.MatchLocation(cluster.Location, cluster.RoomName, cluster.TableNumber),
 		})
 	}
 
@@ -704,6 +709,7 @@ func (s *Server) GetAgenda(c *gin.Context) {
 			Location:         entry.Event.Location,
 			RoomName:         entry.Event.RoomName,
 			TableNumber:      entry.Event.TableNumber,
+			MapLink:          s.MatchLocation(entry.Event.Location, entry.Event.RoomName, entry.Event.TableNumber),
 			PartyMembers:     pm,
 		})
 	}
@@ -1316,6 +1322,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 					Location:         entry.Location,
 					RoomName:         entry.RoomName,
 					TableNumber:      entry.TableNumber,
+					MapLink:          s.MatchLocation(entry.Location, entry.RoomName, entry.TableNumber),
 					PartyMembers:     pm,
 				},
 				Status:    item.Status,
@@ -1396,6 +1403,7 @@ func (s *Server) GetWishlist(c *gin.Context) {
 					Location:         item.Event.Location,
 					RoomName:         item.Event.RoomName,
 					TableNumber:      item.Event.TableNumber,
+					MapLink:          s.MatchLocation(item.Event.Location, item.Event.RoomName, item.Event.TableNumber),
 					PartyMembers:     pm,
 				},
 				Status:    item.Status,

@@ -31,6 +31,7 @@ type PartyTicket struct {
 	EventEndTime   string `json:"eventEndTime,omitempty"`
 	EventLocation  string `json:"eventLocation,omitempty"`
 	EventCategory  string `json:"eventCategory,omitempty"`
+	EventMapLink   string `json:"eventMapLink,omitempty"`
 }
 
 type TicketTransfer struct {

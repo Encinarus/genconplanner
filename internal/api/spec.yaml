@@ -293,6 +293,9 @@ components:
         tableNumber:
           type: string
           description: The specific table this event is at.
+        mapLink:
+          type: string
+          description: Optional map link for the location of the event.
         ticketAvailable:
           type: integer
         lastModified:

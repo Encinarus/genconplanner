@@ -64,6 +64,7 @@ type EventRef struct {
 	TicketsAvailable int       `json:"ticketsAvailable"`
 	StartTime        time.Time `json:"startTime"`
 	EndTime          time.Time `json:"endTime"`
+	MapLink          string    `json:"mapLink,omitempty"`
 }
 
 type CalendarEventCluster struct {
@@ -79,6 +80,7 @@ type CalendarEventCluster struct {
 	Location         string    `json:"location"`
 	RoomName         string    `json:"roomName"`
 	TableNumber      string    `json:"tableNumber"`
+	MapLink          string    `json:"mapLink,omitempty"`
 	PartyMembers     []string  `json:"partyMembers"`
 }
 
@@ -120,13 +122,14 @@ type Event struct {
 	Location             string     `json:"location"`
 	RoomName             string     `json:"roomName"`
 	TableNumber          string     `json:"tableNumber"`
+	MapLink              string     `json:"mapLink,omitempty"`
 	TicketsAvailable     int        `json:"ticketsAvailable"`
 	LastModified         time.Time  `json:"lastModified"`
 	RelatedEvents        []EventRef `json:"relatedEvents"`
 	GenconUrl            string     `json:"genconUrl"`
 }
 
-func convertEvent(apiEvent *Event, dbEvent *events.GenconEvent) {
+func (s *Server) convertEvent(apiEvent *Event, dbEvent *events.GenconEvent) {
 	apiEvent.EventId = dbEvent.EventId
 	apiEvent.Year = dbEvent.Year
 	apiEvent.Active = dbEvent.Active
@@ -160,6 +163,7 @@ func convertEvent(apiEvent *Event, dbEvent *events.GenconEvent) {
 	apiEvent.Location = dbEvent.Location
 	apiEvent.RoomName = dbEvent.RoomName
 	apiEvent.TableNumber = dbEvent.TableNumber
+	apiEvent.MapLink = s.MatchLocation(dbEvent.Location, dbEvent.RoomName, dbEvent.TableNumber)
 	apiEvent.TicketsAvailable = dbEvent.TicketsAvailable
 	apiEvent.LastModified = dbEvent.LastModified
 	apiEvent.GenconUrl = dbEvent.GenconLink()
@@ -202,7 +206,7 @@ func (s *Server) LookupEvent(c *gin.Context) {
 		dbEvent := dbEvents[i]
 
 		if dbEvent.EventId == eventId {
-			convertEvent(&apiEvent, dbEvent)
+			s.convertEvent(&apiEvent, dbEvent)
 			apiEvent.GameSystem = s.lookupGame(dbEvent.GameSystem)
 		}
 
@@ -212,6 +216,7 @@ func (s *Server) LookupEvent(c *gin.Context) {
 		related.StartTime = dbEvent.StartTime
 		related.EndTime = dbEvent.EndTime
 		related.TicketsAvailable = dbEvent.TicketsAvailable
+		related.MapLink = s.MatchLocation(dbEvent.Location, dbEvent.RoomName, dbEvent.TableNumber)
 		apiEvent.RelatedEvents = append(apiEvent.RelatedEvents, related)
 	}
 

@@ -251,6 +251,7 @@ export class StarredComponent implements OnInit {
                     eventId: event.eventId,
                     category: event.categoryCode,
                     location: locationStr,
+                    mapLink: event.mapLink,
                     cleanTitle: event.title,
                     tier: event.tier || 'wishlist',
                     partyMembers: event.partyMembers || []
@@ -283,6 +284,7 @@ export class StarredComponent implements OnInit {
         url: item.url,
         categoryCode: props.categoryCode || props.category || item.categoryCode || (props.eventId ? props.eventId.substring(0, 3) : ''),
         location: props.location,
+        mapLink: props.mapLink || item.mapLink,
         tier: props.tier,
         isMine: props.tier === 'purchased',
         rank: props.rank || item.rank || 0,
@@ -376,6 +378,8 @@ export class StarredComponent implements OnInit {
     this.starredService.fetchStarred(this.year());
   }
 
+  currentCalendarSubView = signal<string>('week');
+
   ngOnInit(): void {
     this.route.params.subscribe(params => {
       const newYear = +params['year'] || new Date().getFullYear();
@@ -385,9 +389,40 @@ export class StarredComponent implements OnInit {
       }
 
       const tab = params['tab'];
-      if (tab && ['calendar', 'list', 'bulk', 'wishlist'].includes(tab)) {
+      if (tab === 'agenda') {
+        this.viewMode.set('calendar');
+        this.currentCalendarSubView.set('agenda');
+      } else if (tab && ['calendar', 'list', 'bulk', 'wishlist'].includes(tab)) {
         this.viewMode.set(tab as any);
       }
+    });
+
+    if (this.route.queryParams) {
+      this.route.queryParams.subscribe(queryParams => {
+        const viewParam = queryParams?.['view'] || queryParams?.['calView'];
+        if (viewParam) {
+          if (viewParam === 'agenda') {
+            this.currentCalendarSubView.set('agenda');
+          } else if (viewParam === 'day') {
+            this.currentCalendarSubView.set('day');
+          } else if (viewParam === 'week') {
+            this.currentCalendarSubView.set('week');
+          }
+        }
+      });
+    }
+  }
+
+  onCalendarViewChange(subView: string): void {
+    if (this.viewMode() !== 'calendar') return;
+    if (this.currentCalendarSubView() === subView) return;
+
+    this.currentCalendarSubView.set(subView);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { view: subView },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
     });
   }
 
@@ -648,13 +683,10 @@ export class StarredComponent implements OnInit {
           clusters.push(currentCluster);
         }
         let displayTitle = event.title;
-        let locationStr = '';
-        if (event.tier === 'purchased') {
-          const locationParts = [event.location, event.roomName, event.tableNumber].filter(Boolean);
-          if (locationParts.length > 0) {
-            locationStr = locationParts.join(' / ');
-            displayTitle = `${event.title}\n📍 ${locationStr}`;
-          }
+        const locationParts = [event.location, event.roomName, event.tableNumber].filter(Boolean);
+        const locationStr = locationParts.join(' / ');
+        if (event.tier === 'purchased' && locationStr) {
+          displayTitle = `${event.title}\n📍 ${locationStr}`;
         }
         currentCluster = {
           title: displayTitle,
@@ -668,6 +700,7 @@ export class StarredComponent implements OnInit {
             similarCount: 1,
             tier: event.tier || 'very_interested',
             location: locationStr,
+            mapLink: event.mapLink,
             cleanTitle: event.title,
             categoryCode: event.categoryCode,
             eventId: event.eventId,

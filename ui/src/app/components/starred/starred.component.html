@@ -143,7 +143,7 @@
         </div>
 
         <div *ngIf="viewMode() === 'calendar' || viewMode() === 'wishlist_calendar'" class="calendar-container bg-white p-3 rounded-4 shadow-sm border border-light animate__animated animate__fadeIn">
-            <app-gencon-calendar [events]="genconCalendarEvents()" [year]="year()"></app-gencon-calendar>
+            <app-gencon-calendar [events]="genconCalendarEvents()" [year]="year()" [initialView]="currentCalendarSubView()" (viewChange)="onCalendarViewChange($event)"></app-gencon-calendar>
         </div>
 
         <div *ngIf="viewMode() === 'wishlist'">
