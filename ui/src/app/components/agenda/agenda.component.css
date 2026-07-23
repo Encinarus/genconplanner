@@ -44,3 +44,19 @@
 .timing-badge {
     white-space: nowrap;
 }
+
+.location-link {
+    font-weight: 500;
+}
+
+.location-link:hover {
+    color: #0a58ca !important;
+}
+
+@media (max-width: 576px) {
+    .timing-badge {
+        white-space: normal;
+        word-break: break-word;
+    }
+}
+

@@ -9,19 +9,26 @@
         <div *ngIf="agendaItems().length > 0; else noAgenda">
             <div class="timeline">
                 <div *ngFor="let item of agendaItems()" class="timeline-item mb-3 p-3 border rounded shadow-sm bg-white" [ngClass]="getTierClass(item.tier)">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="d-flex align-items-center">
-                            <i class="bi me-2 tier-icon" [ngClass]="getTierIconClass(item.tier)"></i>
-                            <h4 class="h6 mb-0 fw-bold">
-                                <a [href]="item.mapLink || item.genconUrl" target="_blank" class="text-dark text-decoration-none">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                        <div class="d-flex align-items-center flex-grow-1 min-w-0">
+                            <i class="bi me-2 tier-icon flex-shrink-0" [ngClass]="getTierIconClass(item.tier)"></i>
+                            <h4 class="h6 mb-0 fw-bold text-break">
+                                <a [href]="item.genconUrl" target="_blank" class="text-dark text-decoration-none">
                                     {{ item.title }}
                                 </a>
                             </h4>
                         </div>
-                        <span class="timing-badge small px-2 py-1 bg-light rounded text-muted">
+                        <span class="timing-badge small px-2 py-1 bg-light rounded text-muted flex-shrink-0">
                             {{ formatTiming(item.startTime, item.endTime) }}
                         </span>
                     </div>
+
+                    <div *ngIf="item.location" class="small mb-2 ms-4">
+                        <a [href]="item.mapLink || ('https://www.google.com/maps/search/?api=1&query=' + item.location)" target="_blank" rel="noopener noreferrer" class="text-primary text-decoration-underline location-link">
+                            <i class="bi bi-geo-alt-fill me-1"></i>{{ item.location }}
+                        </a>
+                    </div>
+
                     <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
                         <div class="small text-muted text-uppercase tracking-wider">
                             {{ item.categoryCode }} • <a [routerLink]="linkService.getEventRouterLink(item.eventId)" class="text-decoration-none">{{ item.eventId }}</a>

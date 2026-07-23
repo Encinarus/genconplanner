@@ -12,12 +12,19 @@ data/seed_gencon_locations.sql
 *.exe
 *.test
 
-# Node / Angular
-ui/node_modules/
+# Node / Angular / Vite
+node_modules/
+.vite/
+dist/
 ui/dist/
-ui/test-results/
-ui/playwright-report/
+ui/tmp/
+ui/out-tsc/
+test-results/
+playwright-report/
+coverage/
 .angular/
+*.log
 
-# OS files
+# OS & Editor files
 .DS_Store
+Thumbs.db

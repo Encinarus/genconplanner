@@ -2,7 +2,6 @@
     width: 100%;
 }
 
-/* Force all FullCalendar event wrappers to respect column boundaries and remove default white box-shadows */
 .fc-v-event,
 .fc-timegrid-event,
 .fc-event-main,
@@ -58,7 +57,6 @@
     box-sizing: border-box !important;
 }
 
-/* Black border exclusively for grid event cards */
 .fc-timegrid-event,
 .fc-v-event,
 .fc-daygrid-event {
@@ -78,12 +76,10 @@
     outline: none !important;
 }
 
-/* Ensure agenda/list view bullet dot uses the event category color */
-.fc-list-event-dot {
-    border-color: var(--fc-event-border-color, var(--fc-event-bg-color)) !important;
+.fc-list-event-graphic {
+    display: none !important;
 }
 
-/* Fix for short events (30 min / 1 hour) */
 .fc-timegrid-event-short .fc-event-main-frame {
     flex-direction: row !important;
     align-items: center !important;
@@ -108,13 +104,91 @@
     font-size: 0.9rem;
 }
 
-/* Agenda View Status Highlights */
-tr.fc-list-event.gencon-agenda-past td {
+.fc-agenda-item .location-link {
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.fc-agenda-item .location-link:hover {
+    color: #0a58ca !important;
+}
+
+/* Wide View Agenda Table */
+@media (min-width: 769px) {
+    .fc .fc-list-table tr.fc-list-event {
+        border-left: none !important;
+        box-shadow: none !important;
+    }
+
+    .fc .fc-list-table tr.fc-list-event td.fc-list-event-time {
+        border-left: 5px solid var(--gencon-event-color, #0073aa) !important;
+        box-shadow: inset 5px 0 0 0 var(--gencon-event-color, #0073aa) !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        white-space: nowrap !important;
+        width: 1% !important;
+        vertical-align: top !important;
+        font-weight: 500;
+    }
+
+    .fc .fc-list-table tr.fc-list-event td.fc-list-event-title {
+        border-left: none !important;
+        box-shadow: none !important;
+        vertical-align: top !important;
+    }
+}
+
+tr.fc-list-event.gencon-agenda-past td,
+tr.fc-list-event.gencon-agenda-past {
     background-color: #f2f4f7 !important;
     opacity: 0.75;
 }
 
-tr.fc-list-event.gencon-agenda-current td {
+tr.fc-list-event.gencon-agenda-current td,
+tr.fc-list-event.gencon-agenda-current {
     background-color: #e6f3ff !important;
-    border-left: 4px solid #0d6efd !important;
+}
+
+/* Narrow View Agenda Stacked */
+@media (max-width: 768px) {
+    .fc .fc-list-table tr.fc-list-event {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        padding: 8px 12px !important;
+        border-left: 5px solid var(--gencon-event-color, #0073aa) !important;
+        box-shadow: inset 5px 0 0 0 var(--gencon-event-color, #0073aa) !important;
+    }
+
+    .fc .fc-list-table tr.fc-list-event > td {
+        border-left: none !important;
+        border-top: none !important;
+        box-shadow: none !important;
+    }
+
+    .fc-list-event-time {
+        display: block !important;
+        order: 1 !important;
+        width: 100% !important;
+        padding: 0 0 4px 0 !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        color: #495057 !important;
+        white-space: nowrap !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .fc-list-event-title {
+        display: block !important;
+        width: 100% !important;
+        order: 2 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .fc-list-day-text,
+    .fc-list-day-side-text {
+        font-size: 0.95rem !important;
+    }
 }
