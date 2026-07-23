@@ -1,6 +1,9 @@
 .envrc
 latest.dump
 .gemini/
+location_data/
+sample_events.csv
+
 
 # Go binaries
 /web
