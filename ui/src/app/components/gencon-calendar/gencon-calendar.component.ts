@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, ViewChild, signal } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ViewChild, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FullCalendarModule, FullCalendarComponent } from '@fullcalendar/angular';
 import { CalendarOptions } from '@fullcalendar/core';
@@ -35,7 +35,8 @@ export interface GenconCalendarEventItem {
   standalone: true,
   imports: [CommonModule, FullCalendarModule],
   templateUrl: './gencon-calendar.component.html',
-  styleUrl: './gencon-calendar.component.css'
+  styleUrl: './gencon-calendar.component.css',
+  encapsulation: ViewEncapsulation.None
 })
 export class GenconCalendarComponent implements OnChanges {
   @ViewChild('calendar') calendarComponent!: FullCalendarComponent;
@@ -70,6 +71,19 @@ export class GenconCalendarComponent implements OnChanges {
     'WKS': '#5E3C03',
     'ZED': '#75B9B8',
   };
+
+  getCategoryColor(code: string): string {
+    if (!code) return '#0073AA';
+    const clean = code.trim().toUpperCase();
+    if (this.categoryColors[clean]) return this.categoryColors[clean];
+    if (clean.length >= 4 && this.categoryColors[clean.substring(0, 4)]) {
+      return this.categoryColors[clean.substring(0, 4)];
+    }
+    if (clean.length >= 3 && this.categoryColors[clean.substring(0, 3)]) {
+      return this.categoryColors[clean.substring(0, 3)];
+    }
+    return '#0073AA';
+  }
 
   calendarOptions = signal<CalendarOptions>({
     plugins: [dayGridPlugin, timeGridPlugin, bootstrap5Plugin, interactionPlugin, listPlugin],
@@ -121,12 +135,10 @@ export class GenconCalendarComponent implements OnChanges {
       const holders: string[] = props['holderNames'] || [];
 
       let html = `
-        <div class="fc-event-main-frame p-1 h-100 d-flex flex-column justify-content-start overflow-hidden text-truncate">
-          <div class="fw-bold text-truncate" style="font-size: 0.82rem; line-height: 1.2;">
-            ${cleanTitle}
-          </div>
-          ${location ? `<div class="text-white-50 text-truncate" style="font-size: 0.72rem; line-height: 1.1;"><i class="bi bi-geo-alt-fill me-1"></i>${location}</div>` : ''}
-          ${holders.length > 0 ? `<div class="text-white text-truncate opacity-90 mt-0.5" style="font-size: 0.70rem; line-height: 1.1;"><i class="bi bi-people-fill me-1"></i>${holders.join(', ')}</div>` : ''}
+        <div class="fc-event-main-frame" style="display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; overflow: hidden; height: 100%; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;">
+          <div class="fc-event-title-line fw-bold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 0; font-size: 0.82rem; line-height: 1.3; box-sizing: border-box;">${cleanTitle}</div>
+          ${location ? `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 1; font-size: 0.72rem; line-height: 1.25; opacity: 0.75; box-sizing: border-box;"><i class="bi bi-geo-alt-fill me-1"></i>${location}</div>` : ''}
+          ${holders.length > 0 ? `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 1; font-size: 0.72rem; line-height: 1.25; opacity: 0.75; box-sizing: border-box;"><i class="bi bi-people-fill me-1"></i>${holders.join(', ')}</div>` : ''}
         </div>
       `;
       return { html };
@@ -236,17 +248,14 @@ export class GenconCalendarComponent implements OnChanges {
     });
 
     const formattedEvents = filteredEvents.map(item => {
-      const catCode = (item.categoryCode || (item.id && item.id.length >= 3 ? item.id.substring(0, 3).toUpperCase() : '')).toUpperCase();
-      const baseColor = this.categoryColors[catCode] || '#0073AA';
+      const catCode = (item.categoryCode || (item.id && item.id.length >= 3 ? item.id.substring(0, 3) : '')).toUpperCase();
+      const baseColor = this.getCategoryColor(catCode);
 
       const isMine = !!item.isMine;
-      const isHighlighted = mode === 'highlight_mine' && isMine;
       const isDimmed = mode === 'highlight_mine' && !isMine;
 
       const classNames: string[] = [];
-      if (isHighlighted) {
-        classNames.push('highlighted-my-event');
-      } else if (isDimmed) {
+      if (isDimmed) {
         classNames.push('dimmed-event');
       }
 
@@ -268,7 +277,7 @@ export class GenconCalendarComponent implements OnChanges {
         end: item.end,
         url: item.url || `/event/${item.id}`,
         backgroundColor: baseColor,
-        borderColor: isHighlighted ? '#ffc107' : baseColor,
+        borderColor: '#000000',
         classNames: classNames,
         extendedProps: {
           cleanTitle: item.title,

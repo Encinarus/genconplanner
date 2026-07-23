@@ -2,39 +2,101 @@
     width: 100%;
 }
 
-.fc-event-main-frame {
-    line-height: 1.15;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+/* Force all FullCalendar event wrappers to respect column boundaries and remove default white box-shadows */
+.fc-v-event,
+.fc-timegrid-event,
+.fc-event,
+.fc-event-main,
+.fc-event-main-frame,
+.fc-timegrid-event-harness {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
-.fc-event {
+.fc-event-main-frame {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 2px !important;
+    height: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    line-height: 1.25 !important;
+}
+
+.fc-event-title-line {
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+    line-height: 1.3 !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    color: #ffffff !important;
+    flex-shrink: 0;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.fc-event-sub-line {
+    font-weight: 400 !important;
+    font-size: 0.72rem !important;
+    line-height: 1.25 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    opacity: 0.75 !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+    flex-shrink: 1;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.fc-event,
+.fc-timegrid-event,
+.fc-v-event {
+    border: 1px solid #000000 !important;
     border-radius: 4px !important;
+    box-shadow: none !important;
+    outline: none !important;
     transition: opacity 0.2s ease, filter 0.2s ease;
 }
 
 .fc-event-main {
     color: #ffffff !important;
-    padding: 1px 3px !important;
+    padding: 2px 4px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
-.fc-timegrid-event {
-    border-radius: 4px !important;
+/* Fix for short events (30 min / 1 hour) */
+.fc-timegrid-event-short .fc-event-main-frame {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px;
+}
+
+.fc-timegrid-event-short .fc-event-sub-line {
+    display: none !important;
+}
+
+.fc-timegrid-event-short .fc-event-title-line {
+    font-size: 0.75rem !important;
+    line-height: 1.1 !important;
 }
 
 .dimmed-event {
     opacity: 0.35 !important;
     filter: grayscale(60%) !important;
-}
-
-.highlighted-my-event {
-    opacity: 1 !important;
-    border: 2.5px solid #ffc107 !important;
-    box-shadow: 0 0 10px rgba(255, 193, 7, 0.7) !important;
-    z-index: 10 !important;
 }
 
 .fc-agenda-item {
