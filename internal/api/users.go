@@ -608,22 +608,32 @@ func (s *Server) BulkReplaceStarredEvents(c *gin.Context) {
 		return
 	}
 
-	// 1. Regex to find all event IDs
-	// General regex for GenCon IDs: [A-Z]{3,4}\d{2}ND\d{6,}
-	idRegex := regexp.MustCompile(`[A-Z]{3,4}\d{2}ND\d{6,}`)
-	matches := idRegex.FindAllString(req.Text, -1)
+	// 1. Regex to find full event IDs (e.g., BGM26ND323880)
+	fullIdRegex := regexp.MustCompile(`[A-Z]{3,4}\d{2}ND\d{5,}`)
+	fullMatches := fullIdRegex.FindAllString(req.Text, -1)
 
-	if len(matches) == 0 {
-		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "No valid event IDs found"})
-		return
+	// 2. Regex to find numeric IDs from Gen Con URLs (e.g., gencon.com/events/323880) or bare 5-7 digit numbers
+	numericRegex := regexp.MustCompile(`(?i)(?:events/|\b)(\d{5,7})\b`)
+	numericSubmatches := numericRegex.FindAllStringSubmatch(req.Text, -1)
+
+	var candidateNumeric []string
+	for _, m := range numericSubmatches {
+		if len(m) > 1 {
+			candidateNumeric = append(candidateNumeric, m[1])
+		}
 	}
 
-	// 2. Validate that all IDs match the requested year
+	resolvedMap, err := s.Repo.ResolveNumericEventIds(year, candidateNumeric)
+	if err != nil {
+		logging.LogCtx(c, "[BulkUpdate] error resolving numeric event IDs: %v", err)
+	}
+
+	// 3. Validate that all IDs match the requested year
 	yearLastTwo := fmt.Sprintf("%02d", year%100)
 	var validIds []string
 	seen := make(map[string]bool)
 
-	for _, id := range matches {
+	for _, id := range fullMatches {
 		// Check the year part of the ID (e.g., BGM26ND... -> 26)
 		// Prefix is 3 or 4 chars
 		idYearPart := ""
@@ -642,6 +652,22 @@ func (s *Server) BulkReplaceStarredEvents(c *gin.Context) {
 			validIds = append(validIds, id)
 			seen[id] = true
 		}
+	}
+
+	if resolvedMap != nil {
+		for _, numStr := range candidateNumeric {
+			if fullId, found := resolvedMap[numStr]; found {
+				if !seen[fullId] {
+					validIds = append(validIds, fullId)
+					seen[fullId] = true
+				}
+			}
+		}
+	}
+
+	if len(validIds) == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "No valid event IDs found"})
+		return
 	}
 
 	logging.LogCtx(c, "[BulkUpdate] Year=%d: Extracted %d IDs from input text. Overwrite=%t AsGroups=%t AsPurchased=%t", year, len(validIds), req.Overwrite, req.AsGroups, req.AsPurchased)

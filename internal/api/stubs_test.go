@@ -108,6 +108,13 @@ func (s *StubRepository) ClearStarredEvents(email string, year int) error {
 func (s *StubRepository) BulkStarEvents(email string, year int, eventIds []string, overwrite bool, asGroups bool, asPurchased bool) error {
 	return s.BulkStarEventsFn(email, year, eventIds, overwrite, asGroups, asPurchased)
 }
+func (s *StubRepository) ResolveNumericEventIds(year int, numericIds []string) (map[string]string, error) {
+	res := make(map[string]string)
+	for _, num := range numericIds {
+		res[num] = num
+	}
+	return res, nil
+}
 func (s *StubRepository) LoadAgenda(email string, year int) ([]*postgres.AgendaEntry, error) {
 	return s.LoadAgendaFn(email, year)
 }

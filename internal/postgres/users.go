@@ -1003,3 +1003,34 @@ func IsAdmin(db *sql.DB, email string) (bool, error) {
 	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM admin_users WHERE lower(email) = lower($1))", email).Scan(&exists)
 	return exists, err
 }
+
+func ResolveNumericEventIds(db *sql.DB, year int, numericIds []string) (map[string]string, error) {
+	if len(numericIds) == 0 {
+		return make(map[string]string), nil
+	}
+
+	rows, err := db.Query(`
+		SELECT event_id, SUBSTRING(event_id FROM '[0-9]+$') as num_part
+		FROM events
+		WHERE year = $1 AND active = true AND (
+			event_id = ANY($2) OR
+			SUBSTRING(event_id FROM '[0-9]+$') = ANY($2)
+		)
+	`, year, pq.Array(numericIds))
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	resolved := make(map[string]string)
+	for rows.Next() {
+		var fullId, numPart string
+		if err := rows.Scan(&fullId, &numPart); err != nil {
+			return nil, err
+		}
+		resolved[numPart] = fullId
+		resolved[fullId] = fullId
+	}
+	return resolved, nil
+}
