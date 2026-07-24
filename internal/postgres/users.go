@@ -82,7 +82,7 @@ SELECT
     ARRAY_AGG(e.event_id) event_ids,
     ARRAY_AGG(COALESCE(override.tier, grp.tier)) tiers
 FROM events e 
-JOIN user_stars grp ON grp.level = 'group'
+LEFT JOIN user_stars grp ON grp.level = 'group'
     AND e.year = grp.year 
     AND COALESCE(e.short_category, '') = grp.short_category 
     AND COALESCE(e.title, '') = grp.title 
@@ -90,7 +90,8 @@ JOIN user_stars grp ON grp.level = 'group'
 LEFT JOIN user_stars override ON override.level = 'event' AND override.event_id = e.event_id
 WHERE e.year = $2
   AND e.active
-  AND COALESCE(override.tier, grp.tier) != 'not_interested'
+  AND (grp.event_id IS NOT NULL OR override.event_id IS NOT NULL)
+  AND COALESCE(override.tier, grp.tier, 'not_interested') != 'not_interested'
 GROUP BY e.cluster_key, e.day_of_week
 `, userEmail, year)
 
@@ -199,12 +200,15 @@ LEFT JOIN (
     FROM orgs
     GROUP BY lower(alias)
 ) o ON o.lower_alias = lower(e2.org_group)
-JOIN user_stars grp ON grp.level = 'group'
+LEFT JOIN user_stars grp ON grp.level = 'group'
     AND e2.year = grp.year 
     AND COALESCE(e2.short_category, '') = grp.short_category 
     AND COALESCE(e2.title, '') = grp.title 
     AND COALESCE(e2.short_description, '') = grp.short_description
+LEFT JOIN user_stars override ON override.level = 'event' AND override.event_id = e2.event_id
 WHERE e2.active AND e2.year = $2
+  AND (grp.event_id IS NOT NULL OR override.event_id IS NOT NULL)
+  AND COALESCE(override.tier, grp.tier, 'not_interested') != 'not_interested'
 GROUP BY
   e2.year, COALESCE(e2.short_category, ''), COALESCE(e2.title, ''), COALESCE(e2.short_description, ''), COALESCE(e2.game_system, ''), COALESCE(e2.org_group, ''), o.id
 ORDER BY COALESCE(e2.title, '')`, userEmail, year)
@@ -241,12 +245,15 @@ LEFT JOIN (
     FROM orgs
     GROUP BY lower(alias)
 ) o ON o.lower_alias = lower(e2.org_group)
-JOIN user_stars grp ON grp.level = 'group'
+LEFT JOIN user_stars grp ON grp.level = 'group'
     AND e2.year = grp.year 
     AND COALESCE(e2.short_category, '') = grp.short_category 
     AND COALESCE(e2.title, '') = grp.title 
     AND COALESCE(e2.short_description, '') = grp.short_description
+LEFT JOIN user_stars override ON override.level = 'event' AND override.event_id = e2.event_id
 WHERE e2.active AND e2.year = $2
+  AND (grp.event_id IS NOT NULL OR override.event_id IS NOT NULL)
+  AND COALESCE(override.tier, grp.tier, 'not_interested') != 'not_interested'
 ORDER BY e2.start_time, e2.event_id`, fields), userEmail, year)
 
 	if err != nil {
@@ -666,9 +673,9 @@ GROUP BY e.year, COALESCE(e.short_category, ''), COALESCE(e.title, ''), COALESCE
 		} else if len(groupLevelIndices) == 0 {
 			// Property 2: no event group currently set up, but there are active starred event instances.
 			// Add a default star rating for the group equal to the highest rating among the events that are starred.
-			// By default it should be the one with the event id that sorts the lowest among unstarred events in the group.
 			if maxTier == "" {
-				maxTier = "very_interested"
+				// If only 'purchased' overrides exist without an explicit group interest rating, do not auto-star the group.
+				continue
 			}
 			if len(g.allEventIds) > 0 {
 				defaultEventId := g.allEventIds[0]
@@ -721,13 +728,14 @@ SELECT e2.event_id,
        COALESCE(grp.tier, override.tier) as group_tier,
        CASE WHEN override.event_id IS NOT NULL THEN true ELSE false END as is_override
 FROM events e2
-JOIN user_stars grp ON grp.level = 'group'
+LEFT JOIN user_stars grp ON grp.level = 'group'
     AND e2.year = grp.year 
     AND COALESCE(e2.short_category, '') = grp.short_category 
     AND COALESCE(e2.title, '') = grp.title 
     AND COALESCE(e2.short_description, '') = grp.short_description
 LEFT JOIN user_stars override ON override.level = 'event' AND override.event_id = e2.event_id
 WHERE e2.active %s
+  AND (grp.event_id IS NOT NULL OR override.event_id IS NOT NULL)
 ORDER BY e2.event_id`, yearFilterCTE, yearFilter)
 
 	rows, err := q.Query(query, args...)

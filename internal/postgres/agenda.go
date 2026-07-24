@@ -29,7 +29,7 @@ LEFT JOIN (
     FROM orgs
     GROUP BY lower(alias)
 ) o ON o.lower_alias = lower(e2.org_group)
-JOIN user_stars grp ON grp.level = 'group'
+LEFT JOIN user_stars grp ON grp.level = 'group'
     AND e2.year = grp.year 
     AND COALESCE(e2.short_category, '') = grp.short_category 
     AND COALESCE(e2.title, '') = grp.title 
@@ -37,7 +37,8 @@ JOIN user_stars grp ON grp.level = 'group'
 LEFT JOIN user_stars override ON override.level = 'event' AND override.event_id = e2.event_id
 WHERE e2.active 
   AND e2.year = $2
-  AND COALESCE(override.tier, grp.tier) != 'not_interested'
+  AND (grp.event_id IS NOT NULL OR override.event_id IS NOT NULL)
+  AND COALESCE(override.tier, grp.tier, 'not_interested') != 'not_interested'
 ORDER BY e2.start_time`, fields), userEmail, year)
 
 	if err != nil {
