@@ -65,6 +65,12 @@ func UpdateUserGenconInfo(db *sql.DB, email string, displayName string, genconNa
 
 func LoadStarredEventClusters(db *sql.DB, userEmail string, year int, starredEvents []*events.GenconEvent) ([]*CalendarEventCluster, error) {
 	rows, err := db.Query(`
+WITH user_stars AS (
+    SELECT se.event_id, se.level, se.tier, e.year, COALESCE(e.short_category, '') as short_category, COALESCE(e.title, '') as title, COALESCE(e.short_description, '') as short_description
+    FROM starred_events se
+    JOIN events e ON se.event_id = e.event_id
+    WHERE se.email = $1 AND e.year = $2 AND e.active
+)
 SELECT 
     CASE e.day_of_week 
 		WHEN 3 THEN 'wed'
@@ -76,16 +82,14 @@ SELECT
     ARRAY_AGG(e.event_id) event_ids,
     ARRAY_AGG(COALESCE(override.tier, grp.tier)) tiers
 FROM events e 
-LEFT JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
-LEFT JOIN events e1 ON grp.event_id = e1.event_id 
-    AND e1.year = e.year 
-    AND COALESCE(e1.short_category, '') = COALESCE(e.short_category, '') 
-    AND COALESCE(e1.title, '') = COALESCE(e.title, '') 
-    AND COALESCE(e1.short_description, '') = COALESCE(e.short_description, '')
-LEFT JOIN starred_events override ON override.email = $1 AND override.event_id = e.event_id AND override.level = 'event'
+JOIN user_stars grp ON grp.level = 'group'
+    AND e.year = grp.year 
+    AND COALESCE(e.short_category, '') = grp.short_category 
+    AND COALESCE(e.title, '') = grp.title 
+    AND COALESCE(e.short_description, '') = grp.short_description
+LEFT JOIN user_stars override ON override.level = 'event' AND override.event_id = e.event_id
 WHERE e.year = $2
   AND e.active
-  AND (override.event_id IS NOT NULL OR (grp.event_id IS NOT NULL AND e1.event_id IS NOT NULL))
   AND COALESCE(override.tier, grp.tier) != 'not_interested'
 GROUP BY e.cluster_key, e.day_of_week
 `, userEmail, year)
@@ -689,29 +693,35 @@ func fetchStarredInternal(q queryable, email string, year int) (*UserStarredEven
 	}
 
 	yearFilter := ""
+	yearFilterCTE := ""
 	args := []interface{}{email}
 	if year > 0 {
 		yearFilter = " AND e2.year = $2"
+		yearFilterCTE = " AND e.year = $2"
 		args = append(args, year)
 	}
 
 	query := fmt.Sprintf(`
+WITH user_stars AS (
+    SELECT se.event_id, se.level, se.tier, e.year, COALESCE(e.short_category, '') as short_category, COALESCE(e.title, '') as title, COALESCE(e.short_description, '') as short_description
+    FROM starred_events se
+    JOIN events e ON se.event_id = e.event_id
+    WHERE se.email = $1 %s AND e.active
+)
 SELECT e2.event_id,
        CASE WHEN override.event_id IS NOT NULL THEN 'event' ELSE 'group' END as level,
        CASE WHEN override.event_id IS NOT NULL THEN override.tier ELSE grp.tier END as tier,
        COALESCE(grp.tier, override.tier) as group_tier,
        CASE WHEN override.event_id IS NOT NULL THEN true ELSE false END as is_override
 FROM events e2
-LEFT JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
-LEFT JOIN events e1 ON grp.event_id = e1.event_id 
-    AND e1.year = e2.year 
-    AND COALESCE(e1.short_category, '') = COALESCE(e2.short_category, '') 
-    AND COALESCE(e1.title, '') = COALESCE(e2.title, '') 
-    AND COALESCE(e1.short_description, '') = COALESCE(e2.short_description, '')
-LEFT JOIN starred_events override ON override.email = $1 AND override.event_id = e2.event_id AND override.level = 'event'
+JOIN user_stars grp ON grp.level = 'group'
+    AND e2.year = grp.year 
+    AND COALESCE(e2.short_category, '') = grp.short_category 
+    AND COALESCE(e2.title, '') = grp.title 
+    AND COALESCE(e2.short_description, '') = grp.short_description
+LEFT JOIN user_stars override ON override.level = 'event' AND override.event_id = e2.event_id
 WHERE e2.active %s
-  AND (override.event_id IS NOT NULL OR (grp.event_id IS NOT NULL AND e1.event_id IS NOT NULL))
-ORDER BY e2.event_id`, yearFilter)
+ORDER BY e2.event_id`, yearFilterCTE, yearFilter)
 
 	rows, err := q.Query(query, args...)
 	if err != nil {

@@ -16,6 +16,12 @@ type AgendaEntry struct {
 func LoadAgenda(db *sql.DB, userEmail string, year int) ([]*AgendaEntry, error) {
 	fields := "e2." + strings.Join(eventFields(), ", e2.")
 	rows, err := db.Query(fmt.Sprintf(`
+WITH user_stars AS (
+    SELECT se.event_id, se.level, se.tier, e.year, COALESCE(e.short_category, '') as short_category, COALESCE(e.title, '') as title, COALESCE(e.short_description, '') as short_description
+    FROM starred_events se
+    JOIN events e ON se.event_id = e.event_id
+    WHERE se.email = $1 AND e.year = $2 AND e.active
+)
 SELECT %s, true, o.id, COALESCE(override.tier, grp.tier) as tier
 FROM events e2
 LEFT JOIN (
@@ -23,16 +29,14 @@ LEFT JOIN (
     FROM orgs
     GROUP BY lower(alias)
 ) o ON o.lower_alias = lower(e2.org_group)
-LEFT JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
-LEFT JOIN events e1 ON grp.event_id = e1.event_id 
-    AND e1.year = e2.year 
-    AND COALESCE(e1.short_category, '') = COALESCE(e2.short_category, '') 
-    AND COALESCE(e1.title, '') = COALESCE(e2.title, '') 
-    AND COALESCE(e1.short_description, '') = COALESCE(e2.short_description, '')
-LEFT JOIN starred_events override ON override.email = $1 AND override.event_id = e2.event_id AND override.level = 'event'
+JOIN user_stars grp ON grp.level = 'group'
+    AND e2.year = grp.year 
+    AND COALESCE(e2.short_category, '') = grp.short_category 
+    AND COALESCE(e2.title, '') = grp.title 
+    AND COALESCE(e2.short_description, '') = grp.short_description
+LEFT JOIN user_stars override ON override.level = 'event' AND override.event_id = e2.event_id
 WHERE e2.active 
   AND e2.year = $2
-  AND (override.event_id IS NOT NULL OR (grp.event_id IS NOT NULL AND e1.event_id IS NOT NULL))
   AND COALESCE(override.tier, grp.tier) != 'not_interested'
 ORDER BY e2.start_time`, fields), userEmail, year)
 

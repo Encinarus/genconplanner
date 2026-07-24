@@ -58,6 +58,8 @@ TABLESPACE pg_default;
 ALTER TABLE public.party_members
     OWNER to postgres;
 
+CREATE INDEX idx_party_members_email ON public.party_members(email);
+
 -- Table: public.boardgame
 CREATE TABLE public.boardgame
 (
@@ -137,6 +139,9 @@ TABLESPACE pg_default;
 
 ALTER TABLE public.starred_events
   OWNER to postgres;
+
+CREATE INDEX idx_starred_events_email ON public.starred_events(email);
+CREATE INDEX idx_starred_events_email_level ON public.starred_events(email, level);
 
 -- Table: public.events
 CREATE TABLE public.events
