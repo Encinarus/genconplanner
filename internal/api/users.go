@@ -466,7 +466,7 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 		return
 	}
 
-	// 1. Get starred events (needed for both clusters and details)
+	// 1. Get starred events (needed for both list and client-side calendar clustering)
 	dbEvents, err := s.Repo.LoadStarredEvents(email, year)
 	if err != nil {
 		logging.LogCtx(c, "[GetStarredPageData] error loading starred events: %v", err)
@@ -474,15 +474,7 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 		return
 	}
 
-	// 2. Get clusters for calendar
-	clusters, err := s.Repo.LoadStarredEventClusters(email, year, dbEvents)
-	if err != nil {
-		logging.LogCtx(c, "[GetStarredPageData] error loading clusters: %v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
-		return
-	}
-
-	// 3. Get Starred IDs for global state sync
+	// 2. Get Starred IDs for global state sync
 	starredIds, err := s.Repo.GetStarredIds(email, year)
 	if err != nil {
 		logging.LogCtx(c, "[GetStarredPageData] error getting starred ids: %v", err)
@@ -492,7 +484,7 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 	if starredIds != nil {
 		starredCount = len(starredIds.StarredEvents)
 	}
-	logging.LogCtx(c, "[GetStarredPageData] Year=%d: Loaded dbEvents=%d, clusters=%d, starredIds=%d", year, len(dbEvents), len(clusters), starredCount)
+	logging.LogCtx(c, "[GetStarredPageData] Year=%d: Loaded dbEvents=%d, starredIds=%d", year, len(dbEvents), starredCount)
 
 	var data StarredPageData
 	data.Email = email
@@ -544,24 +536,6 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 			TableNumber:      e.TableNumber,
 			MapLink:          s.MatchLocation(e.Location, e.RoomName, e.TableNumber),
 			PartyMembers:     pm,
-		})
-	}
-
-	for _, cluster := range clusters {
-		data.CalendarEvents = append(data.CalendarEvents, CalendarEventCluster{
-			EventId:          cluster.EventId,
-			Title:            cluster.Title,
-			StartTime:        cluster.StartTime,
-			EndTime:          cluster.EndTime,
-			GenconUrl:        cluster.GenconUrl,
-			PlannerUrl:       cluster.PlannerUrl,
-			ShortCategory:    cluster.ShortCategory,
-			ShortDescription: cluster.ShortDescription,
-			SimilarCount:     cluster.SimilarCount,
-			Location:         cluster.Location,
-			RoomName:         cluster.RoomName,
-			TableNumber:      cluster.TableNumber,
-			MapLink:          s.MatchLocation(cluster.Location, cluster.RoomName, cluster.TableNumber),
 		})
 	}
 
