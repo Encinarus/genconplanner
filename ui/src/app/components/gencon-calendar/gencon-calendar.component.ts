@@ -8,6 +8,7 @@ import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import { getGenconDates } from '../../constants/gencon-dates';
+import { estimateWalkTimeBetweenMapLinks } from '../../utils/walk-estimate';
 
 declare var bootstrap: any;
 
@@ -52,6 +53,7 @@ export class GenconCalendarComponent implements OnChanges {
   @Input() displayMode: string = 'all';
   @Input() initialView: string = 'week';
   @Input() height: number | string = 525;
+  @Input() showWalkEstimates: boolean = true;
   @Output() viewChange = new EventEmitter<string>();
 
   private categoryColors: Record<string, string> = {
@@ -156,10 +158,10 @@ export class GenconCalendarComponent implements OnChanges {
       const holders: string[] = props['holderNames'] || [];
 
       let html = `
-        <div class="fc-event-main-frame" style="display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; overflow: hidden; height: 100%; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;">
-          <div class="fc-event-title-line fw-bold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 0; font-size: 0.82rem; line-height: 1.3; box-sizing: border-box;">${cleanTitle}</div>
-          ${location ? (mapLink ? `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 1; font-size: 0.72rem; line-height: 1.25; opacity: 0.75; box-sizing: border-box;"><a href="${mapLink}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;" onclick="event.stopPropagation()"><i class="bi bi-geo-alt-fill me-1"></i>${location}</a></div>` : `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 1; font-size: 0.72rem; line-height: 1.25; opacity: 0.75; box-sizing: border-box;"><i class="bi bi-geo-alt-fill me-1"></i>${location}</div>`) : ''}
-          ${holders.length > 0 ? `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 1; font-size: 0.72rem; line-height: 1.25; opacity: 0.75; box-sizing: border-box;"><i class="bi bi-people-fill me-1"></i>${holders.join(', ')}</div>` : ''}
+        <div class="fc-event-main-frame" style="display: flex; flex-direction: column; justify-content: flex-start; gap: 1px; overflow: hidden; height: 100%; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;">
+          <div class="fc-event-title-line fw-bold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 0; font-size: 0.8rem; line-height: 1.25; box-sizing: border-box;">${cleanTitle}</div>
+          ${location ? (mapLink ? `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 0; font-size: 0.72rem; line-height: 1.2; opacity: 0.85; box-sizing: border-box;"><a href="${mapLink}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;" onclick="event.stopPropagation()"><i class="bi bi-geo-alt-fill me-1"></i>${location}</a></div>` : `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 0; font-size: 0.72rem; line-height: 1.2; opacity: 0.85; box-sizing: border-box;"><i class="bi bi-geo-alt-fill me-1"></i>${location}</div>`) : ''}
+          ${holders.length > 0 ? `<div class="fc-event-sub-line text-white-50" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; min-width: 0; max-width: 100%; flex-shrink: 0; font-size: 0.72rem; line-height: 1.2; opacity: 0.85; box-sizing: border-box;"><i class="bi bi-people-fill me-1"></i>${holders.join(', ')}</div>` : ''}
         </div>
       `;
       return { html };
@@ -213,6 +215,38 @@ export class GenconCalendarComponent implements OnChanges {
           info.el.classList.add('gencon-agenda-past');
         } else if ((startMs <= nowMs && nowMs <= endMs) || (startMs >= nowMs && startMs <= nowMs + 15 * 60 * 1000)) {
           info.el.classList.add('gencon-agenda-current');
+        }
+
+        if (this.showWalkEstimates) {
+          const allEvents = info.view.calendar.getEvents().sort((a, b) => (a.start?.getTime() || 0) - (b.start?.getTime() || 0));
+          const currentIndex = allEvents.findIndex(e => e.id === info.event.id || (e.start?.getTime() === startMs && e.title === info.event.title));
+          if (currentIndex > 0) {
+            const prevEvent = allEvents[currentIndex - 1];
+            const prevEnd = prevEvent.end ? prevEvent.end.getTime() : (prevEvent.start ? prevEvent.start.getTime() : 0);
+            const gapMs = startMs - prevEnd;
+
+            if (gapMs >= 0 && gapMs < 60 * 60 * 1000) {
+              const estimate = estimateWalkTimeBetweenMapLinks(
+                prevEvent.extendedProps['mapLink'],
+                info.event.extendedProps['mapLink']
+              );
+              if (estimate) {
+                const parentNode = info.el.parentNode;
+                const walkClass = `gencon-walk-row-${info.event.id}`;
+                if (parentNode && !parentNode.querySelector(`.${walkClass}`)) {
+                  const tr = document.createElement('tr');
+                  tr.className = `gencon-walk-row ${walkClass}`;
+                  tr.innerHTML = `
+                    <td colspan="3" class="py-2 px-3 text-center bg-light border-top border-bottom text-muted small" style="background-color: #f8f9fa;">
+                      <i class="bi bi-person-walking text-primary me-1"></i>
+                      <span>Est. <strong>${estimate.displayText}</strong> between events</span>
+                    </td>
+                  `;
+                  parentNode.insertBefore(tr, info.el);
+                }
+              }
+            }
+          }
         }
         return;
       }

@@ -50,13 +50,13 @@
 .fc-event-sub-line {
     font-weight: 400 !important;
     font-size: 0.72rem !important;
-    line-height: 1.25 !important;
+    line-height: 1.2 !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
-    opacity: 0.75 !important;
-    color: rgba(255, 255, 255, 0.75) !important;
-    flex-shrink: 1;
+    opacity: 0.85 !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    flex-shrink: 0 !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -196,5 +196,43 @@ tr.fc-list-event.gencon-agenda-current {
     .fc-list-day-text,
     .fc-list-day-side-text {
         font-size: 0.95rem !important;
+    }
+}
+
+/* Walk estimate row layout - Full width on desktop and mobile */
+.fc .fc-list-table tr.gencon-walk-row {
+    display: table-row !important;
+    border-left: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+}
+
+.fc .fc-list-table tr.gencon-walk-row > td {
+    display: table-cell !important;
+    width: 100% !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none !important;
+    padding: 6px 12px !important;
+    text-align: center !important;
+}
+
+@media (max-width: 768px) {
+    .fc .fc-list-table tr.gencon-walk-row {
+        display: table-row !important;
+        width: 100% !important;
+        padding: 0 !important;
+        border-left: none !important;
+        box-shadow: none !important;
+    }
+
+    .fc .fc-list-table tr.gencon-walk-row > td {
+        display: table-cell !important;
+        width: 100% !important;
+        border-left: none !important;
+        border-right: none !important;
+        box-shadow: none !important;
+        padding: 6px 12px !important;
+        text-align: center !important;
     }
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApiService, StarredEventDetail } from '../../services/api.service';
 import { LinkService } from '../../services/link.service';
+import { estimateWalkTimeBetweenMapLinks, WalkEstimate } from '../../utils/walk-estimate';
 
 @Component({
   selector: 'app-agenda',
@@ -36,6 +37,17 @@ export class AgendaComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  getWalkEstimate(prev?: StarredEventDetail, current?: StarredEventDetail): WalkEstimate | null {
+    if (!prev || !current) return null;
+    const prevEnd = new Date(prev.endTime).getTime();
+    const currStart = new Date(current.startTime).getTime();
+    const gapMs = currStart - prevEnd;
+
+    if (gapMs < 0 || gapMs >= 60 * 60 * 1000) return null;
+
+    return estimateWalkTimeBetweenMapLinks(prev.mapLink, current.mapLink);
   }
 
   formatTiming(start: string, end: string): string {
