@@ -101,6 +101,7 @@ func SetupWeb(db *sql.DB, cache *background.GameCache) {
 	}
 
 	r := gin.Default()
+	r.Use(logging.RequestContextMiddleware())
 	r.Use(logging.ErrorStackTrace())
 	r.Use(otelgin.Middleware("genconplanner"))
 	r.Use(web.BootstrapContext(app, db, cache))

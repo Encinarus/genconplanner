@@ -1,12 +1,14 @@
 package logging
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"runtime/debug"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func PrintEnv() {
@@ -63,5 +65,42 @@ func ErrorStackTrace() gin.HandlerFunc {
 			log.Printf("Error: %v\n", err.Err)
 			log.Printf("Stack trace:\n%s\n", string(debug.Stack()))
 		}
+	}
+}
+
+const (
+	RequestIDKey = "RequestId"
+	UserEmailKey = "userEmail"
+)
+
+func RequestContextMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		reqID := c.GetHeader("X-Request-Id")
+		if reqID == "" {
+			reqID = strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
+		}
+		c.Set(RequestIDKey, reqID)
+		c.Header("X-Request-Id", reqID)
+		c.Next()
+	}
+}
+
+func LogCtx(c *gin.Context, format string, args ...interface{}) {
+	reqID, _ := c.Get(RequestIDKey)
+	if reqID == nil || reqID == "" {
+		reqID = "-"
+	}
+	email := ""
+	if user, exists := c.Get(UserEmailKey); exists {
+		email, _ = user.(string)
+	}
+	if email == "" {
+		email = "anon"
+	}
+	prefix := strings.TrimRight(fmt.Sprintf("[req:%v] [user:%s] ", reqID, email), " ") + " "
+	if len(args) == 0 {
+		log.Print(prefix + format)
+	} else {
+		log.Printf(prefix+format, args...)
 	}
 }

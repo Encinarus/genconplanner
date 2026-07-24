@@ -3,7 +3,6 @@ package background
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"time"
 
@@ -143,12 +142,23 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 	// With a rate limit of one call per 5 seconds, we can process ~438k games.
 	gameUpdateLimit := clock.Now().Add(-time.Hour * 24 * 3)
 
-	for len(familyBacklog) > 0 || len(gameBacklog) > 0 {
-		log.Printf("Processing backlog")
-		log.Printf("  Family backlog: %v", len(familyBacklog))
-		log.Printf("  Game backlog: %v", len(gameBacklog))
-		log.Printf("  Processed %v families, %v games", len(families), len(games))
+	// Track tallies to summarize BGG updates once every 10 minutes
+	lastLogTime := clock.Now()
+	tallyGames := 0
+	tallyFamilies := 0
 
+	logSummary := func(force bool) {
+		now := clock.Now()
+		if force || now.Sub(lastLogTime) >= 10*time.Minute {
+			log.Printf("[BGG Sync Summary] Past %v: Processed %d games, %d families. Remaining backlog: %d games, %d families",
+				now.Sub(lastLogTime).Round(time.Second), tallyGames, tallyFamilies, len(gameBacklog), len(familyBacklog))
+			lastLogTime = now
+			tallyGames = 0
+			tallyFamilies = 0
+		}
+	}
+
+	for len(familyBacklog) > 0 || len(gameBacklog) > 0 {
 		processedGames := 0
 		processedFamilies := 0
 
@@ -173,7 +183,6 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 				log.Printf("Issue getting apiGames %v", err)
 				continue
 			}
-			logDetails := ""
 			for _, apiGame := range apiGames {
 				processedGames++
 				g, err := RefreshGame(ctx, apiGame, familyBacklog, db, clock)
@@ -184,13 +193,10 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 						LastUpdate:     g.LastUpdate,
 						HasDescription: g.Description != "",
 					}
-					if logDetails != "" {
-						logDetails += ", "
-					}
-					logDetails += fmt.Sprintf("%d:%s", g.BggId, g.Name)
+					tallyGames++
 				}
 			}
-			log.Printf("processed %d games... %s", len(apiGames), logDetails)
+			logSummary(false)
 		}
 
 		var oldIds []int64
@@ -218,7 +224,6 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 				log.Printf("Issue getting apiGames %v", err)
 				continue
 			}
-			logDetails := ""
 			for _, apiGame := range apiGames {
 				processedGames++
 				g, err := RefreshGame(ctx, apiGame, familyBacklog, db, clock)
@@ -229,13 +234,10 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 						LastUpdate:     g.LastUpdate,
 						HasDescription: g.Description != "",
 					}
-					if logDetails != "" {
-						logDetails += ", "
-					}
-					logDetails += fmt.Sprintf("%d:%s", g.BggId, g.Name)
+					tallyGames++
 				}
 			}
-			log.Printf("processed %d games... %s", len(apiGames), logDetails)
+			logSummary(false)
 		}
 
 		gameBacklog = make(map[int64]bool)
@@ -263,7 +265,6 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 				continue
 			}
 
-			logDetails := ""
 			for _, bggFamily := range apiFamilies {
 				processedFamilies++
 				gameIds := make([]int64, 0, len(bggFamily.Link))
@@ -288,18 +289,17 @@ func UpdateGamesFromBGG(ctx context.Context, db *sql.DB, api bgg.BGGClient, cloc
 					GameIds:    dbFamily.GameIds,
 					LastUpdate: dbFamily.LastUpdate,
 				}
-				if logDetails != "" {
-					logDetails += ", "
-				}
-				logDetails += fmt.Sprintf("%d:%s", bggFamily.ID, bggFamily.Name.Value)
+				tallyFamilies++
 			}
-			log.Printf("processed %d families... %s", len(apiFamilies), logDetails)
+			logSummary(false)
 		}
 
 		// We're done! We don't know about anything else to dig into
 		if processedFamilies == 0 && processedGames == 0 {
+			logSummary(true)
 			log.Printf("No updates needed, finishing BGG update pass")
 			return
 		}
 	}
+	logSummary(true)
 }

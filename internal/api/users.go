@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Encinarus/genconplanner/internal/events"
+	"github.com/Encinarus/genconplanner/internal/logging"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/Encinarus/genconplanner/internal/prioritization"
 	"github.com/Encinarus/genconplanner/internal/pubsub"
@@ -197,9 +198,12 @@ func (s *Server) StarEvent(c *gin.Context) {
 
 	var req StarEventRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logging.LogCtx(c, "[StarEvent] Error binding JSON: %v", err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
 		return
 	}
+
+	logging.LogCtx(c, "[StarEvent] EventId=%s Tier=%s Related=%t Add=%t RemoveAll=%t", req.EventId, req.Tier, req.Related, req.Add, req.RemoveAll)
 
 	var starred *postgres.UserStarredEvents
 	var err error
@@ -210,11 +214,16 @@ func (s *Server) StarEvent(c *gin.Context) {
 	}
 
 	if err != nil {
-		log.Printf("error updating starred event: %v\n", err)
+		logging.LogCtx(c, "[StarEvent] ERROR updating starred event %s: %v", req.EventId, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
 
+	count := 0
+	if starred != nil {
+		count = len(starred.StarredEvents)
+	}
+	logging.LogCtx(c, "[StarEvent] SUCCESS eventId=%s returned %d items in payload", req.EventId, count)
 	c.JSON(http.StatusOK, starred)
 }
 
@@ -460,7 +469,7 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 	// 1. Get starred events (needed for both clusters and details)
 	dbEvents, err := s.Repo.LoadStarredEvents(email, year)
 	if err != nil {
-		log.Printf("error loading starred events: %v\n", err)
+		logging.LogCtx(c, "[GetStarredPageData] error loading starred events: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
@@ -468,7 +477,7 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 	// 2. Get clusters for calendar
 	clusters, err := s.Repo.LoadStarredEventClusters(email, year, dbEvents)
 	if err != nil {
-		log.Printf("error loading clusters: %v\n", err)
+		logging.LogCtx(c, "[GetStarredPageData] error loading clusters: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
@@ -476,8 +485,14 @@ func (s *Server) GetStarredPageData(c *gin.Context) {
 	// 3. Get Starred IDs for global state sync
 	starredIds, err := s.Repo.GetStarredIds(email, year)
 	if err != nil {
-		log.Printf("error getting starred ids: %v\n", err)
+		logging.LogCtx(c, "[GetStarredPageData] error getting starred ids: %v", err)
 	}
+
+	starredCount := 0
+	if starredIds != nil {
+		starredCount = len(starredIds.StarredEvents)
+	}
+	logging.LogCtx(c, "[GetStarredPageData] Year=%d: Loaded dbEvents=%d, clusters=%d, starredIds=%d", year, len(dbEvents), len(clusters), starredCount)
 
 	var data StarredPageData
 	data.Email = email
@@ -655,13 +670,17 @@ func (s *Server) BulkReplaceStarredEvents(c *gin.Context) {
 		}
 	}
 
+	logging.LogCtx(c, "[BulkUpdate] Year=%d: Extracted %d IDs from input text. Overwrite=%t AsGroups=%t AsPurchased=%t", year, len(validIds), req.Overwrite, req.AsGroups, req.AsPurchased)
+	logging.LogCtx(c, "[BulkUpdate] Valid IDs: %v", validIds)
+
 	err = s.Repo.BulkStarEvents(email, year, validIds, req.Overwrite, req.AsGroups, req.AsPurchased)
 	if err != nil {
-		log.Printf("error bulk replacing starred events: %v\n", err)
+		logging.LogCtx(c, "[BulkUpdate] ERROR bulk replacing starred events: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
 		return
 	}
 
+	logging.LogCtx(c, "[BulkUpdate] SUCCESS bulk starred %d events for year %d", len(validIds), year)
 	c.Status(http.StatusOK)
 }
 

@@ -11,6 +11,7 @@ import (
 	firebase "firebase.google.com/go"
 	"github.com/Encinarus/genconplanner/internal/background"
 	"github.com/Encinarus/genconplanner/internal/locations"
+	"github.com/Encinarus/genconplanner/internal/logging"
 	"github.com/Encinarus/genconplanner/internal/postgres"
 	"github.com/gin-gonic/gin"
 )
@@ -90,24 +91,24 @@ func (s *Server) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if idToken == "" {
-			log.Printf("AuthMiddleware: no token found in cookie or header\n")
+			logging.LogCtx(c, "AuthMiddleware: no token found in cookie or header")
 			c.AbortWithStatusJSON(401, ErrorResponse{Error: "Unauthorized"})
 			return
 		}
 
 		email, err := s.Auth.VerifyIDToken(c.Request.Context(), idToken)
 		if err != nil {
-			log.Printf("AuthMiddleware: token verification failed: %v\n", err)
+			logging.LogCtx(c, "AuthMiddleware: token verification failed: %v", err)
 			c.AbortWithStatusJSON(401, ErrorResponse{Error: "Unauthorized"})
 			return
 		}
 		if email == "" {
-			log.Println("AuthMiddleware: token verified but email is empty")
+			logging.LogCtx(c, "AuthMiddleware: token verified but email is empty")
 			c.AbortWithStatusJSON(401, ErrorResponse{Error: "Unauthorized"})
 			return
 		}
 
-		log.Printf("AuthMiddleware: authenticated user %s\n", email)
+		logging.LogCtx(c, "AuthMiddleware: authenticated user %s", email)
 		c.Set(userEmailKey, strings.ToLower(email))
 		c.Next()
 	}
