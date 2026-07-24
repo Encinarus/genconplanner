@@ -118,14 +118,13 @@ export class GenconCalendarComponent implements OnChanges {
           const holders: string[] = props['holderNames'] || [];
           const purchaserNames: string[] = props['purchaserNames'] || [];
 
-          const eventUrl = arg.event.url || `/event/${arg.event.id}`;
           const mapUrl = mapLink || (location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}` : '');
 
           let locationHtml = '';
           if (location) {
             locationHtml = `
               <div class="small">
-                <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="text-primary text-decoration-underline location-link" onclick="event.stopPropagation()">
+                <a href="${mapUrl || 'javascript:void(0)'}" target="_blank" rel="noopener noreferrer" class="text-primary text-decoration-underline location-link" onclick="event.stopPropagation()">
                   <i class="bi bi-geo-alt-fill me-1"></i>${location}
                 </a>
               </div>
@@ -134,10 +133,10 @@ export class GenconCalendarComponent implements OnChanges {
 
           let html = `
             <div class="d-flex flex-column gap-1 py-1 fc-agenda-item">
-              <div class="fw-bold fs-6">
-                <a href="${eventUrl}" target="_blank" class="text-dark text-decoration-none">${cleanTitle}</a>
+              <div class="fw-bold fs-6 text-dark">
+                ${cleanTitle}
               </div>
-              ${eventId ? `<div class="small text-muted"><a href="${eventUrl}" target="_blank" class="text-muted text-decoration-none fw-medium">${eventId}</a></div>` : ''}
+              ${eventId ? `<div class="small text-muted fw-medium">${eventId}</div>` : ''}
               ${locationHtml}
               ${holders.length > 0 ? `<div class="small text-dark"><i class="bi bi-people-fill me-1"></i><strong>Holders:</strong> ${holders.join(', ')}</div>` : ''}
               ${purchaserNames.length > 0 ? `<div class="small text-muted"><i class="bi bi-cart-check me-1"></i><strong>Purchased By:</strong> ${purchaserNames.join(', ')}</div>` : ''}
@@ -175,7 +174,12 @@ export class GenconCalendarComponent implements OnChanges {
     eventOrder: '-isMine,-rank',
     timeZone: 'America/Indiana/Indianapolis',
     eventClick: (info) => {
-      const targetUrl = info.event.url;
+      const props = info.event.extendedProps;
+      const location = props['location'];
+      const mapLink = props['mapLink'];
+      const mapUrl = mapLink || (location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}` : '');
+
+      const targetUrl = (info.view.type === 'genconAgenda' && mapUrl) ? mapUrl : info.event.url;
       if (targetUrl) {
         info.jsEvent.preventDefault();
         window.open(targetUrl, '_blank');
