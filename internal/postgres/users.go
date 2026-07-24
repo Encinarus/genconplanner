@@ -167,16 +167,25 @@ GROUP BY e.cluster_key, e.day_of_week
 
 func LoadStarredEventGroups(db *sql.DB, userEmail string, year int) ([]*EventGroup, error) {
 	rows, err := db.Query(`
-SELECT
-	MIN(e2.event_id) AS anchor_event,
-	e2.title, 
-	e2.short_description AS short_description,
-	e2.short_category AS short_category,
-	e2.game_system AS game_system,
-	e2.org_group AS org_group,
-	MAX(o.id) AS org_id,
-	COUNT(*) AS num_events,
-	SUM(e2.tickets_available) AS tickets_available,
+WITH user_stars AS (
+    SELECT se.event_id, se.level, se.tier, e.year, COALESCE(e.short_category, '') as short_category, COALESCE(e.title, '') as title, COALESCE(e.short_description, '') as short_description
+    FROM starred_events se
+    JOIN events e ON se.event_id = e.event_id
+    WHERE se.email = $1 AND e.year = $2 AND e.active
+)
+SELECT 
+	e2.year,
+	COALESCE(e2.short_category, '') AS short_category,
+	COALESCE(e2.title, '') AS title,
+	COALESCE(e2.short_description, '') AS short_description,
+	COALESCE(e2.game_system, '') AS game_system,
+	COALESCE(e2.org_group, '') AS org_group,
+	count(e2.event_id) as total_events,
+	min(e2.start_time) as min_start_time,
+	max(e2.end_time) as max_end_time,
+	sum(e2.tickets_available) as total_tickets,
+	min(e2.cost) as min_cost,
+	max(e2.cost) as max_cost,
 	sum(CASE WHEN e2.day_of_week = 3 THEN e2.tickets_available ELSE 0 END) as wednesday_tickets,
 	sum(CASE WHEN e2.day_of_week = 4 THEN e2.tickets_available ELSE 0 END) as thursday_tickets,
 	sum(CASE WHEN e2.day_of_week = 5 THEN e2.tickets_available ELSE 0 END) as friday_tickets,
@@ -190,19 +199,15 @@ LEFT JOIN (
     FROM orgs
     GROUP BY lower(alias)
 ) o ON o.lower_alias = lower(e2.org_group)
+JOIN user_stars grp ON grp.level = 'group'
+    AND e2.year = grp.year 
+    AND COALESCE(e2.short_category, '') = grp.short_category 
+    AND COALESCE(e2.title, '') = grp.title 
+    AND COALESCE(e2.short_description, '') = grp.short_description
 WHERE e2.active AND e2.year = $2
-  AND EXISTS (
-      SELECT 1 FROM starred_events se
-      LEFT JOIN events e1 ON se.event_id = e1.event_id
-      WHERE se.email = $1
-        AND (
-          se.event_id = e2.event_id
-          OR (se.level = 'group' AND e1.year = e2.year AND COALESCE(e1.short_category, '') = COALESCE(e2.short_category, '') AND COALESCE(e1.title, '') = COALESCE(e2.title, '') AND COALESCE(e1.short_description, '') = COALESCE(e2.short_description, ''))
-        )
-  )
 GROUP BY
-  e2.year, e2.short_category, e2.title, e2.short_description, e2.game_system, e2.org_group
-ORDER BY e2.title`, userEmail, year)
+  e2.year, COALESCE(e2.short_category, ''), COALESCE(e2.title, ''), COALESCE(e2.short_description, ''), COALESCE(e2.game_system, ''), COALESCE(e2.org_group, ''), o.id
+ORDER BY COALESCE(e2.title, '')`, userEmail, year)
 
 	if err != nil {
 		return nil, err
@@ -223,6 +228,12 @@ ORDER BY e2.title`, userEmail, year)
 func LoadStarredEvents(db *sql.DB, userEmail string, year int) ([]*events.GenconEvent, error) {
 	fields := "e2." + strings.Join(eventFields(), ", e2.")
 	rows, err := db.Query(fmt.Sprintf(`
+WITH user_stars AS (
+    SELECT se.event_id, se.level, se.tier, e.year, COALESCE(e.short_category, '') as short_category, COALESCE(e.title, '') as title, COALESCE(e.short_description, '') as short_description
+    FROM starred_events se
+    JOIN events e ON se.event_id = e.event_id
+    WHERE se.email = $1 AND e.year = $2 AND e.active
+)
 SELECT %s, true, o.id
 FROM events e2
 LEFT JOIN (
@@ -230,16 +241,12 @@ LEFT JOIN (
     FROM orgs
     GROUP BY lower(alias)
 ) o ON o.lower_alias = lower(e2.org_group)
+JOIN user_stars grp ON grp.level = 'group'
+    AND e2.year = grp.year 
+    AND COALESCE(e2.short_category, '') = grp.short_category 
+    AND COALESCE(e2.title, '') = grp.title 
+    AND COALESCE(e2.short_description, '') = grp.short_description
 WHERE e2.active AND e2.year = $2
-  AND EXISTS (
-      SELECT 1 FROM starred_events se
-      LEFT JOIN events e1 ON se.event_id = e1.event_id
-      WHERE se.email = $1
-        AND (
-          se.event_id = e2.event_id
-          OR (se.level = 'group' AND e1.year = e2.year AND COALESCE(e1.short_category, '') = COALESCE(e2.short_category, '') AND COALESCE(e1.title, '') = COALESCE(e2.title, '') AND COALESCE(e1.short_description, '') = COALESCE(e2.short_description, ''))
-        )
-  )
 ORDER BY e2.start_time, e2.event_id`, fields), userEmail, year)
 
 	if err != nil {

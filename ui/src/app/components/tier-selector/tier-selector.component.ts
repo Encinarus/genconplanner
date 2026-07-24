@@ -57,10 +57,20 @@ export class TierSelectorComponent {
   labelClick = output<string>();
 
   onSelectTier(newTier: string): void {
-    this.tierChange.emit(newTier);
+    if (this.tier() !== newTier) {
+      this.tierChange.emit(newTier);
+    }
   }
 
-  onLabelClick(clickedTier: string, _event?: Event): void {
-    this.labelClick.emit(clickedTier);
+  onLabelClick(clickedTier: string, event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (this.tier() === clickedTier) {
+      this.labelClick.emit(clickedTier);
+    } else {
+      this.tierChange.emit(clickedTier);
+    }
   }
 }
