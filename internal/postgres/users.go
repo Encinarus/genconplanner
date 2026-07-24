@@ -346,14 +346,14 @@ func UpdateStarredEventInternal(db *sql.DB, email string, eventId string, tier s
 				FROM starred_events se
 				JOIN events e1 ON se.event_id = e1.event_id
 				JOIN events e2 ON e1.cluster_id = e2.cluster_id
-				WHERE e2.event_id = $2 AND se.email = $1 AND se.level = 'event'
+				WHERE e2.event_id = $2 AND se.email = $1 AND se.level = 'event' AND se.tier != 'purchased'
 				ORDER BY e1.event_id LIMIT 1
 			`, email, eventId).Scan(&overrideEventId, &overrideTier)
 
 			if scanErr == sql.ErrNoRows {
-				// If no specific instances have an override, this should remove it entirely from the schedule.
+				// Delete only the group default rating row, preserving any purchased ticket overrides
 				_, err = tx.Exec(`
-					DELETE FROM starred_events WHERE email = $1 AND event_id IN (
+					DELETE FROM starred_events WHERE email = $1 AND level = 'group' AND event_id IN (
 						SELECT e2.event_id FROM events e1 JOIN events e2 ON e1.cluster_id = e2.cluster_id WHERE e1.event_id = $2
 					)`, email, eventId)
 				if err != nil {
