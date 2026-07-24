@@ -76,15 +76,16 @@ SELECT
     ARRAY_AGG(e.event_id) event_ids,
     ARRAY_AGG(COALESCE(override.tier, grp.tier)) tiers
 FROM events e 
-JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
-JOIN events e1 ON grp.event_id = e1.event_id 
+LEFT JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
+LEFT JOIN events e1 ON grp.event_id = e1.event_id 
     AND e1.year = e.year 
-    AND e1.short_category = e.short_category 
-    AND e1.title = e.title 
-    AND e1.short_description = e.short_description
+    AND COALESCE(e1.short_category, '') = COALESCE(e.short_category, '') 
+    AND COALESCE(e1.title, '') = COALESCE(e.title, '') 
+    AND COALESCE(e1.short_description, '') = COALESCE(e.short_description, '')
 LEFT JOIN starred_events override ON override.email = $1 AND override.event_id = e.event_id AND override.level = 'event'
 WHERE e.year = $2
   AND e.active
+  AND (override.event_id IS NOT NULL OR (grp.event_id IS NOT NULL AND e1.event_id IS NOT NULL))
   AND COALESCE(override.tier, grp.tier) != 'not_interested'
 GROUP BY e.cluster_key, e.day_of_week
 `, userEmail, year)
@@ -188,9 +189,12 @@ LEFT JOIN (
 WHERE e2.active AND e2.year = $2
   AND EXISTS (
       SELECT 1 FROM starred_events se
-      JOIN events e1 ON se.event_id = e1.event_id
+      LEFT JOIN events e1 ON se.event_id = e1.event_id
       WHERE se.email = $1
-        AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description
+        AND (
+          se.event_id = e2.event_id
+          OR (se.level = 'group' AND e1.year = e2.year AND COALESCE(e1.short_category, '') = COALESCE(e2.short_category, '') AND COALESCE(e1.title, '') = COALESCE(e2.title, '') AND COALESCE(e1.short_description, '') = COALESCE(e2.short_description, ''))
+        )
   )
 GROUP BY
   e2.year, e2.short_category, e2.title, e2.short_description, e2.game_system, e2.org_group
@@ -225,9 +229,12 @@ LEFT JOIN (
 WHERE e2.active AND e2.year = $2
   AND EXISTS (
       SELECT 1 FROM starred_events se
-      JOIN events e1 ON se.event_id = e1.event_id
+      LEFT JOIN events e1 ON se.event_id = e1.event_id
       WHERE se.email = $1
-        AND e1.year = e2.year AND e1.short_category = e2.short_category AND e1.title = e2.title AND e1.short_description = e2.short_description
+        AND (
+          se.event_id = e2.event_id
+          OR (se.level = 'group' AND e1.year = e2.year AND COALESCE(e1.short_category, '') = COALESCE(e2.short_category, '') AND COALESCE(e1.title, '') = COALESCE(e2.title, '') AND COALESCE(e1.short_description, '') = COALESCE(e2.short_description, ''))
+        )
   )
 ORDER BY e2.start_time, e2.event_id`, fields), userEmail, year)
 
@@ -514,22 +521,22 @@ func NormalizeUserStarredEvents(q queryable, email string, year int) error {
 	}
 
 	query := fmt.Sprintf(`
-SELECT e.year, e.short_category, e.title, e.short_description,
+SELECT e.year, COALESCE(e.short_category, ''), COALESCE(e.title, ''), COALESCE(e.short_description, ''),
        ARRAY_AGG(e.event_id ORDER BY e.event_id) as all_event_ids,
        ARRAY_AGG(se.level ORDER BY e.event_id) as starred_levels,
        ARRAY_AGG(se.tier ORDER BY e.event_id) as starred_tiers
 FROM events e
 JOIN (
-    SELECT DISTINCT e1.year, e1.short_category, e1.title, e1.short_description
+    SELECT DISTINCT e1.year, COALESCE(e1.short_category, '') as short_category, COALESCE(e1.title, '') as title, COALESCE(e1.short_description, '') as short_description
     FROM starred_events se1
     JOIN events e1 ON se1.event_id = e1.event_id
     WHERE se1.email = $1 %s
 ) active_groups ON e.year = active_groups.year 
-    AND e.short_category = active_groups.short_category 
-    AND e.title = active_groups.title 
-    AND e.short_description = active_groups.short_description
+    AND COALESCE(e.short_category, '') = active_groups.short_category 
+    AND COALESCE(e.title, '') = active_groups.title 
+    AND COALESCE(e.short_description, '') = active_groups.short_description
 LEFT JOIN starred_events se ON se.event_id = e.event_id AND se.email = $1
-GROUP BY e.year, e.short_category, e.title, e.short_description
+GROUP BY e.year, COALESCE(e.short_category, ''), COALESCE(e.title, ''), COALESCE(e.short_description, '')
 `, yearFilter)
 
 	rows, err := q.Query(query, args...)
@@ -692,17 +699,18 @@ func fetchStarredInternal(q queryable, email string, year int) (*UserStarredEven
 SELECT e2.event_id,
        CASE WHEN override.event_id IS NOT NULL THEN 'event' ELSE 'group' END as level,
        CASE WHEN override.event_id IS NOT NULL THEN override.tier ELSE grp.tier END as tier,
-       grp.tier as group_tier,
+       COALESCE(grp.tier, override.tier) as group_tier,
        CASE WHEN override.event_id IS NOT NULL THEN true ELSE false END as is_override
 FROM events e2
-JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
-JOIN events e1 ON grp.event_id = e1.event_id 
+LEFT JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
+LEFT JOIN events e1 ON grp.event_id = e1.event_id 
     AND e1.year = e2.year 
-    AND e1.short_category = e2.short_category 
-    AND e1.title = e2.title 
-    AND e1.short_description = e2.short_description
+    AND COALESCE(e1.short_category, '') = COALESCE(e2.short_category, '') 
+    AND COALESCE(e1.title, '') = COALESCE(e2.title, '') 
+    AND COALESCE(e1.short_description, '') = COALESCE(e2.short_description, '')
 LEFT JOIN starred_events override ON override.email = $1 AND override.event_id = e2.event_id AND override.level = 'event'
 WHERE e2.active %s
+  AND (override.event_id IS NOT NULL OR (grp.event_id IS NOT NULL AND e1.event_id IS NOT NULL))
 ORDER BY e2.event_id`, yearFilter)
 
 	rows, err := q.Query(query, args...)

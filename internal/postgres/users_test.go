@@ -37,7 +37,7 @@ func TestNormalizeUserStarredEvents_Property1(t *testing.T) {
 			"{group,group}",
 			"{very_interested,must_have}")
 
-	mock.ExpectQuery("SELECT e.year, e.short_category, e.title").
+	mock.ExpectQuery("SELECT e.year, COALESCE\\(e.short_category").
 		WithArgs(email, year).
 		WillReturnRows(rows)
 
@@ -79,7 +79,7 @@ func TestNormalizeUserStarredEvents_Property2(t *testing.T) {
 			"{NULL,event}",
 			"{NULL,must_have}")
 
-	mock.ExpectQuery("SELECT e.year, e.short_category, e.title").
+	mock.ExpectQuery("SELECT e.year, COALESCE\\(e.short_category").
 		WithArgs(email, year).
 		WillReturnRows(rows)
 
@@ -116,7 +116,7 @@ func TestFetchStarredInternal_Property3(t *testing.T) {
 			"{group,event}",
 			"{very_interested,must_have}")
 
-	mock.ExpectQuery("SELECT e.year, e.short_category, e.title").
+	mock.ExpectQuery("SELECT e.year, COALESCE\\(e.short_category").
 		WithArgs(email, year).
 		WillReturnRows(normRows)
 

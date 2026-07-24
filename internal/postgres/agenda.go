@@ -23,15 +23,16 @@ LEFT JOIN (
     FROM orgs
     GROUP BY lower(alias)
 ) o ON o.lower_alias = lower(e2.org_group)
-JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
-JOIN events e1 ON grp.event_id = e1.event_id 
+LEFT JOIN starred_events grp ON grp.email = $1 AND grp.level = 'group'
+LEFT JOIN events e1 ON grp.event_id = e1.event_id 
     AND e1.year = e2.year 
-    AND e1.short_category = e2.short_category 
-    AND e1.title = e2.title 
-    AND e1.short_description = e2.short_description
+    AND COALESCE(e1.short_category, '') = COALESCE(e2.short_category, '') 
+    AND COALESCE(e1.title, '') = COALESCE(e2.title, '') 
+    AND COALESCE(e1.short_description, '') = COALESCE(e2.short_description, '')
 LEFT JOIN starred_events override ON override.email = $1 AND override.event_id = e2.event_id AND override.level = 'event'
 WHERE e2.active 
   AND e2.year = $2
+  AND (override.event_id IS NOT NULL OR (grp.event_id IS NOT NULL AND e1.event_id IS NOT NULL))
   AND COALESCE(override.tier, grp.tier) != 'not_interested'
 ORDER BY e2.start_time`, fields), userEmail, year)
 
