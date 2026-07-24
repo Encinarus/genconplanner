@@ -10,7 +10,6 @@
     "lint": "ng lint"
   },
   "private": true,
-  "packageManager": "npm@12.0.1",
   "allowScripts": {
     "@firebase/util": true,
     "@parcel/watcher": true,
