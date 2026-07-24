@@ -73,6 +73,10 @@ func (s *Server) SyncTickets(c *gin.Context) {
 		return
 	}
 
+	for _, t := range tickets {
+		t.EventMapLink = s.MatchLocation(t.EventLocation, t.RoomName, t.TableNumber)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"status":      "success",
 		"syncedCount": len(req.Tickets),
@@ -93,6 +97,10 @@ func (s *Server) GetTickets(c *gin.Context) {
 		log.Printf("GetTickets error: %v\n", errLoad)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to load tickets"})
 		return
+	}
+
+	for _, t := range tickets {
+		t.EventMapLink = s.MatchLocation(t.EventLocation, t.RoomName, t.TableNumber)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

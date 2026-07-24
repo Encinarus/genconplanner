@@ -147,12 +147,14 @@ export class PartyComponent implements OnInit {
       }
       
       let displayName = '';
-      if (isMapped) {
+      if (m && m.displayName) {
+        displayName = m.displayName;
+      } else if (isMapped) {
         displayName = m?.displayName || t.holderDisplayName || t.holderEmail;
       } else {
         const recName = t.genconRecipientName || '';
         const firstName = recName.trim().split(/\s+/)[0];
-        displayName = firstName || 'Guest';
+        displayName = firstName || t.holderEmail || 'Guest';
       }
 
       return {
@@ -174,7 +176,7 @@ export class PartyComponent implements OnInit {
 
     const createInstanceView = (instTickets: PartyTicket[]): EventInstanceView => {
       const instId = instTickets[0].eventId || 'Unknown';
-      const location = instTickets[0].eventLocation || 'No location specified';
+      const location = this.formatPartyTicketLocation(instTickets[0]) || 'No location specified';
       let startTime: Date | null = null;
       let startTimeFormatted = 'Time TBD';
       let dayOfWeekShort = '';
@@ -376,12 +378,28 @@ export class PartyComponent implements OnInit {
     });
   }
 
+  private formatPartyTicketLocation(ticket?: PartyTicket): string {
+    if (!ticket) return '';
+    const parts = [ticket.eventLocation, ticket.roomName, ticket.tableNumber].filter(Boolean);
+    return parts.join(' / ');
+  }
+
   updatePartyCalendarEvents(): void {
     const rawTickets = this.tickets() || [];
     const activePurchasedTickets = rawTickets.filter(t => t.ticketStatus !== 'returned');
     const userEmail = this.auth.user()?.email?.toLowerCase();
     const mode = this.calendarDisplayMode();
     const memberFilter = this.calendarMemberFilter();
+
+    const party = this.party();
+    const memberMap = new Map<string, PartyMember>();
+    if (party && party.members) {
+      for (const m of party.members) {
+        if (m.email) {
+          memberMap.set(m.email.toLowerCase(), m);
+        }
+      }
+    }
 
     const eventMap = new Map<string, PartyTicket[]>();
     for (const t of activePurchasedTickets) {
@@ -397,26 +415,33 @@ export class PartyComponent implements OnInit {
     for (const [eid, ticketsForEvent] of eventMap.entries()) {
       const first = ticketsForEvent[0];
       const title = first.eventTitle || eid;
-      const location = first.eventLocation || '';
+      const location = this.formatPartyTicketLocation(first);
       const catCode = first.categoryCode || first.eventCategory || (eid && eid.length >= 3 ? eid.substring(0, 3).toUpperCase() : '');
       const startTime = first.eventStartTime;
 
       const holderMap = new Map<string, string>();
-      const purchaserSet = new Set<string>();
 
       for (const t of ticketsForEvent) {
         const hEmail = t.holderEmail?.toLowerCase() || '';
-        const hName = t.holderDisplayName || t.holderEmail || 'Unknown Holder';
+        const member = hEmail ? memberMap.get(hEmail) : null;
+        let hName = member?.displayName || t.holderDisplayName;
+
+        if (!hName || hName === hEmail || hName.includes('@')) {
+          if (member && member.displayName) {
+            hName = member.displayName;
+          } else if (t.holderDisplayName && !t.holderDisplayName.includes('@')) {
+            hName = t.holderDisplayName;
+          } else {
+            hName = t.holderEmail || 'Unknown Holder';
+          }
+        }
+
         if (hEmail) holderMap.set(hEmail, hName);
         else if (hName) holderMap.set(hName, hName);
-
-        const pName = t.genconPurchaserName || t.purchaserEmail || 'Unknown Purchaser';
-        purchaserSet.add(pName);
       }
 
       const holderEmails = Array.from(holderMap.keys());
       const holderNames = Array.from(holderMap.values());
-      const purchaserNames = Array.from(purchaserSet);
 
       const isMine = !!(userEmail && holderEmails.includes(userEmail));
 
@@ -456,7 +481,7 @@ export class PartyComponent implements OnInit {
         mapLink: first.mapLink || first.eventMapLink,
         isMine: isMine,
         holderNames: holderNames,
-        purchaserNames: purchaserNames
+        purchaserNames: [] // Do not show purchasers in party view calendar
       });
     }
 

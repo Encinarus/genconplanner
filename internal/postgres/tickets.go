@@ -30,6 +30,8 @@ type PartyTicket struct {
 	EventStartTime string `json:"eventStartTime,omitempty"`
 	EventEndTime   string `json:"eventEndTime,omitempty"`
 	EventLocation  string `json:"eventLocation,omitempty"`
+	RoomName       string `json:"roomName,omitempty"`
+	TableNumber    string `json:"tableNumber,omitempty"`
 	EventCategory  string `json:"eventCategory,omitempty"`
 	EventMapLink   string `json:"eventMapLink,omitempty"`
 }
@@ -191,7 +193,7 @@ WITH base_tickets AS (
 		pt.ticket_id::text as ticket_id, pt.party_id, pt.event_id, pt.year, pt.purchaser_email, COALESCE(pt.gencon_purchaser_name, ''), 
 		COALESCE(pt.gencon_ticket_id, ''), pt.gencon_recipient_name, COALESCE(pt.gencon_recipient_id, ''), 
 		pt.holder_email, COALESCE(u.display_name, ''), pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
-		COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz) AS event_start_time, COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz) AS event_end_time, COALESCE(e.location, ''), COALESCE(e.event_type, '')
+		COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz) AS event_start_time, COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz) AS event_end_time, COALESCE(e.location, ''), COALESCE(e.room_name, ''), COALESCE(e.table_number, ''), COALESCE(e.event_type, '')
 	FROM party_tickets pt
 	LEFT JOIN users u ON pt.holder_email = u.email
 	LEFT JOIN events e ON pt.event_id = e.event_id
@@ -220,6 +222,8 @@ WITH base_tickets AS (
 		COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz) as event_start_time,
 		COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz) as event_end_time,
 		COALESCE(e.location, '') as location,
+		COALESCE(e.room_name, '') as room_name,
+		COALESCE(e.table_number, '') as table_number,
 		COALESCE(e.event_type, '') as event_type
 	FROM starred_events se
 	JOIN party_members pm ON se.email = pm.email AND pm.party_id = $1
@@ -253,7 +257,7 @@ ORDER BY event_start_time, created_at`
 			&t.TicketId, &t.PartyId, &t.EventId, &t.Year, &t.PurchaserEmail, &t.GenconPurchaserName,
 			&t.GenconTicketId, &t.GenconRecipientName, &t.GenconRecipientId,
 			&t.HolderEmail, &t.HolderDisplayName, &t.TicketType, &t.TicketStatus, &t.TransferStatus,
-			&t.CreatedAt, &t.LastModified, &t.EventTitle, &startTime, &endTime, &t.EventLocation, &t.EventCategory,
+			&t.CreatedAt, &t.LastModified, &t.EventTitle, &startTime, &endTime, &t.EventLocation, &t.RoomName, &t.TableNumber, &t.EventCategory,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan party ticket: %w", err)
 		}
@@ -530,7 +534,7 @@ SELECT
 	pt.ticket_id, pt.party_id, pt.event_id, pt.year, pt.purchaser_email, COALESCE(pt.gencon_purchaser_name, ''), 
 	COALESCE(pt.gencon_ticket_id, ''), pt.gencon_recipient_name, COALESCE(pt.gencon_recipient_id, ''), 
 	pt.holder_email, COALESCE(u.display_name, ''), pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
-	COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.location, ''), COALESCE(e.event_type, '')
+	COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.location, ''), COALESCE(e.room_name, ''), COALESCE(e.table_number, ''), COALESCE(e.event_type, '')
 FROM party_tickets pt
 LEFT JOIN users u ON pt.holder_email = u.email
 LEFT JOIN events e ON pt.event_id = e.event_id
@@ -538,7 +542,7 @@ WHERE pt.party_id = $1 AND pt.ticket_id = $2`, partyId, ticketId).Scan(
 		&t.TicketId, &t.PartyId, &t.EventId, &t.Year, &t.PurchaserEmail, &t.GenconPurchaserName,
 		&t.GenconTicketId, &t.GenconRecipientName, &t.GenconRecipientId,
 		&t.HolderEmail, &t.HolderDisplayName, &t.TicketType, &t.TicketStatus, &t.TransferStatus,
-		&t.CreatedAt, &t.LastModified, &t.EventTitle, &startTime, &endTime, &t.EventLocation, &t.EventCategory,
+		&t.CreatedAt, &t.LastModified, &t.EventTitle, &startTime, &endTime, &t.EventLocation, &t.RoomName, &t.TableNumber, &t.EventCategory,
 	)
 	if errReload != nil {
 		return nil, fmt.Errorf("failed to reload ticket: %w", errReload)
@@ -562,7 +566,7 @@ SELECT
 	pt.ticket_id, pt.party_id, pt.event_id, pt.year, pt.purchaser_email, COALESCE(pt.gencon_purchaser_name, ''), 
 	COALESCE(pt.gencon_ticket_id, ''), pt.gencon_recipient_name, COALESCE(pt.gencon_recipient_id, ''), 
 	pt.holder_email, COALESCE(u.display_name, ''), pt.ticket_type, pt.ticket_status, pt.transfer_status, pt.created_at, pt.last_modified,
-	COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.location, ''), COALESCE(e.event_type, '')
+	COALESCE(e.title, ''), COALESCE(e.start_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.end_time, '1970-01-01 00:00:00-00'::timestamptz), COALESCE(e.location, ''), COALESCE(e.room_name, ''), COALESCE(e.table_number, ''), COALESCE(e.event_type, '')
 FROM party_tickets pt
 LEFT JOIN users u ON pt.holder_email = u.email
 LEFT JOIN events e ON pt.event_id = e.event_id
@@ -570,7 +574,7 @@ WHERE pt.party_id = $1 AND pt.ticket_id = $2`, partyId, ticketId).Scan(
 		&t.TicketId, &t.PartyId, &t.EventId, &t.Year, &t.PurchaserEmail, &t.GenconPurchaserName,
 		&t.GenconTicketId, &t.GenconRecipientName, &t.GenconRecipientId,
 		&t.HolderEmail, &t.HolderDisplayName, &t.TicketType, &t.TicketStatus, &t.TransferStatus,
-		&t.CreatedAt, &t.LastModified, &t.EventTitle, &startTime, &endTime, &t.EventLocation, &t.EventCategory,
+		&t.CreatedAt, &t.LastModified, &t.EventTitle, &startTime, &endTime, &t.EventLocation, &t.RoomName, &t.TableNumber, &t.EventCategory,
 	)
 	if errReload != nil {
 		return nil, fmt.Errorf("failed to reload ticket: %w", errReload)

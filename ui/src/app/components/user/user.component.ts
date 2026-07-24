@@ -6,14 +6,12 @@ import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { PartyService } from '../../services/party.service';
 import { Title } from '@angular/platform-browser';
-import { AgendaComponent } from '../agenda/agenda.component';
-
 import { GenconIdentityFormComponent } from '../gencon-identity-form/gencon-identity-form.component';
 
 @Component({
   selector: 'app-user',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, AgendaComponent, GenconIdentityFormComponent],
+  imports: [CommonModule, FormsModule, RouterModule, GenconIdentityFormComponent],
   templateUrl: './user.component.html',
   styleUrl: './user.component.css'
 })
@@ -36,7 +34,6 @@ export class UserComponent implements OnInit {
   tempGenconName = signal<string>('');
   tempGenconId = signal<string>('');
   tempGenconEmail = signal<string>('');
-  selectedYear = signal<number>(2026);
 
   // Form fields
   newPartyName = '';

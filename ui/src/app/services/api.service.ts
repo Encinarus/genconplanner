@@ -442,6 +442,8 @@ export interface PartyTicket {
   eventStartTime?: string;
   eventEndTime?: string;
   eventLocation?: string;
+  roomName?: string;
+  tableNumber?: string;
   eventCategory?: string;
   eventMapLink?: string;
   mapLink?: string;
