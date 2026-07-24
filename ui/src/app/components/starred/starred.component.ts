@@ -80,7 +80,7 @@ export class StarredComponent implements OnInit {
     sourceEvents.forEach(e => {
       // Apply tier filter (if not wishlist mode)
       if (filter !== 'all' && filter !== 'wishlist') {
-        const eventTier = e.tier || 'very_interested';
+        const eventTier = e.tier || e.groupTier || 'very_interested';
         if (eventTier !== filter) return;
       }
 
@@ -147,7 +147,7 @@ export class StarredComponent implements OnInit {
       
       if (data && data.year === currentYear) {
         if (!this.initialFilterSet) {
-          const hasPurchased = (data.individualEvents || []).some(e => e.tier === 'purchased');
+          const hasPurchased = (data.individualEvents || []).some(e => e.tier === 'purchased' || e.groupTier === 'purchased');
           if (hasPurchased) {
             this.tierFilter.set('purchased');
           } else {
@@ -200,7 +200,7 @@ export class StarredComponent implements OnInit {
     
     // 1. Filter the raw sessions
     const filteredSessions = (data.individualEvents || []).filter(e => {
-        const eventTier = e.tier || 'very_interested';
+        const eventTier = e.tier || e.groupTier || 'very_interested';
         return filter === 'all' || eventTier === filter;
     });
 

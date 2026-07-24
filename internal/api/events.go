@@ -61,6 +61,7 @@ type GameSystem struct {
 
 type EventRef struct {
 	EventId          string    `json:"eventId"`
+	Active           bool      `json:"active"`
 	TicketsAvailable int       `json:"ticketsAvailable"`
 	StartTime        time.Time `json:"startTime"`
 	EndTime          time.Time `json:"endTime"`
@@ -165,6 +166,9 @@ func (s *Server) convertEvent(apiEvent *Event, dbEvent *events.GenconEvent) {
 	apiEvent.TableNumber = dbEvent.TableNumber
 	apiEvent.MapLink = s.MatchLocation(dbEvent.Location, dbEvent.RoomName, dbEvent.TableNumber)
 	apiEvent.TicketsAvailable = dbEvent.TicketsAvailable
+	if !dbEvent.Active {
+		apiEvent.TicketsAvailable = 0
+	}
 	apiEvent.LastModified = dbEvent.LastModified
 	apiEvent.GenconUrl = dbEvent.GenconLink()
 }
@@ -213,9 +217,13 @@ func (s *Server) LookupEvent(c *gin.Context) {
 		// Add all events (including the current one) to RelatedEvents
 		var related EventRef
 		related.EventId = dbEvent.EventId
+		related.Active = dbEvent.Active
 		related.StartTime = dbEvent.StartTime
 		related.EndTime = dbEvent.EndTime
 		related.TicketsAvailable = dbEvent.TicketsAvailable
+		if !dbEvent.Active {
+			related.TicketsAvailable = 0
+		}
 		related.MapLink = s.MatchLocation(dbEvent.Location, dbEvent.RoomName, dbEvent.TableNumber)
 		apiEvent.RelatedEvents = append(apiEvent.RelatedEvents, related)
 	}

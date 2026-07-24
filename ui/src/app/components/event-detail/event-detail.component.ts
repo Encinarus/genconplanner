@@ -206,21 +206,29 @@ export class EventDetailComponent implements OnInit {
     return true;
   }
 
+  activeRelatedEvents = computed(() => {
+    const e = this.event();
+    if (!e || !e.relatedEvents) return [];
+    return e.relatedEvents.filter(s => s.active !== false);
+  });
+
+  cancelledRelatedEvents = computed(() => {
+    const e = this.event();
+    if (!e || !e.relatedEvents) return [];
+    return e.relatedEvents.filter(s => s.active === false);
+  });
+
   hasActiveFilters = computed(() => {
     return this.filterHasTickets() || this.filterFreeTime();
   });
 
   matchedEvents = computed(() => {
-    const e = this.event();
-    if (!e || !e.relatedEvents) return [];
-    return e.relatedEvents.filter(s => this.sessionMatchesFilters(s));
+    return this.activeRelatedEvents().filter(s => this.sessionMatchesFilters(s));
   });
 
   filteredOutEvents = computed(() => {
-    const e = this.event();
-    if (!e || !e.relatedEvents) return [];
     if (!this.hasActiveFilters()) return [];
-    return e.relatedEvents.filter(s => !this.sessionMatchesFilters(s));
+    return this.activeRelatedEvents().filter(s => !this.sessionMatchesFilters(s));
   });
 
   groupSessionsByDay(sessions: any[]): any[] {
@@ -253,6 +261,10 @@ export class EventDetailComponent implements OnInit {
 
   groupedFilteredOutEvents = computed(() => {
     return this.groupSessionsByDay(this.filteredOutEvents());
+  });
+
+  groupedCancelledEvents = computed(() => {
+    return this.groupSessionsByDay(this.cancelledRelatedEvents());
   });
 
   allSessionIds = computed(() => {

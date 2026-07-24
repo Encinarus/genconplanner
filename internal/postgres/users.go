@@ -531,6 +531,35 @@ type queryable interface {
 }
 
 func NormalizeUserStarredEvents(q queryable, email string, year int) error {
+	// 0. Reassign any 'group' level stars pointing to inactive events to the first active event in the same cluster.
+	groupMigrateQuery := `
+		UPDATE starred_events se
+		SET event_id = active_sibling.active_id
+		FROM (
+			SELECT e1.event_id as inactive_id, (
+				SELECT e2.event_id FROM events e2 
+				WHERE e2.cluster_id = e1.cluster_id AND e2.active = true 
+				ORDER BY e2.start_time, e2.event_id LIMIT 1
+			) as active_id
+			FROM events e1
+			WHERE e1.active = false
+		) active_sibling
+		WHERE se.email = $1 AND se.event_id = active_sibling.inactive_id AND se.level = 'group' AND active_sibling.active_id IS NOT NULL
+		  AND NOT EXISTS (
+			SELECT 1 FROM starred_events existing 
+			WHERE existing.email = se.email AND existing.event_id = active_sibling.active_id AND existing.level = 'group'
+		  );
+	`
+	_, _ = q.Exec(groupMigrateQuery, email)
+
+	// Clean up any group stars remaining on inactive events where no active sibling exists
+	groupCleanupQuery := `
+		DELETE FROM starred_events se
+		USING events e
+		WHERE se.event_id = e.event_id AND se.email = $1 AND se.level = 'group' AND e.active = false;
+	`
+	_, _ = q.Exec(groupCleanupQuery, email)
+
 	yearFilter := ""
 	args := []interface{}{email}
 	if year > 0 {

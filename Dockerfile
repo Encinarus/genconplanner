@@ -1,5 +1,6 @@
 FROM node:22 AS frontend-build
 WORKDIR /ui
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 COPY ui/package*.json ./
 RUN npm ci
 COPY ui/ ./

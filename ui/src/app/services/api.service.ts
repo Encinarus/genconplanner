@@ -197,6 +197,7 @@ export interface Event {
   genconUrl: string;
   relatedEvents?: {
     eventId: string;
+    active?: boolean;
     ticketsAvailable: number;
     startTime: string;
     endTime: string;

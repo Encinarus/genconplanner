@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"log"
+	"os"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -14,6 +15,11 @@ import (
 // InitTracer initializes an OTLP exporter, and configures the corresponding trace provider.
 // It returns a cleanup function to be called when the application shuts down.
 func InitTracer(ctx context.Context, serviceName string) (func(context.Context) error, error) {
+	noOpShutdown := func(context.Context) error { return nil }
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
+		return noOpShutdown, nil
+	}
+
 	// The otlptracehttp exporter automatically reads OTEL_EXPORTER_OTLP_ENDPOINT
 	// and OTEL_EXPORTER_OTLP_HEADERS from the environment.
 	exporter, err := otlptracehttp.New(ctx)
