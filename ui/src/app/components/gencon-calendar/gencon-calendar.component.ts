@@ -338,9 +338,15 @@ export class GenconCalendarComponent implements OnChanges {
     const monDate = new Date(wedDate.getTime() + 5 * 24 * 3600 * 1000).toISOString().split('T')[0];
 
     const mode = this.displayMode || 'all';
-
     const rawEvents = this.events || [];
-    const hasWednesday = rawEvents.some(e => {
+
+    const filteredEvents = rawEvents.filter(item => {
+      if (mode === 'only_mine' && !item.isMine) return false;
+      if (mode === 'exclude_mine' && item.isMine) return false;
+      return true;
+    });
+
+    const hasWednesday = filteredEvents.some(e => {
       if (!e.start) return false;
       const d = new Date(e.start);
       return !isNaN(d.getTime()) && d.getDay() === 3;
@@ -349,12 +355,6 @@ export class GenconCalendarComponent implements OnChanges {
     const hiddenDays = hasWednesday ? [] : [3];
     const initialDate = this.startDate || (hasWednesday ? wednesdayStart : thuDate);
     const durationDays = hasWednesday ? 5 : 4;
-
-    const filteredEvents = rawEvents.filter(item => {
-      if (mode === 'only_mine' && !item.isMine) return false;
-      if (mode === 'exclude_mine' && item.isMine) return false;
-      return true;
-    });
 
     const formattedEvents = filteredEvents.map(item => {
       const catCode = (item.categoryCode || (item.id && item.id.length >= 3 ? item.id.substring(0, 3) : '')).toUpperCase();
@@ -433,12 +433,14 @@ export class GenconCalendarComponent implements OnChanges {
       events: formattedEvents
     }));
 
-    if (this.calendarComponent) {
-      try {
-        this.calendarComponent.getApi()?.gotoDate(initialDate);
-      } catch {
-        // Ignored if calendar view not yet rendered
+    setTimeout(() => {
+      if (this.calendarComponent) {
+        try {
+          this.calendarComponent.getApi()?.gotoDate(initialDate);
+        } catch {
+          // Ignored if calendar view not yet rendered
+        }
       }
-    }
+    }, 0);
   }
 }
