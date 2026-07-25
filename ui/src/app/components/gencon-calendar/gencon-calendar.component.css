@@ -3,6 +3,52 @@
     max-height: 525px;
 }
 
+.fc .fc-toolbar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    margin-bottom: 0.75rem !important;
+    width: 100% !important;
+}
+
+.fc .fc-toolbar-chunk {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.25rem !important;
+    min-width: 0 !important;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+@media (max-width: 768px) {
+    .fc .fc-toolbar {
+        gap: 0.15rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 0.82rem !important;
+        padding: 0 2px !important;
+    }
+
+    .fc .fc-button {
+        padding: 0.18rem 0.38rem !important;
+        font-size: 0.72rem !important;
+        line-height: 1.2 !important;
+    }
+}
+
 .gencon-calendar-container .fc-scroller {
     max-height: 455px !important;
     overflow-y: auto !important;

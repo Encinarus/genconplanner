@@ -111,6 +111,8 @@ export class GenconCalendarComponent implements OnChanges {
         type: 'list',
         duration: { days: 5 },
         buttonText: 'agenda',
+        listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' },
+        listDaySideFormat: false,
         eventContent: (arg) => {
           const props = arg.event.extendedProps;
           const cleanTitle = props['cleanTitle'] || arg.event.title;
@@ -427,7 +429,9 @@ export class GenconCalendarComponent implements OnChanges {
         },
         genconAgenda: {
           ...opts.views?.['genconAgenda'],
-          duration: { days: durationDays }
+          duration: { days: durationDays },
+          listDayFormat: { weekday: 'long', month: 'short', day: 'numeric' },
+          listDaySideFormat: false
         }
       },
       events: formattedEvents

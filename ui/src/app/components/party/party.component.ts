@@ -473,8 +473,8 @@ export class PartyComponent implements OnInit {
       calendarEvents.push({
         id: eid,
         title: title,
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
+        start: first.eventStartTime || startDate.toISOString(),
+        end: first.eventEndTime || endDate.toISOString(),
         url: `/event/${eid}`,
         categoryCode: catCode,
         location: location,

@@ -24,6 +24,13 @@ html {
     h1 {
         font-size: 14pt;
     }
+    .main {
+        padding: 10px 6px !important;
+    }
+    .container, .container-fluid {
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+    }
 }
 
 .main .page-header {

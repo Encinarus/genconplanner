@@ -185,6 +185,24 @@ LIMIT 1`, partyId, year, t.EventId, strings.ToLower(t.RecipientName), strings.To
 	return LoadPartyTickets(db, partyId, year)
 }
 
+var indianaLocation *time.Location
+
+func init() {
+	loc, err := time.LoadLocation("America/Indiana/Indianapolis")
+	if err == nil {
+		indianaLocation = loc
+	} else {
+		indianaLocation = time.FixedZone("EDT", -4*3600)
+	}
+}
+
+func formatIndianaTime(t time.Time) string {
+	if t.IsZero() || t.Year() <= 1970 {
+		return ""
+	}
+	return t.In(indianaLocation).Format("2006-01-02T15:04:05Z07:00")
+}
+
 // LoadPartyTickets retrieves all tickets for a party in a given year.
 func LoadPartyTickets(db *sql.DB, partyId int64, year int) ([]*PartyTicket, error) {
 	query := `
@@ -261,8 +279,8 @@ ORDER BY event_start_time, created_at`
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan party ticket: %w", err)
 		}
-		t.EventStartTime = startTime.Format(time.RFC3339)
-		t.EventEndTime = endTime.Format(time.RFC3339)
+		t.EventStartTime = formatIndianaTime(startTime)
+		t.EventEndTime = formatIndianaTime(endTime)
 		tickets = append(tickets, &t)
 	}
 	return tickets, nil
@@ -547,8 +565,8 @@ WHERE pt.party_id = $1 AND pt.ticket_id = $2`, partyId, ticketId).Scan(
 	if errReload != nil {
 		return nil, fmt.Errorf("failed to reload ticket: %w", errReload)
 	}
-	t.EventStartTime = startTime.Format(time.RFC3339)
-	t.EventEndTime = endTime.Format(time.RFC3339)
+	t.EventStartTime = formatIndianaTime(startTime)
+	t.EventEndTime = formatIndianaTime(endTime)
 	return &t, nil
 }
 
@@ -579,7 +597,7 @@ WHERE pt.party_id = $1 AND pt.ticket_id = $2`, partyId, ticketId).Scan(
 	if errReload != nil {
 		return nil, fmt.Errorf("failed to reload ticket: %w", errReload)
 	}
-	t.EventStartTime = startTime.Format(time.RFC3339)
-	t.EventEndTime = endTime.Format(time.RFC3339)
+	t.EventStartTime = formatIndianaTime(startTime)
+	t.EventEndTime = formatIndianaTime(endTime)
 	return &t, nil
 }
