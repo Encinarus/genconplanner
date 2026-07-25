@@ -5,6 +5,7 @@ location_data/
 sample_events.csv
 data/gencon_2026_locations.csv
 data/seed_gencon_locations.sql
+aiplans/
 
 # Go binaries
 /web
