@@ -44,8 +44,8 @@
 
     .fc .fc-button {
         padding: 0.18rem 0.38rem !important;
-        font-size: 0.72rem !important;
-        line-height: 1.2 !important;
+        font-size: var(--font-size-xs) !important;
+        line-height: 1.3 !important;
     }
 }
 
@@ -95,8 +95,8 @@
 
 .fc-event-sub-line {
     font-weight: 400 !important;
-    font-size: 0.72rem !important;
-    line-height: 1.2 !important;
+    font-size: var(--font-size-xs) !important;
+    line-height: 1.3 !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;

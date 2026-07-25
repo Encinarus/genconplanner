@@ -45,7 +45,7 @@ h4 {
 }
 
 .party-badge {
-    font-size: 0.72rem;
+    font-size: var(--font-size-xs);
     font-weight: 600;
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
@@ -61,7 +61,7 @@ h4 {
 }
 
 .party-badge i {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
 }
 
 .party-tooltip {
@@ -76,8 +76,8 @@ h4 {
     border-radius: 6px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08), 0 4px 10px rgba(0, 0, 0, 0.04);
     font-family: inherit;
-    font-size: 0.72rem;
-    line-height: 1.4;
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-tight);
     white-space: nowrap;
     z-index: 1000;
     pointer-events: none;

@@ -6,6 +6,29 @@
     --total-scroll-offset: calc(var(--sticky-header-top) + var(--sticky-header-height));
     --mobile-gutter: 12px;
     --desktop-gutter: 40px;
+    /* Responsive Typography Scale Tokens */
+    --font-size-xs: 0.75rem;   /* ~10.5px at 14px base desktop */
+    --font-size-sm: 0.85rem;   /* ~12px at 14px base desktop */
+    --line-height-tight: 1.25;
+}
+
+@media (max-width: 768px) {
+    :root {
+        /* Bump minimum text scale on mobile viewports for legibility */
+        --font-size-xs: 0.875rem; /* ~12.25px at 14px base */
+        --font-size-sm: 0.95rem;  /* ~13.3px at 14px base */
+        --line-height-tight: 1.4;
+    }
+}
+
+.text-xs {
+    font-size: var(--font-size-xs) !important;
+    line-height: var(--line-height-tight);
+}
+
+.text-sm {
+    font-size: var(--font-size-sm) !important;
+    line-height: var(--line-height-tight);
 }
 
 html {

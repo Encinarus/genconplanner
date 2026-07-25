@@ -150,7 +150,7 @@ body.nav-hidden .sticky-party-header {
 }
 
 .smaller {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
 }
 
 .animate-fade-in {
@@ -262,7 +262,7 @@ body.nav-hidden .sticky-party-header {
 }
 
 .contact-meta-label {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: #6c757d;

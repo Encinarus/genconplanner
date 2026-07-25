@@ -14,7 +14,7 @@
 }
 
 .timing-label {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     color: #666;
     background: #f1f3f5;
     padding: 2px 8px;
@@ -32,7 +32,7 @@
 }
 
 .event-id-link {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     color: #0073AA;
     text-decoration: none;
     font-weight: 600;
@@ -178,7 +178,7 @@ label.tier-btn[for="calTierAll"] {
 }
 
 .wishlist-item .timing-label {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     padding: 1px 6px;
 }
 
@@ -194,7 +194,7 @@ label.tier-btn[for="calTierAll"] {
 }
 
 .reasoning-badge {
-    font-size: 0.65rem !important;
+    font-size: var(--font-size-xs) !important;
     padding: 2px 6px;
     font-weight: 600;
     text-transform: uppercase;

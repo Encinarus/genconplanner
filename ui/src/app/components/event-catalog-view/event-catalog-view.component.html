@@ -57,7 +57,7 @@
                                 <input class="form-check-input" type="checkbox" id="filterFreeGlobal" [checked]="filterFree()" [disabled]="!auth.user()" (change)="toggleFilterFree()">
                                 <label class="form-check-label small" for="filterFreeGlobal" [class.text-muted]="!auth.user()">When I'm free</label>
                             </div>
-                            <small class="text-muted d-block mt-1" style="font-size: 0.72rem; line-height: 1.1;" *ngIf="!auth.user()">Log in to filter by schedule</small>
+                            <small class="text-muted d-block mt-1 text-xs" style="line-height: 1.1;" *ngIf="!auth.user()">Log in to filter by schedule</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-1">Availability</label>
@@ -101,7 +101,7 @@
                     <div *ngIf="showCategoryFilter()" class="col-md-3 col-sm-6 col-12 position-relative">
                         <label class="form-label fw-bold small text-muted text-uppercase mb-1">Categories</label>
                         <div class="d-flex flex-wrap align-items-center gap-1 border rounded p-1 bg-white cursor-text" (click)="focusCategoryInput(catInput)" style="min-height: 38px;">
-                            <span *ngFor="let catCode of selectedCategories()" class="badge bg-secondary d-flex align-items-center gap-1 py-1 px-2 text-wrap text-start" style="font-size: 0.75rem;">
+                            <span *ngFor="let catCode of selectedCategories()" class="badge bg-secondary d-flex align-items-center gap-1 py-1 px-2 text-wrap text-start text-xs">
                                 {{ categoryMap[catCode] || catCode }}
                                 <button type="button" class="btn-close btn-close-white" style="font-size: 0.5rem; padding: 2px;" (click)="toggleCategory(catCode); $event.stopPropagation();" aria-label="Remove"></button>
                             </span>
@@ -117,7 +117,7 @@
 
                 <!-- Optional Reset Filters Row -->
                 <div class="d-flex justify-content-end mt-2 mb-1" *ngIf="activeFiltersCount() > 0">
-                    <button class="btn btn-sm btn-outline-secondary animate-fade-in py-0.5 px-2" style="font-size: 0.78rem;" type="button" (click)="resetFilters()">
+                    <button class="btn btn-sm btn-outline-secondary animate-fade-in py-0.5 px-2 text-xs" type="button" (click)="resetFilters()">
                         <i class="bi bi-x-circle me-1"></i>Reset Filters
                     </button>
                 </div>
@@ -156,8 +156,7 @@
                     </h5>
                     <div class="nav vstack mb-3" *ngIf="!isCollapsed(major.name)">
                         <div *ngFor="let minor of major.minorGroups; trackBy: trackByMinor" class="nav-item">
-                            <a class="nav-link groupLink text-decoration-none py-1 ps-0 pointer" 
-                               style="font-size: 0.85rem;"
+                            <a class="nav-link groupLink text-decoration-none py-1 ps-0 pointer text-sm" 
                                (click)="scrollToAnchor(toId(major.name, minor.minorName))">
                                 {{ minor.minorName }} ({{ minor.totalEventGroups }})
                             </a>
@@ -185,7 +184,7 @@
                                 <ng-template #noBgg>
                                     <span class="fw-bold">{{ minor.minorName }}</span>
                                 </ng-template>
-                                <small *ngIf="minor.isSoldOut" class="text-muted" style="font-size: 0.85rem; font-weight: normal; opacity: 0.75">
+                                <small *ngIf="minor.isSoldOut" class="text-muted text-sm" style="font-weight: normal; opacity: 0.75">
                                     (Sold Out)
                                 </small>
                             </div>
@@ -206,11 +205,11 @@
                                    <h6 class="mb-1 fw-medium">
                                        {{ event.title }}
                                        <small *ngIf="(event.wedTickets + event.thuTickets + event.friTickets + event.satTickets + event.sunTickets) === 0" 
-                                              class="text-muted ms-2" style="font-size: 0.75rem; font-weight: normal; opacity: 0.7">
+                                              class="text-muted ms-2 text-xs" style="font-weight: normal; opacity: 0.7">
                                            (Sold Out)
                                        </small>
                                    </h6>
-                                    <p class="mb-2 text-dark small" style="opacity: 0.8">{{ event.shortDescription }}</p>
+                                    <p class="mb-2 text-dark text-sm" style="opacity: 0.8">{{ event.shortDescription }}</p>
                                     <app-ticket-availability-badge [event]="event"></app-ticket-availability-badge>
                                 </a>
                             </div>
