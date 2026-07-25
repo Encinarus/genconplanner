@@ -177,19 +177,19 @@
                     </h4>
                     <ng-container *ngIf="!isCollapsed(major.name)">
                     <div *ngFor="let minor of major.minorGroups; trackBy: trackByMinor" class="mb-4 deferred-catalog-group">
-                        <h5 [id]="toId(major.name, minor.minorName)" class="mb-3 d-flex align-items-center gap-2">
-                            <div class="d-flex align-items-center">
+                        <h5 [id]="toId(major.name, minor.minorName)" class="mb-3 d-flex flex-wrap align-items-baseline justify-content-between gap-2 border-bottom pb-1">
+                            <div class="d-flex flex-wrap align-items-baseline gap-2">
                                 <ng-container *ngIf="groupingMethod() === 'system' && minor.subGroups[0].bggId; else noBgg">
                                     <app-bgg-link [gameSystem]="minor.subGroups[0]" [showYear]="groupingMethod() !== 'year'"></app-bgg-link>
                                 </ng-container>
                                 <ng-template #noBgg>
-                                    {{ minor.minorName }}
+                                    <span class="fw-bold">{{ minor.minorName }}</span>
                                 </ng-template>
-                                <small *ngIf="minor.isSoldOut" class="text-muted ms-2" style="font-size: 0.9rem; font-weight: normal; opacity: 0.7">
+                                <small *ngIf="minor.isSoldOut" class="text-muted" style="font-size: 0.85rem; font-weight: normal; opacity: 0.75">
                                     (Sold Out)
                                 </small>
                             </div>
-                            <a href="javascript:void(0)" (click)="scrollToAnchor('top')" class="text-muted small text-decoration-none ms-1" style="font-weight: normal; opacity: 0.6;">
+                            <a href="javascript:void(0)" (click)="scrollToAnchor('top')" class="text-muted small text-decoration-none ms-auto" style="font-weight: normal; opacity: 0.6;">
                                 <i class="bi bi-arrow-up-circle"></i> Top
                             </a>
                         </h5>

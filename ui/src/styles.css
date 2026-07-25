@@ -4,6 +4,8 @@
     --sticky-header-top: calc(var(--navbar-height) + var(--navbar-translate-y));
     --sticky-header-height: 65px; /* Shrunken height of category detail header */
     --total-scroll-offset: calc(var(--sticky-header-top) + var(--sticky-header-height));
+    --mobile-gutter: 12px;
+    --desktop-gutter: 40px;
 }
 
 html {
@@ -18,8 +20,8 @@ html {
 }
 @media (min-width: 768px) {
     .main {
-        padding-right: 40px;
-        padding-left: 40px;
+        padding-right: var(--desktop-gutter);
+        padding-left: var(--desktop-gutter);
     }
 }
 @media (max-width: 768px) {
@@ -27,11 +29,11 @@ html {
         font-size: 14pt;
     }
     .main {
-        padding: 10px 6px !important;
+        padding: 16px var(--mobile-gutter) !important;
     }
     .container, .container-fluid {
-        padding-left: 6px !important;
-        padding-right: 6px !important;
+        padding-left: var(--mobile-gutter) !important;
+        padding-right: var(--mobile-gutter) !important;
     }
 }
 
