@@ -1,4 +1,4 @@
-import { Component, signal, inject, computed, OnInit, HostListener, OnDestroy } from '@angular/core';
+import { Component, signal, inject, computed, OnInit, HostListener, OnDestroy, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -19,9 +19,35 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   public linkService = inject(LinkService);
   public partyService = inject(PartyService);
+  private elementRef = inject(ElementRef);
   
   private lastScrollTop = 0;
   private isNavHidden = false;
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const navToggler = this.elementRef.nativeElement.querySelector('#navToggler');
+    if (navToggler && navToggler.classList.contains('show')) {
+      const clickedInsideNav = this.elementRef.nativeElement.contains(event.target as Node);
+      // Close if clicking outside the navbar, or if clicking an actual navigation link inside the navbar
+      const clickedLink = (event.target as HTMLElement).closest('a:not(.dropdown-toggle)');
+      if (!clickedInsideNav || clickedLink) {
+        this.closeMobileMenu();
+      }
+    }
+  }
+
+  private closeMobileMenu(): void {
+    const navToggler = this.elementRef.nativeElement.querySelector('#navToggler');
+    if (navToggler && navToggler.classList.contains('show')) {
+      navToggler.classList.remove('show');
+      const toggleBtn = this.elementRef.nativeElement.querySelector('.navbar-toggler');
+      if (toggleBtn) {
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.classList.add('collapsed');
+      }
+    }
+  }
 
   year = signal<number>(new Date().getFullYear());
   supportedYears = computed(() => {
@@ -47,6 +73,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     ).subscribe(() => {
       this.syncYearFromUrl();
       this.showNav();
+      this.closeMobileMenu();
     });
   }
 

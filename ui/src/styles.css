@@ -6,6 +6,7 @@
     --total-scroll-offset: calc(var(--sticky-header-top) + var(--sticky-header-height));
     --mobile-gutter: 12px;
     --desktop-gutter: 40px;
+
     /* Responsive Typography Scale Tokens */
     --font-size-xs: 0.75rem;   /* ~10.5px at 14px base desktop */
     --font-size-sm: 0.85rem;   /* ~12px at 14px base desktop */

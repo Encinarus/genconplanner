@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, signal, inject, computed, effect, input } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, signal, inject, computed, effect, input, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { combineLatest } from 'rxjs';
@@ -44,6 +44,16 @@ export class EventCatalogViewComponent implements OnInit, AfterViewInit, OnDestr
   public linkService = inject(LinkService);
   public auth = inject(AuthService);
   private router = inject(Router);
+  private elementRef = inject(ElementRef);
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.showAdvancedFilters()) return;
+    const headerContainer = this.elementRef.nativeElement.querySelector('.sticky-top-dynamic');
+    if (headerContainer && !headerContainer.contains(event.target as Node)) {
+      this.showAdvancedFilters.set(false);
+    }
+  }
 
   // Inputs
   mode = input<'category' | 'search'>('category');
@@ -547,6 +557,7 @@ export class EventCatalogViewComponent implements OnInit, AfterViewInit, OnDestr
   ngOnInit(): void {
     window.addEventListener('scroll', this.onScroll);
     combineLatest([this.route.params, this.route.queryParams]).subscribe(([params, queryParams]) => {
+      this.showAdvancedFilters.set(false);
       const rawYear = params['year'] ?? queryParams['year'];
       const parsedYear = rawYear !== undefined && rawYear !== null && rawYear !== '' ? Number(rawYear) : NaN;
       const newYear = !isNaN(parsedYear) && parsedYear > 0 ? parsedYear : new Date().getFullYear();

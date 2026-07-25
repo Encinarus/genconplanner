@@ -82,4 +82,37 @@ test.describe('Mobile Legibility & Small Text Verification', () => {
     // Desktop font size should remain compact (approx 10.5px at 14px base font size for 0.75rem)
     expect(desktopFontSize).toBeLessThan(12);
   });
+
+  test('Mobile: Filter drawer closes when clicking outside header', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/cat/2026/BGG');
+    await page.waitForSelector('.main');
+
+    const filterBtn = page.locator('button:has-text("Filters")');
+    await filterBtn.click();
+
+    const drawer = page.locator('.filter-drawer-wrapper');
+    await expect(drawer).toHaveClass(/open/);
+
+    // Tap/click outside the header/component area on the main body
+    await page.mouse.click(200, 500);
+
+    await expect(drawer).not.toHaveClass(/open/);
+  });
+
+  test('Mobile: Main navbar menu closes when clicking outside or navigating', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/cat/2026/BGG');
+    await page.waitForSelector('.main');
+
+    const navTogglerBtn = page.locator('button.navbar-toggler');
+    await navTogglerBtn.click();
+
+    const navCollapse = page.locator('#navToggler');
+    await expect(navCollapse).toHaveClass(/show/);
+
+    // Tap/click outside the navigation bar
+    await page.mouse.click(200, 500);
+    await expect(navCollapse).not.toHaveClass(/show/);
+  });
 });
