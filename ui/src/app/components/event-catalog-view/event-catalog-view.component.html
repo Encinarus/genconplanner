@@ -1,22 +1,22 @@
 <div id="top" class="top-anchor"></div>
-<div class="sticky-top bg-white border-bottom shadow-sm transition-all" 
+<div class="sticky-top-dynamic bg-white border-bottom shadow-sm transition-all" 
      [class.no-transition]="isScrollingToAnchor()"
-     style="z-index: 1020; top: 50px;">
-    <div class="container d-flex justify-content-between align-items-center py-2">
-        <h1 class="mb-0" style="font-size: 1.5rem;">
+     style="z-index: 1020;">
+    <div class="container d-flex justify-content-between align-items-center py-2 flex-wrap gap-2">
+        <h1 class="mb-0 fs-5 fs-sm-4 text-truncate" style="max-width: 60%;">
             <ng-container *ngIf="mode() === 'category'; else searchTitle">
                 {{ categoryCode() }}: {{ categoryName() }}
             </ng-container>
             <ng-template #searchTitle>
                 Search Results
             </ng-template>
-            <small class="text-muted d-none d-sm-inline" style="font-size: 1rem;">
+            <small class="text-muted d-none d-md-inline ms-1" style="font-size: 0.9rem;">
                 <ng-container *ngIf="mode() === 'search'">"{{ searchQuery() }}" - </ng-container>{{ totalSessionsCount() }} events / {{ filteredGroupsCount() }} groups
             </small>
         </h1>
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
             <button class="btn btn-sm" [class.btn-outline-primary]="!showAdvancedFilters()" [class.btn-primary]="showAdvancedFilters()" (click)="showAdvancedFilters.set(!showAdvancedFilters())">
-                <i class="bi bi-sliders"></i> Filters
+                <i class="bi bi-sliders"></i> <span class="d-none d-xs-inline ms-1">Filters</span>
                 <span *ngIf="activeFiltersCount() > 0" class="badge rounded-pill bg-primary ms-1">
                     {{ activeFiltersCount() }}
                 </span>
@@ -24,15 +24,15 @@
             <div class="btn-group btn-group-sm" role="group" aria-label="Grouping Method">
                 <input type="radio" class="btn-check" [name]="'groupingMethod' + mode()" [id]="'groupSystem' + mode()" autocomplete="off" 
                        [checked]="groupingMethod() === 'system'" (change)="setGrouping('system')">
-                <label class="btn btn-outline-secondary" [for]="'groupSystem' + mode()">System</label>
+                <label class="btn btn-outline-secondary px-2" [for]="'groupSystem' + mode()">System</label>
               
                 <input type="radio" class="btn-check" [name]="'groupingMethod' + mode()" [id]="'groupYear' + mode()" autocomplete="off"
                        [checked]="groupingMethod() === 'year'" (change)="setGrouping('year')">
-                <label class="btn btn-outline-secondary" [for]="'groupYear' + mode()">Year</label>
+                <label class="btn btn-outline-secondary px-2" [for]="'groupYear' + mode()">Year</label>
               
                 <input type="radio" class="btn-check" [name]="'groupingMethod' + mode()" [id]="'groupRating' + mode()" autocomplete="off"
                        [checked]="groupingMethod() === 'rating'" (change)="setGrouping('rating')">
-                <label class="btn btn-outline-secondary" [for]="'groupRating' + mode()">Rating</label>
+                <label class="btn btn-outline-secondary px-2" [for]="'groupRating' + mode()">Rating</label>
             </div>
         </div>
     </div>

@@ -1,4 +1,4 @@
-import { Component, signal, inject, computed, OnInit } from '@angular/core';
+import { Component, signal, inject, computed, OnInit, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -14,12 +14,15 @@ import { filter } from 'rxjs/operators';
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.css'
 })
-export class NavbarComponent implements OnInit {
+export class NavbarComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private authService = inject(AuthService);
   public linkService = inject(LinkService);
   public partyService = inject(PartyService);
   
+  private lastScrollTop = 0;
+  private isNavHidden = false;
+
   year = signal<number>(new Date().getFullYear());
   supportedYears = computed(() => {
     const currentYear = new Date().getFullYear();
@@ -43,7 +46,54 @@ export class NavbarComponent implements OnInit {
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
       this.syncYearFromUrl();
+      this.showNav();
     });
+  }
+
+  ngOnDestroy() {
+    this.showNav();
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll() {
+    if (window.innerWidth >= 768) {
+      if (this.isNavHidden) {
+        this.showNav();
+      }
+      return;
+    }
+
+    const st = Math.max(0, window.pageYOffset || document.documentElement.scrollTop);
+    const scrollDelta = st - this.lastScrollTop;
+
+    if (st > 40 && scrollDelta > 5) {
+      this.hideNav();
+    } else if (scrollDelta < -5 || st <= 40) {
+      this.showNav();
+    }
+
+    this.lastScrollTop = st;
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    if (window.innerWidth >= 768 && this.isNavHidden) {
+      this.showNav();
+    }
+  }
+
+  private hideNav() {
+    if (!this.isNavHidden) {
+      document.body.classList.add('nav-hidden');
+      this.isNavHidden = true;
+    }
+  }
+
+  private showNav() {
+    if (this.isNavHidden || document.body.classList.contains('nav-hidden')) {
+      document.body.classList.remove('nav-hidden');
+      this.isNavHidden = false;
+    }
   }
 
   private syncYearFromUrl() {

@@ -8,7 +8,7 @@
 
 .party-navigation-rail {
     position: fixed;
-    top: 50px; /* Below navbar */
+    top: var(--sticky-header-top); /* Below navbar, adjusts dynamically */
     left: 0;
     bottom: 0;
     width: 72px;
@@ -21,6 +21,11 @@
     padding-top: 0;
     padding-bottom: 1.5rem;
     box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+    transition: top 0.25s ease-in-out;
+}
+
+body.nav-hidden .party-navigation-rail {
+    top: 0;
 }
 
 .rail-tab {
@@ -59,7 +64,7 @@
 
 .sticky-party-header {
     position: sticky;
-    top: 50px; /* Aligned with navbar */
+    top: var(--sticky-header-top); /* Aligned with navbar, adjusts dynamically */
     z-index: 1020;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(5px);
@@ -70,20 +75,69 @@
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    transition: top 0.25s ease-in-out;
 }
 
-@media (max-width: 768px) {
+body.nav-hidden .sticky-party-header {
+    top: 0;
+}
+
+@media (max-width: 767.98px) {
     .party-navigation-rail {
-        width: 60px;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 56px;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-right: none;
+        border-top: 1px solid #dee2e6;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
     }
+    
+    body.nav-hidden .party-navigation-rail {
+        top: auto;
+    }
+
+    .rail-tab {
+        height: 100%;
+        padding: 0;
+        border-left: none;
+        border-top: 3px solid transparent;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        font-size: 0.7rem;
+    }
+
+    .rail-tab.active {
+        border-left: none;
+        border-top: 3px solid var(--bs-primary);
+        background-color: rgba(var(--bs-primary-rgb), 0.08);
+    }
+
+    .rail-tab i {
+        font-size: 1.25rem !important;
+    }
+
+    .rail-tab.mt-auto {
+        margin-top: 0 !important;
+    }
+
     .party-main-content {
-        margin-left: 60px;
-        width: calc(100% - 60px);
-        padding: 1rem 1rem;
+        margin-left: 0;
+        width: 100%;
+        padding: 1rem 0.75rem 4.5rem 0.75rem; /* Extra bottom padding for bottom nav */
     }
+
     .sticky-party-header {
-        margin: -1rem -1rem 1rem -1rem;
-        padding: 0.5rem 1rem;
+        margin: -1rem -0.75rem 1rem -0.75rem;
+        padding: 0.5rem 0.75rem;
     }
 }
 

@@ -1,7 +1,9 @@
 :root {
     --navbar-height: 50px;
+    --navbar-translate-y: 0px;
+    --sticky-header-top: calc(var(--navbar-height) + var(--navbar-translate-y));
     --sticky-header-height: 65px; /* Shrunken height of category detail header */
-    --total-scroll-offset: calc(var(--navbar-height) + var(--sticky-header-height));
+    --total-scroll-offset: calc(var(--sticky-header-top) + var(--sticky-header-height));
 }
 
 html {
@@ -41,6 +43,33 @@ html {
     font-weight: bold;
 }
 
+body {
+    padding-top: var(--navbar-height);
+}
+
+.navbar-animated {
+    transition: transform 0.25s ease-in-out;
+    will-change: transform;
+}
+
+body.nav-hidden {
+    --sticky-header-top: 0px !important;
+}
+
+body.nav-hidden app-navbar .navbar {
+    transform: translateY(-100%);
+}
+
+.sticky-top-dynamic {
+    position: sticky;
+    top: var(--sticky-header-top);
+    transition: top 0.25s ease-in-out;
+}
+
+body.nav-hidden .sticky-top-dynamic {
+    top: 0px !important;
+}
+
 .eventGroup {
     padding-top: .1em;
     padding-bottom: .1em;
@@ -68,9 +97,7 @@ h1 a, h5 a, bggLink {
     color: #337ab7;
 }
 
-body {
-    padding-top: 50px;
-}
+
 
 a.fc-col-header-cell-cushion {
     text-decoration: none;
